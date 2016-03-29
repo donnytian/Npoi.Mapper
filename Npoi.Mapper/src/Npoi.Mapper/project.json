@@ -1,0 +1,19 @@
+﻿{
+  "version": "1.0.0-*",
+  "description": "Convention based mapper between strong typed object and Excel data via NPOI.",
+  "authors": [ "Donny Tian" ],
+  "tags": [ "NPOI", "Object mapping" ],
+  "projectUrl": "https://github.com/donnytian/Npoi.Mapper",
+  "licenseUrl": "",
+
+  "frameworks": {
+    "net451": {
+      "frameworkAssemblies": {
+        "System.ComponentModel.DataAnnotations": "4.0.0.0"
+      }
+    }
+  },
+  "dependencies": {
+    "NPOI": "2.1.3.1"
+  }
+}
