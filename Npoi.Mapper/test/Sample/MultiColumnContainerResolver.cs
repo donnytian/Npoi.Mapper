@@ -9,8 +9,9 @@ namespace test.Sample
         {
             try
             {
-                // Custom logic to determin whether or not to take this column.
-                if (index > 5 && value is double)
+                // Custom logic to determine whether or not to map and include this column.
+                // Header value is either in string or double. Try convert by needs.
+                if (index > 30 && index <= 40 && value is double)
                 {
                     // Assign back header value and use it from TryResolveCell method.
                     value = DateTime.FromOADate((double)value);
@@ -31,7 +32,10 @@ namespace test.Sample
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;
 
-            target.CollectionGenericProperty.Add(columnInfo.HeaderValue.ToString() + cellValue);
+            if (!(columnInfo.HeaderValue is DateTime)) return false;
+
+            // Custom logic to handle the cell value.
+            target.CollectionGenericProperty.Add(((DateTime)columnInfo.HeaderValue).ToLongDateString() + cellValue);
 
             return true;
         }

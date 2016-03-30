@@ -34,15 +34,16 @@ namespace test.Sample
 
         public object ObjectProperty { get; set; }
 
+        [MultiColumnContainer(typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
 
         [ColumnName("By Name")]
         public string ColumnNameAttributeProperty { get; set; }
 
-        [ColumnIndex(1)]
+        [ColumnIndex(11)]
         public string ColumnIndexAttributeProperty { get; set; }
 
         [UseLastNonBlankValue]
-        public string UserLastNonBlankValueAttributeProperty { get; set; }
+        public string UseLastNonBlankValueAttributeProperty { get; set; }
     }
 }

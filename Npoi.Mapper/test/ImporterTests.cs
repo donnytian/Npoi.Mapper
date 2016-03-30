@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -27,7 +26,7 @@ namespace test
         }
 
         [TestMethod]
-        public void ImporterConstructorTest()
+        public void ImporterConstructorStreamTest()
         {
             // Prepare
             InputWorkbookStream = new FileStream("Book1.xlsx", FileMode.Open);
@@ -41,8 +40,22 @@ namespace test
         }
 
         [TestMethod]
+        public void ImporterConstructorWorkbookTest()
+        {
+            // Prepare
+            var workbook = GetSimpleWorkbook(DateTime.MaxValue, "dummy");
+
+            // Act
+            var importer = new Importer(workbook);
+
+            // Assert
+            Assert.IsNotNull(importer);
+            Assert.IsNotNull(importer.Workbook);
+        }
+
+        [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
-        public void ImporterConstructorNullExceptionTest()
+        public void ImporterConstructorNullStreamTest()
         {
             // Prepare
             Stream nullStream = null;
@@ -58,7 +71,7 @@ namespace test
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
-        public void ImporterConstructorNullExceptionTest2()
+        public void ImporterConstructorNullWorkbookTest()
         {
             // Prepare
             IWorkbook nullWorkbook = null;
@@ -77,16 +90,8 @@ namespace test
         {
             // Prepare
             var date = DateTime.Now;
-            var str = "aBC";
-            var workbook = new XSSFWorkbook();
-            workbook.CreateSheet("sheet1");
-            var sheet = workbook.CreateSheet("sheet2");
-            var header = sheet.CreateRow(0);
-            header.CreateCell(0).SetCellValue("DateProperty");
-            header.CreateCell(1).SetCellValue("StringProperty");
-            var row = sheet.CreateRow(1);
-            row.CreateCell(0).SetCellValue(date);
-            row.CreateCell(1).SetCellValue(str);
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
             var importer = new Importer(workbook);
 
             // Act
@@ -99,8 +104,65 @@ namespace test
             var obj = objs[0];
             var objDate = obj.Value.DateProperty;
 
-            Assert.AreEqual(date.ToLongTimeString(), objDate.ToLongTimeString());
+            Assert.AreEqual(date.ToLongDateString(), objDate.ToLongDateString());
             Assert.AreEqual(str, obj.Value.StringProperty);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void TakeByHeaderIndexOutOfRangeTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
+            var importer = new Importer(workbook);
+
+            // Act
+            // ReSharper disable once UnusedVariable
+            var objs = importer.TakeByHeader<SampleClass>(10).ToList();
+
+            // Assert
+        }
+
+        [TestMethod]
+        public void TakeByHeaderNameTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
+            var importer = new Importer(workbook);
+
+            // Act
+            var objs = importer.TakeByHeader<SampleClass>("sheet2").ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(1, objs.Count);
+
+            var obj = objs[0];
+            var objDate = obj.Value.DateProperty;
+
+            Assert.AreEqual(date.ToLongDateString(), objDate.ToLongDateString());
+            Assert.AreEqual(str, obj.Value.StringProperty);
+        }
+
+        [TestMethod]
+        public void TakeByHeaderNameNotExistTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
+            var importer = new Importer(workbook);
+
+            // Act
+            var objs = importer.TakeByHeader<SampleClass>("notExistSheet").ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(0, objs.Count);
         }
     }
 }

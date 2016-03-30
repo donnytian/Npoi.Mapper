@@ -299,7 +299,7 @@ namespace Npoi.Mapper
                     if (!TryGetCellValue(cell, propertyType, out valueObj))
                     {
                         errorIndex = column.Index;
-                        errorMessage = "Failed to get cell value!";
+                        errorMessage = "CellType is not supported yet!";
                         break;
                     }
 
@@ -314,11 +314,15 @@ namespace Npoi.Mapper
                             break;
                         }
                     }
-                    else
+                    else if (valueObj != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = Convert.ChangeType(valueObj, propertyType);
                         column.Property.SetValue(obj, value);
+                    }
+                    else
+                    {
+                        // If we go this far, keep target property untouched...
                     }
                 }
                 catch (Exception e)
@@ -393,6 +397,10 @@ namespace Npoi.Mapper
                         value = cell.NumericCellValue;
                     }
 
+                    break;
+
+                case CellType.Blank:
+                    // Dose nothing to keep return value null.
                     break;
 
                 default: // TODO. Support other types.
