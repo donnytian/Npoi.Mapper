@@ -142,14 +142,12 @@ namespace Npoi.Mapper
                 }
 
                 // Naming convention.
-                if (column == null)
+                if (column == null && header.CellType == CellType.String)
                 {
-                    if (header.CellType == CellType.String)
+                    var s = header.StringCellValue;
+
+                    if (!string.IsNullOrWhiteSpace(s))
                     {
-                        var s = header.StringCellValue;
-
-                        if (string.IsNullOrWhiteSpace(s)) continue;
-
                         column = GetColumnInfoByName<T>(s.Trim(), header.ColumnIndex);
                     }
                 }

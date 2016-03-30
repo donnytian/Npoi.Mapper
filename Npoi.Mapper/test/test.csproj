@@ -44,8 +44,8 @@
       <HintPath>..\packages\NPOI.2.1.3.1\lib\net40\NPOI.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Npoi.Mapper, Version=1.0.0.2, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Npoi.Mapper.1.0.0.2\lib\net451\Npoi.Mapper.dll</HintPath>
+    <Reference Include="Npoi.Mapper, Version=1.0.0.3, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Npoi.Mapper.1.0.0.3\lib\net451\Npoi.Mapper.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="NPOI.OOXML, Version=2.1.3.1, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
