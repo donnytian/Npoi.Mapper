@@ -39,6 +39,18 @@ namespace Npoi.Mapper
             Workbook = WorkbookFactory.Create(stream, ImportOption.SheetContentOnly);
         }
 
+        /// <summary>
+        /// Initialize a new instance of <see cref="Importer"/> class.
+        /// </summary>
+        /// <param name="workbook">The input IWorkbook object.</param>
+        public Importer(IWorkbook workbook)
+        {
+            if (workbook == null)
+                throw new ArgumentNullException(nameof(workbook));
+
+            Workbook = workbook;
+        }
+
         #endregion
 
         #region Public Methods
@@ -199,7 +211,9 @@ namespace Npoi.Mapper
 
                 if (string.Equals(att.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
                 {
-                    var resolver = Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
+                    var resolver = att.ColumnResolverType == null ?
+                        null :
+                        Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
 
                     return new ColumnInfo<T>(header.StringCellValue, header.ColumnIndex, pi)
                     {
@@ -223,7 +237,9 @@ namespace Npoi.Mapper
 
                 if (att != null && att.Index == header.ColumnIndex)
                 {
-                    var resolver = Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
+                    var resolver = att.ColumnResolverType == null ?
+                        null :
+                        Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
 
                     return new ColumnInfo<T>(header.StringCellValue, header.ColumnIndex, pi)
                     {
@@ -368,7 +384,7 @@ namespace Npoi.Mapper
                     break;
 
                 case CellType.Numeric:
-                    if (DateUtil.IsCellDateFormatted(cell)) // DateTime type.
+                    if (DateUtil.IsCellDateFormatted(cell) || targetType == typeof(DateTime)) // DateTime type.
                     {
                         value = cell.DateCellValue;
                     }
