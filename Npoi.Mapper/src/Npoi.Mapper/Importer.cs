@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -16,9 +17,20 @@ namespace Npoi.Mapper
     /// </summary>
     public class Importer
     {
+        #region Fields
+
         private const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
+        #endregion
+
         #region Properties
+
+        // Column mappings.
+        private Dictionary<PropertyInfo, MappingInfo> Mappings { get; } = new Dictionary<PropertyInfo, MappingInfo>();
+
+        // Type of resolver to handle unrecognized columns.
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
+        public Type DefaultResolverType { get; set; }
 
         // Excel file workbook.
         public IWorkbook Workbook { get; }
@@ -55,6 +67,64 @@ namespace Npoi.Mapper
 
         #region Public Methods
 
+        public Importer Map<T>(string columnName,
+            Expression<Func<T, object>> propertySelector,
+            Type resolverType = null,
+            bool useLastNonBlankValue = false)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            var mapping = Mappings.ContainsKey(pi)
+                ? Mappings[pi]
+                : Mappings[pi] = new MappingInfo(columnName, pi, resolverType);
+
+            mapping.UseLastNonBlankValue = useLastNonBlankValue;
+            mapping.ResolverType = resolverType;
+            mapping.Mapped = true;
+
+            return this;
+        }
+
+        public Importer Map<T>(int columnIndex,
+            Expression<Func<T, object>> propertySelector,
+            Type resolverType = null,
+            bool useLastNonBlankValue = false)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            var mapping = Mappings.ContainsKey(pi)
+                ? Mappings[pi]
+                : Mappings[pi] = new MappingInfo(columnIndex, pi, resolverType);
+
+            mapping.UseLastNonBlankValue = useLastNonBlankValue;
+            mapping.ResolverType = resolverType;
+            mapping.Mapped = true;
+
+            return this;
+        }
+
+        public Importer UseLastNonBlankValue<T>(Expression<Func<T, object>> propertySelector)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            var mapping = Mappings.ContainsKey(pi)
+                ? Mappings[pi]
+                : Mappings[pi] = new MappingInfo(null, pi);
+
+            mapping.UseLastNonBlankValue = true;
+
+            return this;
+        }
+
+        public Importer Ignore<T>(Expression<Func<T, object>> propertySelector)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            var mapping = Mappings.ContainsKey(pi)
+                ? Mappings[pi]
+                : Mappings[pi] = new MappingInfo(null, pi);
+
+            mapping.IgnoreProperty = true;
+
+            return this;
+        }
+
         /// <summary>
         /// Get objects of target type by converting rows in the sheet with specified index (zero based).
         /// </summary>
@@ -68,7 +138,8 @@ namespace Npoi.Mapper
             int maxErrorRows = 10,
             Func<T> objectInitializer = null)
         {
-            return TakeByHeader(Workbook.GetSheetAt(sheetIndex), maxErrorRows, objectInitializer);
+            var sheet = Workbook.GetSheetAt(sheetIndex);
+            return TakeByHeader(sheet, maxErrorRows, objectInitializer);
         }
 
         /// <summary>
@@ -84,20 +155,19 @@ namespace Npoi.Mapper
             int maxErrorRows = 10,
             Func<T> objectInitializer = null)
         {
-            return TakeByHeader(Workbook.GetSheet(sheetName), maxErrorRows, objectInitializer);
+            var sheet = Workbook.GetSheet(sheetName);
+            return TakeByHeader(sheet, maxErrorRows, objectInitializer);
         }
 
         #endregion
 
         #region Private Methods
 
-        private static IEnumerable<RowInfo<T>> TakeByHeader<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
+        private IEnumerable<RowInfo<T>> TakeByHeader<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
         {
-            var list = new List<RowInfo<T>>();
-
             if (sheet == null || sheet.PhysicalNumberOfRows < 2)
             {
-                return list;
+                yield break;
             }
 
             var headerIndex = sheet.FirstRowNum;
@@ -112,33 +182,32 @@ namespace Npoi.Mapper
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum == headerIndex) continue;
+
                 var data = GetRowData(headers, row, objectInitializer);
 
-                list.Add(data);
-
                 if (data.ErrorColumnIndex >= 0) errorCount++;
-            }
 
-            return list;
+                yield return data;
+            }
         }
 
-        private static void PrepareHeaders<T>(IRow headerRow, ICollection<ColumnInfo<T>> columns)
+        private void PrepareHeaders<T>(IRow headerRow, ICollection<ColumnInfo<T>> columns)
         {
             //
             // Column mapping priority:
-            // ColumnNameAttribute > ColumnIndexAttribute > naming convention > MultiColumnsContainerAttribute
+            // Map<T> > ColumnAttribute > naming convention > MultiColumnsContainerAttribute > DefaultResolverType.
             //
 
             // Prepare a list of ColumnInfo.
             foreach (ICell header in headerRow)
             {
-                // ColumnNameAttribute
-                var column = GetColumnInfoByColumnsNameAttribute<T>(header);
+                // Custom mappings via Map<T> function.
+                var column = GetColumnInfoByMappings<T>(header, Mappings);
 
-                // ColumnIndexAttribute
+                // ColumnAttribute
                 if (column == null)
                 {
-                    column = GetColumnInfoByColumnsIndexAttribute<T>(header);
+                    column = GetColumnInfoByColumnAttribute<T>(header);
                 }
 
                 // Naming convention.
@@ -158,16 +227,27 @@ namespace Npoi.Mapper
                     column = GetColumnInfoByMultiColumnsContainerAttribute<T>(header);
                 }
 
+                // DefaultResolverType
+                if (column == null)
+                {
+                    column = GetColumnInfoByResolverType<T>(header, DefaultResolverType);
+                }
+
                 if (column != null)
                 {
-                    column.UseLastNonBlankValue = column.Property
-                        .GetCustomAttributes<UseLastNonBlankValueAttribute>().Any();
+                    if (column.Property != null && !column.UseLastNonBlankValue)
+                    {
+                        column.UseLastNonBlankValue = column.Property
+                            .GetCustomAttributes<UseLastNonBlankValueAttribute>().Any();
+                    }
+
+                    UpdateMapping(column);
                     columns.Add(column);
                 }
             }
         }
 
-        private static ColumnInfo<T> GetColumnInfoByName<T>(string name, int index)
+        private ColumnInfo<T> GetColumnInfoByName<T>(string name, int index)
         {
             var type = typeof(T);
 
@@ -176,7 +256,7 @@ namespace Npoi.Mapper
             if (pi != null) return new ColumnInfo<T>(name, index, pi);
 
             // Second attempt: search display name of DisplayAttribute if any.
-            foreach (var propertyInfo in type.GetProperties(BindingFlag))
+            foreach (var propertyInfo in GetProperties(type))
             {
                 var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
 
@@ -195,19 +275,48 @@ namespace Npoi.Mapper
             return pi == null ? null : new ColumnInfo<T>(name, index, pi);
         }
 
-        private static ColumnInfo<T> GetColumnInfoByColumnsNameAttribute<T>(ICell header)
+        private static ColumnInfo<T> GetColumnInfoByMappings<T>(ICell header, Dictionary<PropertyInfo, MappingInfo> mappings)
+        {
+            var type = typeof(T);
+            var cellType = GetCellType(header);
+
+            foreach (var pair in mappings)
+            {
+                if (pair.Key.ReflectedType != type || !pair.Value.Mapped || pair.Value.IgnoreProperty) continue;
+
+                var mapping = pair.Value;
+
+                if ((cellType == CellType.String && string.Equals(mapping.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
+                    || mapping.Index == header.ColumnIndex)
+                {
+                    var resolver = pair.Value.ResolverType == null ?
+                        null :
+                        Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
+
+                    return new ColumnInfo<T>(GetHeaderValue(header), header.ColumnIndex, pair.Key)
+                    {
+                        Resolver = resolver
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        private ColumnInfo<T> GetColumnInfoByColumnAttribute<T>(ICell header)
         {
             if (GetCellType(header) != CellType.String) return null;
 
             var type = typeof(T);
 
-            foreach (var pi in type.GetProperties(BindingFlag))
+            foreach (var pi in GetProperties(type))
             {
-                var att = pi.GetCustomAttributes<ColumnNameAttribute>().FirstOrDefault();
+                var att = pi.GetCustomAttributes<ColumnAttribute>().FirstOrDefault();
 
                 if (att == null) continue;
 
-                if (string.Equals(att.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
+                if (string.Equals(att.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase)
+                    || att.Index == header.ColumnIndex)
                 {
                     var resolver = att.ColumnResolverType == null ?
                         null :
@@ -223,37 +332,11 @@ namespace Npoi.Mapper
             return null;
         }
 
-        private static ColumnInfo<T> GetColumnInfoByColumnsIndexAttribute<T>(ICell header)
-        {
-            if (GetCellType(header) != CellType.String) return null;
-
-            var type = typeof(T);
-
-            foreach (var pi in type.GetProperties(BindingFlag))
-            {
-                var att = pi.GetCustomAttributes<ColumnIndexAttribute>().FirstOrDefault();
-
-                if (att != null && att.Index == header.ColumnIndex)
-                {
-                    var resolver = att.ColumnResolverType == null ?
-                        null :
-                        Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
-
-                    return new ColumnInfo<T>(header.StringCellValue, header.ColumnIndex, pi)
-                    {
-                        Resolver = resolver
-                    };
-                }
-            }
-
-            return null;
-        }
-
-        private static ColumnInfo<T> GetColumnInfoByMultiColumnsContainerAttribute<T>(ICell header)
+        private ColumnInfo<T> GetColumnInfoByMultiColumnsContainerAttribute<T>(ICell header)
         {
             var type = typeof(T);
 
-            foreach (var pi in type.GetProperties(BindingFlag))
+            foreach (var pi in GetProperties(type))
             {
                 var att = pi.GetCustomAttributes<MultiColumnContainerAttribute>().FirstOrDefault();
 
@@ -266,13 +349,31 @@ namespace Npoi.Mapper
                 var headerValue = GetHeaderValue(header);
                 if (!resolver.TryResolveHeader(ref headerValue, header.ColumnIndex)) continue;
 
-                return new ColumnInfo<T>(headerValue, header.ColumnIndex, pi, true)
+                return new ColumnInfo<T>(headerValue, header.ColumnIndex, pi)
                 {
                     Resolver = resolver
                 };
             }
 
             return null;
+        }
+
+        private static ColumnInfo<T> GetColumnInfoByResolverType<T>(ICell header, Type resolverType)
+        {
+            if (resolverType == null) return null;
+
+            var resolver = Activator.CreateInstance(resolverType) as ColumnResolver<T>;
+
+            if (resolver == null) return null;
+
+            var headerValue = GetHeaderValue(header);
+
+            if (!resolver.TryResolveHeader(ref headerValue, header.ColumnIndex)) return null;
+
+            return new ColumnInfo<T>(headerValue, header.ColumnIndex, null)
+            {
+                Resolver = resolver
+            };
         }
 
         private static RowInfo<T> GetRowData<T>(IEnumerable<ColumnInfo<T>> columns, IRow row, Func<T> objectInitializer)
@@ -285,13 +386,8 @@ namespace Npoi.Mapper
             {
                 try
                 {
-                    if (column.Property == null)
-                    {
-                        continue;
-                    }
-
                     var cell = row.GetCell(column.Index);
-                    var propertyType = column.Property.PropertyType;
+                    var propertyType = column.Property?.PropertyType;
                     object valueObj;
 
                     if (!TryGetCellValue(cell, propertyType, out valueObj))
@@ -312,7 +408,7 @@ namespace Npoi.Mapper
                             break;
                         }
                     }
-                    else if (valueObj != null)
+                    else if (propertyType != null && valueObj != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = Convert.ChangeType(valueObj, propertyType);
@@ -374,7 +470,7 @@ namespace Npoi.Mapper
             switch (GetCellType(cell))
             {
                 case CellType.String:
-                    if (targetType.IsEnum) // Enum type.
+                    if (targetType != null && targetType.IsEnum) // Enum type.
                     {
                         value = Enum.Parse(targetType, cell.StringCellValue, true);
                     }
@@ -413,6 +509,44 @@ namespace Npoi.Mapper
         private static CellType GetCellType(ICell cell)
         {
             return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
+        }
+
+        private static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
+        {
+            var expression = propertySelector as LambdaExpression;
+
+            if (expression == null)
+                throw new ArgumentException("Only LambdaExpression is allowed!", nameof(propertySelector));
+
+            var body = expression.Body.NodeType == ExpressionType.MemberAccess ?
+                (MemberExpression)expression.Body :
+                (MemberExpression)((UnaryExpression)expression.Body).Operand;
+
+            return (PropertyInfo)body.Member;
+        }
+
+        private IEnumerable<PropertyInfo> GetProperties(Type type)
+        {
+            if (type == null) yield break;
+
+            foreach (var pi in type.GetProperties(BindingFlag))
+            {
+                if (Mappings.ContainsKey(pi) && Mappings[pi].IgnoreProperty)
+                {
+                    continue;
+                }
+
+                yield return pi;
+            }
+        }
+
+        private void UpdateMapping<T>(ColumnInfo<T> column)
+        {
+            if (column.Property == null) return;
+            if (!Mappings.ContainsKey(column.Property)) return;
+
+            var mapping = Mappings[column.Property];
+            column.UseLastNonBlankValue = mapping.UseLastNonBlankValue;
         }
 
         #endregion

@@ -9,11 +9,5 @@ namespace Npoi.Mapper.Attributes
     [AttributeUsage(AttributeTargets.Property)]
     public class UseLastNonBlankValueAttribute : Attribute
     {
-        /// <summary>
-        /// Initialize a new instance of <see cref="UseLastNonBlankValueAttribute"/> class.
-        /// </summary>
-        public UseLastNonBlankValueAttribute()
-        {
-        }
     }
 }

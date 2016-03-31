@@ -31,6 +31,14 @@ namespace test
             return workbook;
         }
 
+        protected static IWorkbook GetBlankWorkbook()
+        {
+            var workbook = new XSSFWorkbook();
+            workbook.CreateSheet("sheet1");
+
+            return workbook;
+        }
+
         #endregion
     }
 }

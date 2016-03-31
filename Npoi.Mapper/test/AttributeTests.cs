@@ -136,7 +136,28 @@ namespace test
 
             obj = objs[4];
             Assert.AreEqual(str2, obj.Value.UseLastNonBlankValueAttributeProperty);
+        }
 
+        [TestMethod]
+        public void IgnoredTest()
+        {
+            // Prepare
+            var sample = new SampleClass();
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            var workbook = GetSimpleWorkbook(date, str1);
+
+            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
+            header.SetCellValue(nameof(sample.IgnoredAttributeProperty));
+            workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
+
+            var importer = new Importer(workbook);
+
+            // Act
+            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNull(objs[0].Value.IgnoredAttributeProperty);
         }
     }
 }

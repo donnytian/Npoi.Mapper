@@ -15,6 +15,7 @@ namespace test.Sample
         public SampleClass()
         {
             CollectionGenericProperty = new List<string>();
+            GeneralCollectionProperty = new List<string>();
         }
 
         public SampleClass(ICollection<string> collectionGenericProperty)
@@ -37,13 +38,20 @@ namespace test.Sample
         [MultiColumnContainer(typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
 
-        [ColumnName("By Name")]
+        [Column("By Name")]
         public string ColumnNameAttributeProperty { get; set; }
 
-        [ColumnIndex(11)]
+        [Column(11)]
         public string ColumnIndexAttributeProperty { get; set; }
 
         [UseLastNonBlankValue]
         public string UseLastNonBlankValueAttributeProperty { get; set; }
+
+        [Ignore]
+        public string IgnoredAttributeProperty { get; set; }
+
+        public string GeneralProperty { get; set; }
+
+        public ICollection<string> GeneralCollectionProperty { get; set; }
     }
 }

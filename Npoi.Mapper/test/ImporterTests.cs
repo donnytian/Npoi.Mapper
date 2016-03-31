@@ -81,8 +81,41 @@ namespace test
             // ReSharper disable once UnusedVariable
             var importer = new Importer(nullWorkbook);
 
+            // Assert
+        }
+
+        [TestMethod]
+        public void ImporterNoElementTest()
+        {
+            // Prepare
+            var workbook = new XSSFWorkbook();
+            var header = workbook.CreateSheet("sheet1").CreateRow(0);
+            header.CreateCell(0).SetCellValue("StringProperty");
+            header.CreateCell(1).SetCellValue("Int32Property");
+            var importer = new Importer(workbook);
+
+            // Act
+            var objs = importer.TakeByHeader<SampleClass>(0);
 
             // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(0, objs.Count());
+        }
+
+        [TestMethod]
+        public void ImporterEmptySheetTest()
+        {
+            // Prepare
+            var workbook = new XSSFWorkbook();
+            workbook.CreateSheet("sheet1");
+            var importer = new Importer(workbook);
+
+            // Act
+            var objs = importer.TakeByHeader<SampleClass>(0);
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(0, objs.Count());
         }
 
         [TestMethod]
