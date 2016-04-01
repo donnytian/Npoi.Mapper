@@ -15,7 +15,7 @@ namespace Npoi.Mapper
     /// <summary>
     /// Import Excel row data as object.
     /// </summary>
-    public class Importer
+    public class Mapper
     {
         #region Fields
 
@@ -25,8 +25,8 @@ namespace Npoi.Mapper
 
         #region Properties
 
-        // Column mappings.
-        private Dictionary<PropertyInfo, MappingInfo> Mappings { get; } = new Dictionary<PropertyInfo, MappingInfo>();
+        // PropertyInfo map to PropertyMeta
+        private Dictionary<PropertyInfo, PropertyMeta> MetaDict { get; } = new Dictionary<PropertyInfo, PropertyMeta>();
 
         // Type of resolver to handle unrecognized columns.
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
@@ -40,22 +40,25 @@ namespace Npoi.Mapper
         #region Constructors
 
         /// <summary>
-        /// Initialize a new instance of <see cref="Importer"/> class.
+        /// Initialize a new instance of <see cref="Mapper"/> class.
         /// </summary>
         /// <param name="stream">The input Excel(XLS, XLSX) file stream</param>
-        public Importer(Stream stream)
+        public Mapper(Stream stream)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            Workbook = WorkbookFactory.Create(stream, ImportOption.SheetContentOnly);
+            using (stream)
+            {
+                Workbook = WorkbookFactory.Create(stream, ImportOption.SheetContentOnly);
+            }
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="Importer"/> class.
+        /// Initialize a new instance of <see cref="Mapper"/> class.
         /// </summary>
         /// <param name="workbook">The input IWorkbook object.</param>
-        public Importer(IWorkbook workbook)
+        public Mapper(IWorkbook workbook)
         {
             if (workbook == null)
                 throw new ArgumentNullException(nameof(workbook));
@@ -63,64 +66,94 @@ namespace Npoi.Mapper
             Workbook = workbook;
         }
 
+        /// <summary>
+        /// Initialize a new instance of <see cref="Mapper"/> class.
+        /// </summary>
+        /// <param name="filePath">The path of Excel file.</param>
+        public Mapper(string filePath) : this(new FileStream(filePath, FileMode.Open))
+        {
+        }
+
         #endregion
 
         #region Public Methods
 
-        public Importer Map<T>(string columnName,
-            Expression<Func<T, object>> propertySelector,
-            Type resolverType = null,
-            bool useLastNonBlankValue = false)
+        /// <summary>
+        /// Map property to a column by name.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="columnName">The column name.</param>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <param name="resolverType">The type of resolver.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Map<T>(string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = Mappings.ContainsKey(pi)
-                ? Mappings[pi]
-                : Mappings[pi] = new MappingInfo(columnName, pi, resolverType);
+            var mapping = MetaDict.ContainsKey(pi)
+                ? MetaDict[pi]
+                : MetaDict[pi] = new PropertyMeta(columnName, pi, resolverType);
 
-            mapping.UseLastNonBlankValue = useLastNonBlankValue;
             mapping.ResolverType = resolverType;
+            mapping.Ignored = false;
             mapping.Mapped = true;
 
             return this;
         }
 
-        public Importer Map<T>(int columnIndex,
-            Expression<Func<T, object>> propertySelector,
-            Type resolverType = null,
-            bool useLastNonBlankValue = false)
+        /// <summary>
+        /// Map property to a column by index.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="columnIndex">The column index.</param>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <param name="resolverType">The type of resolver.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Map<T>(int columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = Mappings.ContainsKey(pi)
-                ? Mappings[pi]
-                : Mappings[pi] = new MappingInfo(columnIndex, pi, resolverType);
+            var mapping = MetaDict.ContainsKey(pi)
+                ? MetaDict[pi]
+                : MetaDict[pi] = new PropertyMeta(columnIndex, pi, resolverType);
 
-            mapping.UseLastNonBlankValue = useLastNonBlankValue;
             mapping.ResolverType = resolverType;
+            mapping.Ignored = false;
             mapping.Mapped = true;
 
             return this;
         }
 
-        public Importer UseLastNonBlankValue<T>(Expression<Func<T, object>> propertySelector)
+        /// <summary>
+        /// Specify to use last non-blank value for a property.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper UseLastNonBlankValue<T>(Expression<Func<T, object>> propertySelector)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = Mappings.ContainsKey(pi)
-                ? Mappings[pi]
-                : Mappings[pi] = new MappingInfo(null, pi);
+            var mapping = MetaDict.ContainsKey(pi)
+                ? MetaDict[pi]
+                : MetaDict[pi] = new PropertyMeta(null, pi);
 
             mapping.UseLastNonBlankValue = true;
 
             return this;
         }
 
-        public Importer Ignore<T>(Expression<Func<T, object>> propertySelector)
+        /// <summary>
+        /// Specify to ignore a property.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Ignore<T>(Expression<Func<T, object>> propertySelector)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = Mappings.ContainsKey(pi)
-                ? Mappings[pi]
-                : Mappings[pi] = new MappingInfo(null, pi);
+            var mapping = MetaDict.ContainsKey(pi)
+                ? MetaDict[pi]
+                : MetaDict[pi] = new PropertyMeta(null, pi);
 
-            mapping.IgnoreProperty = true;
+            mapping.Ignored = true;
 
             return this;
         }
@@ -133,10 +166,7 @@ namespace Npoi.Mapper
         /// <param name="maxErrorRows">The maximum error rows before stop reading; default is 10.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> TakeByHeader<T>(
-            int sheetIndex = 0,
-            int maxErrorRows = 10,
-            Func<T> objectInitializer = null)
+        public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null)
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
             return TakeByHeader(sheet, maxErrorRows, objectInitializer);
@@ -150,10 +180,7 @@ namespace Npoi.Mapper
         /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> TakeByHeader<T>(
-            string sheetName,
-            int maxErrorRows = 10,
-            Func<T> objectInitializer = null)
+        public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null)
         {
             var sheet = Workbook.GetSheet(sheetName);
             return TakeByHeader(sheet, maxErrorRows, objectInitializer);
@@ -202,7 +229,7 @@ namespace Npoi.Mapper
             foreach (ICell header in headerRow)
             {
                 // Custom mappings via Map<T> function.
-                var column = GetColumnInfoByMappings<T>(header, Mappings);
+                var column = GetColumnInfoByMappings<T>(header, MetaDict);
 
                 // ColumnAttribute
                 if (column == null)
@@ -235,9 +262,10 @@ namespace Npoi.Mapper
 
                 if (column != null)
                 {
-                    if (column.Property != null && !column.UseLastNonBlankValue)
+                    var meta = column.PropertyMeta;
+                    if (meta.Property != null && !meta.UseLastNonBlankValue)
                     {
-                        column.UseLastNonBlankValue = column.Property
+                        meta.UseLastNonBlankValue = meta.Property
                             .GetCustomAttributes<UseLastNonBlankValueAttribute>().Any();
                     }
 
@@ -275,19 +303,19 @@ namespace Npoi.Mapper
             return pi == null ? null : new ColumnInfo<T>(name, index, pi);
         }
 
-        private static ColumnInfo<T> GetColumnInfoByMappings<T>(ICell header, Dictionary<PropertyInfo, MappingInfo> mappings)
+        private static ColumnInfo<T> GetColumnInfoByMappings<T>(ICell header, Dictionary<PropertyInfo, PropertyMeta> mappings)
         {
             var type = typeof(T);
             var cellType = GetCellType(header);
 
             foreach (var pair in mappings)
             {
-                if (pair.Key.ReflectedType != type || !pair.Value.Mapped || pair.Value.IgnoreProperty) continue;
+                if (pair.Key.ReflectedType != type || !pair.Value.Mapped || pair.Value.Ignored) continue;
 
                 var mapping = pair.Value;
 
-                if ((cellType == CellType.String && string.Equals(mapping.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
-                    || mapping.Index == header.ColumnIndex)
+                if ((cellType == CellType.String && string.Equals(mapping.ColumnName, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
+                    || mapping.ColumnIndex == header.ColumnIndex)
                 {
                     var resolver = pair.Value.ResolverType == null ?
                         null :
@@ -376,6 +404,21 @@ namespace Npoi.Mapper
             };
         }
 
+        private ColumnInfo<T> GetColumnInfo<T>(object headerValue, int index, PropertyInfo pi)
+        {
+            PropertyMeta pm;
+            if (pi != null && MetaDict.ContainsKey(pi))
+            {
+                pm = MetaDict[pi];
+            }
+            else
+            {
+                pm = new PropertyMeta(index, pi);
+            }
+
+            return new ColumnInfo<T>(headerValue, pm);
+        }
+
         private static RowInfo<T> GetRowData<T>(IEnumerable<ColumnInfo<T>> columns, IRow row, Func<T> objectInitializer)
         {
             var obj = objectInitializer == null ? Activator.CreateInstance<T>() : objectInitializer();
@@ -386,13 +429,13 @@ namespace Npoi.Mapper
             {
                 try
                 {
-                    var cell = row.GetCell(column.Index);
-                    var propertyType = column.Property?.PropertyType;
+                    var cell = row.GetCell(column.PropertyMeta.ColumnIndex);
+                    var propertyType = column.PropertyMeta.Property?.PropertyType;
                     object valueObj;
 
                     if (!TryGetCellValue(cell, propertyType, out valueObj))
                     {
-                        errorIndex = column.Index;
+                        errorIndex = column.PropertyMeta.ColumnIndex;
                         errorMessage = "CellType is not supported yet!";
                         break;
                     }
@@ -403,7 +446,7 @@ namespace Npoi.Mapper
                     {
                         if (!column.Resolver.TryResolveCell(column, valueObj, obj))
                         {
-                            errorIndex = column.Index;
+                            errorIndex = column.PropertyMeta.ColumnIndex;
                             errorMessage = "Returned failure by custom cell resolver!";
                             break;
                         }
@@ -412,7 +455,7 @@ namespace Npoi.Mapper
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = Convert.ChangeType(valueObj, propertyType);
-                        column.Property.SetValue(obj, value);
+                        column.PropertyMeta.Property.SetValue(obj, value);
                     }
                     else
                     {
@@ -421,7 +464,7 @@ namespace Npoi.Mapper
                 }
                 catch (Exception e)
                 {
-                    errorIndex = column.Index;
+                    errorIndex = column.PropertyMeta.ColumnIndex;
                     errorMessage = e.Message;
                     break;
                 }
@@ -511,6 +554,21 @@ namespace Npoi.Mapper
             return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
         }
 
+        private IEnumerable<PropertyInfo> GetProperties(Type type)
+        {
+            if (type == null) yield break;
+
+            foreach (var pi in type.GetProperties(BindingFlag))
+            {
+                if (MetaDict.ContainsKey(pi) && MetaDict[pi].Ignored)
+                {
+                    continue;
+                }
+
+                yield return pi;
+            }
+        }
+
         private static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
         {
             var expression = propertySelector as LambdaExpression;
@@ -525,28 +583,13 @@ namespace Npoi.Mapper
             return (PropertyInfo)body.Member;
         }
 
-        private IEnumerable<PropertyInfo> GetProperties(Type type)
-        {
-            if (type == null) yield break;
-
-            foreach (var pi in type.GetProperties(BindingFlag))
-            {
-                if (Mappings.ContainsKey(pi) && Mappings[pi].IgnoreProperty)
-                {
-                    continue;
-                }
-
-                yield return pi;
-            }
-        }
-
         private void UpdateMapping<T>(ColumnInfo<T> column)
         {
-            if (column.Property == null) return;
-            if (!Mappings.ContainsKey(column.Property)) return;
+            if (column.PropertyMeta.Property == null) return;
+            if (!MetaDict.ContainsKey(column.PropertyMeta.Property)) return;
 
-            var mapping = Mappings[column.Property];
-            column.UseLastNonBlankValue = mapping.UseLastNonBlankValue;
+            var mapping = MetaDict[column.PropertyMeta.Property];
+            column.PropertyMeta.UseLastNonBlankValue = mapping.UseLastNonBlankValue;
         }
 
         #endregion

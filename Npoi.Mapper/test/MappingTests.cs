@@ -26,11 +26,11 @@ namespace test
             header.SetCellValue("targetColumn");
             var cell = sheet.GetRow(11).CreateCell(11);
             cell.SetCellValue(str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             importer.Map<SampleClass>(11, o => o.GeneralProperty);
-            var objs = importer.TakeByHeader<SampleClass>().ToList();
+            var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -55,11 +55,11 @@ namespace test
             header.SetCellValue(name);
             var cell = sheet.GetRow(11).CreateCell(11);
             cell.SetCellValue(str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             importer.Map<SampleClass>(name, o => o.GeneralProperty);
-            var objs = importer.TakeByHeader<SampleClass>().ToList();
+            var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -92,11 +92,11 @@ namespace test
             var cell2 = sheet.GetRow(1).CreateCell(43);
             cell2.SetCellValue(str2);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             importer.DefaultResolverType = typeof (SampleColumnResolver);
-            var objs = importer.TakeByHeader<SampleClass>().ToList();
+            var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -125,11 +125,11 @@ namespace test
             header.SetCellValue(nameof(sample.GeneralProperty));
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             importer.Ignore<SampleClass>(o => o.GeneralProperty);
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNull(objs[0].Value.GeneralProperty);
@@ -154,11 +154,11 @@ namespace test
             workbook.GetSheetAt(1).CreateRow(23).CreateCell(41).SetCellValue(string.Empty);
             workbook.GetSheetAt(1).CreateRow(24).CreateCell(41).SetCellValue(str2);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             importer.UseLastNonBlankValue<SampleClass>(o => o.GeneralProperty);
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             var obj = objs[1];

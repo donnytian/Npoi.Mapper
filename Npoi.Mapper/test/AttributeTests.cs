@@ -21,10 +21,10 @@ namespace test
             header.SetCellValue("targetColumn");
             var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(11);
             cell.SetCellValue(str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -45,10 +45,10 @@ namespace test
             header.SetCellValue("By Name");
             var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
             cell.SetCellValue(str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -78,10 +78,10 @@ namespace test
             var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(33);
             cell2.SetCellValue(str2);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -116,10 +116,10 @@ namespace test
             workbook.GetSheetAt(1).CreateRow(23).CreateCell(41).SetCellValue(string.Empty);
             workbook.GetSheetAt(1).CreateRow(24).CreateCell(41).SetCellValue(str2);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -151,10 +151,10 @@ namespace test
             header.SetCellValue(nameof(sample.IgnoredAttributeProperty));
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
 
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNull(objs[0].Value.IgnoredAttributeProperty);

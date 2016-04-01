@@ -11,7 +11,7 @@ using test.Sample;
 namespace test
 {
     [TestClass]
-    public class ImporterTests : TestBase
+    public class ImportTests : TestBase
     {
         [TestInitialize]
         public void InitializeTest()
@@ -21,18 +21,16 @@ namespace test
         [TestCleanup]
         public void CleanupTest()
         {
-            InputWorkbookStream?.Dispose();
-            Workbook = null;
         }
 
         [TestMethod]
         public void ImporterConstructorStreamTest()
         {
             // Prepare
-            InputWorkbookStream = new FileStream("Book1.xlsx", FileMode.Open);
+            var stream = new FileStream("Book1.xlsx", FileMode.Open);
 
             // Act
-            var importer = new Importer(InputWorkbookStream);
+            var importer = new Mapper(stream);
 
             // Assert
             Assert.IsNotNull(importer);
@@ -46,7 +44,7 @@ namespace test
             var workbook = GetSimpleWorkbook(DateTime.MaxValue, "dummy");
 
             // Act
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Assert
             Assert.IsNotNull(importer);
@@ -63,7 +61,7 @@ namespace test
             // Act
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once UnusedVariable
-            var importer = new Importer(nullStream);
+            var importer = new Mapper(nullStream);
 
 
             // Assert
@@ -79,7 +77,33 @@ namespace test
             // Act
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once UnusedVariable
-            var importer = new Importer(nullWorkbook);
+            var importer = new Mapper(nullWorkbook);
+
+            // Assert
+        }
+
+        [TestMethod]
+        public void ImporterConstructorFilePathTest()
+        {
+            // Prepare
+
+            // Act
+            var importer = new Mapper("Book1.xlsx");
+
+
+            // Assert
+            Assert.IsNotNull(importer);
+            Assert.IsNotNull(importer.Workbook);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(FileNotFoundException))]
+        public void ImporterConstructorFilePathNotExistTest()
+        {
+            // Prepare
+
+            // Act
+            var importer = new Mapper("dummy.txt");
 
             // Assert
         }
@@ -92,10 +116,10 @@ namespace test
             var header = workbook.CreateSheet("sheet1").CreateRow(0);
             header.CreateCell(0).SetCellValue("StringProperty");
             header.CreateCell(1).SetCellValue("Int32Property");
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(0);
+            var objs = importer.Take<SampleClass>(0);
 
             // Assert
             Assert.IsNotNull(objs);
@@ -108,10 +132,10 @@ namespace test
             // Prepare
             var workbook = new XSSFWorkbook();
             workbook.CreateSheet("sheet1");
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(0);
+            var objs = importer.Take<SampleClass>(0);
 
             // Assert
             Assert.IsNotNull(objs);
@@ -125,10 +149,10 @@ namespace test
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>(1).ToList();
+            var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -149,11 +173,11 @@ namespace test
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
             // ReSharper disable once UnusedVariable
-            var objs = importer.TakeByHeader<SampleClass>(10).ToList();
+            var objs = importer.Take<SampleClass>(10).ToList();
 
             // Assert
         }
@@ -165,10 +189,10 @@ namespace test
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>("sheet2").ToList();
+            var objs = importer.Take<SampleClass>("sheet2").ToList();
 
             // Assert
             Assert.IsNotNull(objs);
@@ -188,10 +212,10 @@ namespace test
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var importer = new Importer(workbook);
+            var importer = new Mapper(workbook);
 
             // Act
-            var objs = importer.TakeByHeader<SampleClass>("notExistSheet").ToList();
+            var objs = importer.Take<SampleClass>("notExistSheet").ToList();
 
             // Assert
             Assert.IsNotNull(objs);
