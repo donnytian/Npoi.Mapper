@@ -22,10 +22,11 @@ More use cases please check out source in "test" project.
 
 ## Column mapping order
 
-1. ColumnNameAttribute
-2. ColumnIndexAttribute
+1. Fluent method Map<T>
+2. ColumnAttribute
 3. Default naming convention (see below section)
 4. MultiColumnsContainerAttribute
+5. DefaultResolverType
 
 ## Default naming convention for column header mapping
 
