@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Npoi.Mapper.Attributes;
+using NPOI.SS.UserModel;
 
 namespace Npoi.Mapper
 {
@@ -10,6 +12,16 @@ namespace Npoi.Mapper
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
     public class ColumnInfo<TTarget>
     {
+        private static readonly List<Type> NumericTypes = new List<Type>
+        {
+            typeof(decimal),
+            typeof(byte), typeof(sbyte),
+            typeof(short), typeof(ushort),
+            typeof(int), typeof(uint),
+            typeof(long), typeof(ulong),
+            typeof(float), typeof(double)
+        };
+
         #region Properties
 
         /// <summary>
@@ -106,6 +118,21 @@ namespace Npoi.Mapper
             LastNonBlankValue = value;
 
             return value;
+        }
+
+        public void SetCellFormat(ICell cell, short defaultFormat = 0)
+        {
+            var workbook = cell.Row.Sheet.Workbook;
+            var style = workbook.CreateCellStyle();
+            style.DataFormat = Attribute.CustomFormat != null 
+                ? workbook.CreateDataFormat().GetFormat(Attribute.CustomFormat)
+                : Attribute.BuiltinFormat != 0 ? Attribute.BuiltinFormat : defaultFormat;
+            cell.CellStyle = style;
+        }
+
+        public bool IsNumeric(Type type)
+        {
+            return NumericTypes.Contains(type);
         }
 
         #endregion

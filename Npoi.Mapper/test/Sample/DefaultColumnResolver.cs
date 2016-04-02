@@ -8,9 +8,15 @@ using Npoi.Mapper;
 namespace test.Sample
 {
     /// <summary>
-    /// Sample class to test <see cref="ColumnResolver{TTarget}"/> class.
+    /// Intend to handle all unrecognized columns.
+    /// Use IsColumnMapped method to determine whether you want to map a specific column or not.
+    /// 
+    /// The test of IsColumnMapped will be applied to all unmapped columns if the resolver is associated to a unmapped column,
+    /// which means mapped explicitly by method or attribute.
+    /// 
+    /// Also you can achieve this by set Mapper's DefaultResolverType.
     /// </summary>
-    public class SampleColumnResolver : ColumnResolver<SampleClass>
+    public class DefaultColumnResolver : ColumnResolver<SampleClass>
     {
         public override bool IsColumnMapped(ref object value, int index)
         {

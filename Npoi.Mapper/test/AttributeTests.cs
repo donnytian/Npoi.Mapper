@@ -59,6 +59,96 @@ namespace test
         }
 
         [TestMethod]
+        public void DisplayNameTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
+            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(21);
+            header.SetCellValue("Display Name");
+            var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
+            cell.SetCellValue(str);
+            var importer = new Mapper(workbook);
+
+            // Act
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(1, objs.Count);
+
+            var obj = objs[0];
+            Assert.AreEqual(str, obj.Value.DisplayNameProperty);
+        }
+
+        [TestMethod]
+        public void ColumnIndexOverNameTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetSimpleWorkbook(date, str1);
+            var header1 = workbook.GetSheetAt(1).GetRow(0).CreateCell(21);
+            header1.SetCellValue("By Name");
+
+            var header2 = workbook.GetSheetAt(1).GetRow(0).CreateCell(12);
+            header2.SetCellValue("targetColumn");
+
+            var cell1 = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
+            cell1.SetCellValue(str1);
+
+            var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(12);
+            cell2.SetCellValue(str2);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(1, objs.Count);
+
+            var obj = objs[0];
+            Assert.AreEqual(str2, obj.Value.IndexOverNameAttributeProperty);
+        }
+
+        [TestMethod]
+        public void SingleColumnResolverTypeTest()
+        {
+            // Prepare
+            var date1 = DateTime.Now;
+            var date2 = date1.AddMonths(1);
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+
+            var header1 = sheet.GetRow(0).CreateCell(51);
+            header1.SetCellValue(date1);
+            var cell1 = sheet.GetRow(1).CreateCell(51);
+            cell1.SetCellValue(str1);
+
+            var header2 = sheet.GetRow(0).CreateCell(53);
+            header2.SetCellValue(date2);
+            var cell2 = sheet.GetRow(1).CreateCell(53);
+            cell2.SetCellValue(str2);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            var objs = importer.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(date1.ToLongDateString() + str1, objs[0].Value.SingleColumnResolverProperty);
+        }
+
+        [TestMethod]
         public void MultiColumnContainerTest()
         {
             // Prepare

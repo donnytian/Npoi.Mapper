@@ -95,7 +95,7 @@ namespace test
             var importer = new Mapper(workbook);
 
             // Act
-            importer.DefaultResolverType = typeof (SampleColumnResolver);
+            importer.DefaultResolverType = typeof (DefaultColumnResolver);
             var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
@@ -172,6 +172,37 @@ namespace test
 
             obj = objs[4];
             Assert.AreEqual(str2, obj.Value.GeneralProperty);
+        }
+
+        [TestMethod]
+        public void MethodOverAttributeTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetSimpleWorkbook(date, str1);
+            var header1 = workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
+            header1.SetCellValue("ColumnIndexAttributeProperty");
+
+            var header2 = workbook.GetSheetAt(1).GetRow(0).CreateCell(12);
+            header2.SetCellValue("targetColumn");
+
+            var cell1 = workbook.GetSheetAt(1).GetRow(1).CreateCell(11);
+            cell1.SetCellValue(str1);
+
+            var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(12);
+            cell2.SetCellValue(str2);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<SampleClass>("targetColumn", o => o.ColumnIndexAttributeProperty);
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(str2, objs[0].Value.IndexOverNameAttributeProperty);
         }
     }
 }

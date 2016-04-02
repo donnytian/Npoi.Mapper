@@ -45,6 +45,22 @@ namespace Npoi.Mapper.Attributes
         /// </summary>
         public bool Ignored { get; set; }
 
+        /// <summary>
+        /// Gets or sets the built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.
+        /// </summary>
+        /// <value>
+        /// The built-in format.
+        /// </value>
+        public short BuiltinFormat { get; set; }
+
+        /// <summary>
+        /// Gets or sets the custom format, see https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
+        /// </summary>
+        /// <value>
+        /// The custom format.
+        /// </value>
+        public string CustomFormat { get; set; }
+
         #endregion
 
         #region Public Methods

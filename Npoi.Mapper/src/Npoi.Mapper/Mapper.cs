@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -6,9 +7,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
-
-using NPOI.SS.UserModel;
 using Npoi.Mapper.Attributes;
+using NPOI.HSSF.UserModel;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
+
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Npoi.Mapper
 {
@@ -19,7 +23,15 @@ namespace Npoi.Mapper
     {
         #region Fields
 
+        // Binding flags to lookup object properties.
         private const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
+
+        // Default chars that will be removed when mapping by column header name.
+        private static readonly char[] DefaultIgnoredChars =
+        {'`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '=', '|', ',', '.', '/', '?'};
+
+        // Default chars to truncate column header name during mapping.
+        private static readonly char[] DefaultTruncateChars = { '[', '<', '(', '{' };
 
         #endregion
 
@@ -28,13 +40,41 @@ namespace Npoi.Mapper
         // PropertyInfo map to ColumnAttribute
         private Dictionary<PropertyInfo, ColumnAttribute> Attributes { get; } = new Dictionary<PropertyInfo, ColumnAttribute>();
 
-        // Type of resolver to handle unrecognized columns.
+        // Sheet name map to tracked objects from Excel file.
+        private Dictionary<string, Dictionary<int, object>> Objects { get; } = new Dictionary<string, Dictionary<int, object>>();
+
+        /// <summary>
+        /// Type of resolver to handle unrecognized columns.
+        /// </summary>
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public Type DefaultResolverType { get; set; }
 
-        // Excel file workbook.
-        public IWorkbook Workbook { get; }
+        /// <summary>
+        /// The Excel workbook.
+        /// </summary>
+        public IWorkbook Workbook { get; private set; }
 
+        /// <summary>
+        /// When map column, chars in this array will be removed from column header.
+        /// </summary>
+        public char[] IgnoredNameChars { get; set; }
+
+        /// <summary>
+        /// When map column, column name will be truncated from any of chars in this array.
+        /// </summary>
+        public char[] TruncateNameFrom { get; set; }
+
+        /// <summary>
+        /// Whether to track objects read from the Excel file. Default is true.
+        /// If object tracking is enabled, the <see cref="Mapper"/> object keeps track of objects it yields through the Take() methods.
+        /// You can then modify these objects and save them back to an Excel file without having to specify the list of objects to save.
+        /// </summary>
+        public bool TrackObjects { get; set; } = true;
+
+        /// <summary>
+        /// Whether to take the first row as column header. Default is true.
+        /// </summary>
+        public bool FirstRowAsHeader { get; set; } = true;
         #endregion
 
         #region Constructors
@@ -94,7 +134,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute()
+            var attribute = new ColumnAttribute
             {
                 Name = columnName,
                 Property = pi,
@@ -125,7 +165,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute()
+            var attribute = new ColumnAttribute
             {
                 Index = columnIndex,
                 Property = pi,
@@ -141,7 +181,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Specify to use last non-blank value for a property.
+        /// Specify to use last non-blank value for a property. Useful in merged cells.
         /// </summary>
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="propertySelector">Property selector.</param>
@@ -151,7 +191,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute()
+            var attribute = new ColumnAttribute
             {
                 Property = pi,
                 UseLastNonBlankValue = true
@@ -175,10 +215,60 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute()
+            var attribute = new ColumnAttribute
             {
                 Property = pi,
                 Ignored = true
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
+
+            return this;
+        }
+
+        /// <summary>
+        /// Specify the built-in format.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="builtinFormat">The built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.</param>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Format<T>(short builtinFormat, Expression<Func<T, object>> propertySelector)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            if (pi == null) return this;
+
+            var attribute = new ColumnAttribute
+            {
+                Property = pi,
+                BuiltinFormat = builtinFormat
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
+
+            return this;
+        }
+
+        /// <summary>
+        /// Specify the custom format.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="customFormat">The custom format, see https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.</param>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Format<T>(string customFormat, Expression<Func<T, object>> propertySelector)
+        {
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            if (pi == null) return this;
+
+            var attribute = new ColumnAttribute
+            {
+                Property = pi,
+                CustomFormat = customFormat
             };
 
             Attributes[pi] = Attributes.ContainsKey(pi)
@@ -199,7 +289,7 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null)
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
-            return TakeByHeader(sheet, maxErrorRows, objectInitializer);
+            return Take(sheet, maxErrorRows, objectInitializer);
         }
 
         /// <summary>
@@ -213,46 +303,168 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null)
         {
             var sheet = Workbook.GetSheet(sheetName);
-            return TakeByHeader(sheet, maxErrorRows, objectInitializer);
+            return Take(sheet, maxErrorRows, objectInitializer);
+        }
+
+        /// <summary>
+        /// Saves the specified objects to the specified Excel file.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(string file, IEnumerable<T> objects, string sheetName, bool xlsx = true)
+        {
+            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+                Save(fs, objects, sheetName, xlsx);
+        }
+
+        /// <summary>
+        /// Saves the specified objects to the specified Excel file.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(string file, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true)
+        {
+            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+                Save(fs, objects, sheetIndex, xlsx);
+        }
+
+        /// <summary>
+        /// Saves the specified objects to the specified stream.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool xlsx = true)
+        {
+            if (Workbook == null)
+                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            var sheet = Workbook.GetSheet(sheetName);
+            if (sheet == null) sheet = Workbook.CreateSheet(sheetName);
+            Save(stream, sheet, objects);
+        }
+
+        /// <summary>
+        /// Saves the specified objects to the specified stream.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true)
+        {
+            if (Workbook == null)
+                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            ISheet sheet;
+            if (Workbook.NumberOfSheets > sheetIndex)
+                sheet = Workbook.GetSheetAt(sheetIndex);
+            else
+                sheet = Workbook.CreateSheet();
+            Save(stream, sheet, objects);
+        }
+
+        /// <summary>
+        /// Saves tracked objects to the specified Excel file.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(string file, string sheetName, bool xlsx = true)
+        {
+            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+                Save<T>(fs, sheetName, xlsx);
+        }
+
+        /// <summary>
+        /// Saves tracked objects to the specified Excel file.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(string file, int sheetIndex = 0, bool xlsx = true)
+        {
+            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+                Save<T>(fs, sheetIndex, xlsx);
+        }
+
+        /// <summary>
+        /// Saves tracked objects to the specified stream.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(Stream stream, string sheetName, bool xlsx = true)
+        {
+            if (Workbook == null)
+                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
+
+            Save<T>(stream, sheet);
+        }
+
+        /// <summary>
+        /// Saves tracked objects to the specified stream.
+        /// </summary>
+        /// <typeparam name="T">The type of objects to save.</typeparam>
+        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
+        public void Save<T>(Stream stream, int sheetIndex = 0, bool xlsx = true)
+        {
+            if (Workbook == null)
+                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            var sheet = Workbook.GetSheetAt(sheetIndex) ?? Workbook.CreateSheet();
+
+            Save<T>(stream, sheet);
         }
 
         #endregion
 
         #region Private Methods
 
-        private IEnumerable<RowInfo<T>> TakeByHeader<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
+        private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
         {
-            if (sheet == null || sheet.PhysicalNumberOfRows < 2)
+            if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
                 yield break;
             }
 
-            var headerIndex = sheet.FirstRowNum;
-            var headerRow = sheet.GetRow(headerIndex);
-            var headers = new List<ColumnInfo<T>>();
+            var firstRowIndex = sheet.FirstRowNum;
+            var firstRow = sheet.GetRow(firstRowIndex);
 
-            ScanAttributes<T>(Attributes);
-            PrepareHeaders(headerRow, headers);
+            ScanAttributes<T>();
+            var columns = GetColumns<T>(firstRow);
+            if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
             // Loop rows in file. Generate one target object for each row.
             var errorCount = 0;
             foreach (IRow row in sheet)
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
-                if (row.RowNum == headerIndex) continue;
+                if (FirstRowAsHeader && row.RowNum == firstRowIndex) continue;
 
-                var data = GetRowData(headers, row, objectInitializer);
+                var data = GetRowData(columns, row, objectInitializer);
 
                 if (data.ErrorColumnIndex >= 0) errorCount++;
+                if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = data.Value;
 
                 yield return data;
             }
         }
 
-        private static void ScanAttributes<T>(Dictionary<PropertyInfo, ColumnAttribute> attributes)
+        private void ScanAttributes<T>()
         {
-            if (attributes == null) return;
-
             var type = typeof(T);
 
             foreach (var pi in type.GetProperties(BindingFlag))
@@ -263,14 +475,14 @@ namespace Npoi.Mapper
 
                 attributeMeta.Property = pi;
 
-                if (attributes.ContainsKey(pi))
+                if (Attributes.ContainsKey(pi))
                 {
-                    // Fluent attribute takes precedence over attribute meta.
-                    attributes[pi] = MergeAttribute(attributeMeta, attributes[pi]);
+                    // Note that Map method takes precedence over attribute meta.
+                    Attributes[pi] = MergeAttribute(attributeMeta, Attributes[pi]);
                 }
                 else
                 {
-                    attributes[pi] = attributeMeta;
+                    Attributes[pi] = attributeMeta;
                 }
             }
         }
@@ -282,35 +494,34 @@ namespace Npoi.Mapper
             //
 
             if (newAttribute.Index < 0) newAttribute.Index = oldAttribute.Index;
-
             if (newAttribute.Name == null) newAttribute.Name = oldAttribute.Name;
-
             if (newAttribute.Property == null) newAttribute.Property = oldAttribute.Property;
-
             if (newAttribute.ResolverType == null) newAttribute.ResolverType = oldAttribute.ResolverType;
-
             if (!newAttribute.Ignored) newAttribute.Ignored = oldAttribute.Ignored;
-
             if (!newAttribute.UseLastNonBlankValue) newAttribute.UseLastNonBlankValue = oldAttribute.UseLastNonBlankValue;
+            if (newAttribute.BuiltinFormat == 0) newAttribute.BuiltinFormat = oldAttribute.BuiltinFormat;
+            if (newAttribute.CustomFormat == null) newAttribute.CustomFormat = oldAttribute.CustomFormat;
 
             return newAttribute;
         }
 
-        private void PrepareHeaders<T>(IRow headerRow, ICollection<ColumnInfo<T>> columns)
+        private List<ColumnInfo<T>> GetColumns<T>(IRow headerRow)
         {
             //
             // Column mapping priority:
-            // Map<T> > ColumnAttribute > naming convention > MultiColumnsContainerAttribute > DefaultResolverType.
+            // Map<T> > ColumnAttribute > naming convention > DefaultResolverType.
             //
 
-            // Prepare a list of ColumnInfo.
+            var columns = new List<ColumnInfo<T>>();
+
+            // Prepare a list of ColumnInfo by the first row.
             foreach (ICell header in headerRow)
             {
                 // Custom mappings via attributes.
                 var column = GetColumnInfoByAttribute<T>(header);
 
                 // Naming convention.
-                if (column == null && header.CellType == CellType.String)
+                if (column == null && FirstRowAsHeader && GetCellType(header) == CellType.String)
                 {
                     var s = header.StringCellValue;
 
@@ -331,6 +542,8 @@ namespace Npoi.Mapper
                     columns.Add(column);
                 }
             }
+
+            return columns;
         }
 
         private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
@@ -344,10 +557,14 @@ namespace Npoi.Mapper
                 if (pair.Key.ReflectedType != type || pair.Value.Ignored) continue;
 
                 var attribute = pair.Value;
+
+                if (!FirstRowAsHeader && attribute.Index < 0) continue;
+
                 var indexMatch = attribute.Index == index;
                 var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
 
-                if (indexMatch || nameMatch)
+                // Index takes precedence over Name.
+                if (indexMatch || (attribute.Index < 0 && nameMatch))
                 {
                     attribute = attribute.Clone();
                     attribute.Index = index;
@@ -355,8 +572,10 @@ namespace Npoi.Mapper
                     var resolver = pair.Value.ResolverType == null ?
                         null :
                         Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
+                    var headerValue = GetHeaderValue(header);
+                    resolver?.IsColumnMapped(ref headerValue, index); // Ignore return value since it's already mapped to column.
 
-                    return new ColumnInfo<T>(GetHeaderValue(header), attribute)
+                    return new ColumnInfo<T>(headerValue, attribute)
                     {
                         Resolver = resolver
                     };
@@ -366,19 +585,17 @@ namespace Npoi.Mapper
                 {
                     var resolver = Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
 
-                    if (resolver != null)
+                    if (resolver == null) continue;
+                    var headerValue = GetHeaderValue(header);
+
+                    if (!resolver.IsColumnMapped(ref headerValue, index)) continue;
+
+                    attribute = attribute.Clone();
+                    attribute.Index = index;
+                    return new ColumnInfo<T>(headerValue, attribute)
                     {
-                        var headerValue = GetHeaderValue(header);
-                        if (resolver.IsColumnMapped(ref headerValue, index))
-                        {
-                            attribute = attribute.Clone();
-                            attribute.Index = index;
-                            return new ColumnInfo<T>(headerValue, attribute)
-                            {
-                                Resolver = resolver
-                            };
-                        }
-                    }
+                        Resolver = resolver
+                    };
                 }
             }
 
@@ -409,11 +626,8 @@ namespace Npoi.Mapper
 
             if (pi == null)
             {
-                // Third attempt: remove space chars, '-', '_', ',', '.' and truncate by parentheses.
-                name = Regex.Replace(name, @"\s", "").Replace("-", "").Replace("_", "").Replace(",", "").Replace("_", "");
-                var bracketIndex = name.IndexOfAny(new[] { '(', '[', '{', '<' });
-                if (bracketIndex > 0) name = name.Remove(bracketIndex);
-                pi = type.GetProperty(name, BindingFlag);
+                // Third attempt: remove ignored chars and do the truncation.
+                pi = type.GetProperty(RefineName(name), BindingFlag);
             }
 
             ColumnAttribute attribute = null;
@@ -487,10 +701,6 @@ namespace Npoi.Mapper
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = Convert.ChangeType(valueObj, propertyType);
                         column.Attribute.Property.SetValue(obj, value);
-                    }
-                    else
-                    {
-                        // If we go this far, keep target property untouched...
                     }
                 }
                 catch (Exception e)
@@ -580,6 +790,22 @@ namespace Npoi.Mapper
             return success;
         }
 
+        private string RefineName(string name)
+        {
+            if (name == null) return null;
+
+            name = Regex.Replace(name, @"\s", "");
+            var ignoredChars = IgnoredNameChars ?? DefaultIgnoredChars;
+            var truncateChars = TruncateNameFrom ?? DefaultTruncateChars;
+
+            name = ignoredChars.Aggregate(name, (current, c) => current.Replace(c, '\0'));
+
+            var index = name.IndexOfAny(truncateChars);
+            if (index >= 0) name = name.Remove(index);
+
+            return name;
+        }
+
         private static CellType GetCellType(ICell cell)
         {
             return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
@@ -598,6 +824,131 @@ namespace Npoi.Mapper
 
             return (PropertyInfo)body.Member;
         }
+
+        #region Export
+
+        private void Save<T>(Stream stream, ISheet sheet)
+        {
+            if (!Objects.ContainsKey(sheet.SheetName)) return;
+
+            var objects = Objects[sheet.SheetName];
+            var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
+
+            var columns = GetColumns<T>(firstRow);
+
+            foreach (var pair in objects)
+            {
+                if (pair.Value == null) continue;
+
+                var i = pair.Key;
+                var row = sheet.GetRow(i) ?? sheet.CreateRow(i);
+
+                foreach (var column in columns)
+                {
+                    var pi = column.Attribute.Property;
+                    var value = pi.GetValue(pair.Value);
+                    var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+                    SetCell(cell, value, column);
+                }
+            }
+
+            Workbook.Write(stream);
+        }
+
+        private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects)
+        {
+            var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
+            var columns = GetColumns<T>(firstRow);
+            var i = FirstRowAsHeader ? 1 : 0;
+
+            foreach (var o in objects)
+            {
+                var row = sheet.GetRow(i) ?? sheet.CreateRow(i);
+
+                foreach (var column in columns)
+                {
+                    var pi = column.Attribute.Property;
+                    var value = pi.GetValue(o);
+                    var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+                    SetCell(cell, value, column);
+                }
+
+                i++;
+            }
+
+            while (i <= sheet.LastRowNum)
+            {
+                var row = sheet.GetRow(i);
+                while (row.Cells.Any())
+                    row.RemoveCell(row.GetCell(row.FirstCellNum));
+                i++;
+            }
+
+            Workbook.Write(stream);
+        }
+
+        private IRow PopulateFirstRow<T>(ISheet sheet)
+        {
+            var type = typeof(T);
+
+            ScanAttributes<T>();
+
+            var row = sheet.CreateRow(sheet.FirstRowNum);
+            var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
+            var properties = new List<PropertyInfo>(type.GetProperties(BindingFlag));
+
+            foreach (var pair in attributes)
+            {
+                var attribute = pair.Value;
+                if (pair.Value.Index >= 0)
+                {
+                    row.CreateCell(attribute.Index).SetCellValue(attribute.Name);
+                    properties.Remove(pair.Key); // Remove populated property.
+                }
+            }
+
+            var index = 0;
+
+            foreach (var pi in properties)
+            {
+                if (Attributes.ContainsKey(pi) && Attributes[pi].Ignored) continue;
+                while (row.GetCell(index) != null) index++;
+                row.CreateCell(index).SetCellValue(pi.Name);
+                index++;
+            }
+
+            return row;
+        }
+
+        private static void SetCell<T>(ICell cell, object value, ColumnInfo<T> column)
+        {
+            if (value == null || value is IEnumerable)
+            {
+                cell.SetCellValue((string)null);
+            }
+            else if (value is DateTime)
+            {
+                cell.SetCellValue((DateTime)value);
+            }
+            else if (column.IsNumeric(value.GetType()))
+            {
+                cell.SetCellValue(Convert.ToDouble(value));
+            }
+            else if (value is bool)
+            {
+                cell.SetCellValue((bool)value);
+            }
+            else
+            {
+                cell.SetCellValue(value.ToString());
+            }
+
+            column.SetCellFormat(cell);
+        }
+
+        #endregion
 
         #endregion
     }
