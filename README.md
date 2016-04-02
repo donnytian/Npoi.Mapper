@@ -1,6 +1,10 @@
 # Npoi.Mapper
 Convention based mapper between strong typed object and Excel data via NPOI.
 
+## Install
+
+Install-Package Npoi.Mapper
+
 ## Get objects from Excel (XLS or XLSX)
 
 ```C#
