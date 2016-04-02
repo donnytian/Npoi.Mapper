@@ -35,19 +35,19 @@ namespace test.Sample
 
         public object ObjectProperty { get; set; }
 
-        [MultiColumnContainer(typeof(MultiColumnContainerResolver))]
+        [Column(ResolverType = typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
 
-        [Column("By Name")]
+        [Column(Name = "By Name")]
         public string ColumnNameAttributeProperty { get; set; }
 
-        [Column(11)]
+        [Column(Index = 11)]
         public string ColumnIndexAttributeProperty { get; set; }
 
-        [UseLastNonBlankValue]
+        [Column(UseLastNonBlankValue = true)]
         public string UseLastNonBlankValueAttributeProperty { get; set; }
 
-        [Ignore]
+        [Column(Ignored = true)]
         public string IgnoredAttributeProperty { get; set; }
 
         public string GeneralProperty { get; set; }

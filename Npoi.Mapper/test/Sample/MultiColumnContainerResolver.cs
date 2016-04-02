@@ -5,16 +5,16 @@ namespace test.Sample
 {
     public class MultiColumnContainerResolver : ColumnResolver<SampleClass>
     {
-        public override bool TryResolveHeader(ref object value, int index)
+        public override bool IsColumnMapped(ref object headerValue, int index)
         {
             try
             {
                 // Custom logic to determine whether or not to map and include this column.
                 // Header value is either in string or double. Try convert by needs.
-                if (index > 30 && index <= 40 && value is double)
+                if (index > 30 && index <= 40 && headerValue is double)
                 {
                     // Assign back header value and use it from TryResolveCell method.
-                    value = DateTime.FromOADate((double)value);
+                    headerValue = DateTime.FromOADate((double)headerValue);
 
                     return true;
                 }

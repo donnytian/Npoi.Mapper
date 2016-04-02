@@ -7,16 +7,16 @@
     public abstract class ColumnResolver<TTarget>
     {
         /// <summary>
-        /// Try resolve header.
+        /// Determine whether the given column mapped by this resolver or not.
         /// </summary>
-        /// <param name="value">
+        /// <param name="headerValue">
         /// Header value that is either string or double.
-        /// Resolved value can be assigned back and will be passed in again as HeaderValue property
+        /// Resolved value can be assigned back so that it can be used as HeaderValue property
         /// of columnInfo in TryResolveCell method.
         /// </param>
         /// <param name="index">Column index</param>
-        /// <returns>True if can take header and column to match property; otherwise false.</returns>
-        public abstract bool TryResolveHeader(ref object value, int index);
+        /// <returns>True if can map header and column; otherwise false.</returns>
+        public abstract bool IsColumnMapped(ref object headerValue, int index);
 
         /// <summary>
         /// Try resolve cell.

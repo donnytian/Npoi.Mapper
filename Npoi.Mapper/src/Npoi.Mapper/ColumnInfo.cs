@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Npoi.Mapper.Attributes;
 
 namespace Npoi.Mapper
 {
@@ -25,7 +26,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// The mapped property information.
         /// </summary>
-        public PropertyMeta PropertyMeta { get; }
+        public ColumnAttribute Attribute { get; set; }
 
         /// <summary>
         /// The last non-blank value.
@@ -45,7 +46,11 @@ namespace Npoi.Mapper
         public ColumnInfo(object headerValue, string columnName, PropertyInfo pi)
         {
             HeaderValue = headerValue;
-            PropertyMeta = new PropertyMeta(columnName, pi);
+            Attribute = new ColumnAttribute()
+            {
+                Name = columnName,
+                Property = pi
+            };
         }
 
         /// <summary>
@@ -57,20 +62,24 @@ namespace Npoi.Mapper
         public ColumnInfo(object headerValue, int columnIndex, PropertyInfo pi)
         {
             HeaderValue = headerValue;
-            PropertyMeta = new PropertyMeta(columnIndex, pi);
+            Attribute = new ColumnAttribute()
+            {
+                Index = columnIndex,
+                Property = pi
+            };
         }
 
         /// <summary>
         /// Initialize a new instance of <see cref="ColumnInfo{TTarget}"/> class.
         /// </summary>
         /// <param name="headerValue">The header value</param>
-        /// <param name="propertyMeta">Mapped <c>PropertyMeta</c> object.</param>
-        public ColumnInfo(object headerValue, PropertyMeta propertyMeta)
+        /// <param name="attribute">Mapped <c>PropertyMeta</c> object.</param>
+        public ColumnInfo(object headerValue, ColumnAttribute attribute)
         {
-            if (propertyMeta == null)
-                throw new ArgumentNullException(nameof(propertyMeta));
+            if (attribute == null)
+                throw new ArgumentNullException(nameof(attribute));
 
-            PropertyMeta = propertyMeta;
+            Attribute = attribute;
             HeaderValue = headerValue;
         }
 
@@ -91,7 +100,7 @@ namespace Npoi.Mapper
             // Specially check for string.
             if (string.IsNullOrWhiteSpace(value as string))
             {
-                return PropertyMeta.UseLastNonBlankValue ? LastNonBlankValue : value;
+                return Attribute.UseLastNonBlankValue ? LastNonBlankValue : value;
             }
 
             LastNonBlankValue = value;

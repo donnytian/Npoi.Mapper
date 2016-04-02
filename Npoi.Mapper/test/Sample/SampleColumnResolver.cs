@@ -12,7 +12,7 @@ namespace test.Sample
     /// </summary>
     public class SampleColumnResolver : ColumnResolver<SampleClass>
     {
-        public override bool TryResolveHeader(ref object value, int index)
+        public override bool IsColumnMapped(ref object value, int index)
         {
             try
             {

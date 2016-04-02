@@ -25,8 +25,8 @@ namespace Npoi.Mapper
 
         #region Properties
 
-        // PropertyInfo map to PropertyMeta
-        private Dictionary<PropertyInfo, PropertyMeta> MetaDict { get; } = new Dictionary<PropertyInfo, PropertyMeta>();
+        // PropertyInfo map to ColumnAttribute
+        private Dictionary<PropertyInfo, ColumnAttribute> Attributes { get; } = new Dictionary<PropertyInfo, ColumnAttribute>();
 
         // Type of resolver to handle unrecognized columns.
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
@@ -88,14 +88,23 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = MetaDict.ContainsKey(pi)
-                ? MetaDict[pi]
-                : MetaDict[pi] = new PropertyMeta(columnName, pi, resolverType);
+            if (columnName == null)
+                throw new ArgumentNullException(nameof(columnName));
 
-            mapping.ResolverType = resolverType;
-            mapping.Ignored = false;
-            mapping.Mapped = true;
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            if (pi == null) return this;
+
+            var attribute = new ColumnAttribute()
+            {
+                Name = columnName,
+                Property = pi,
+                ResolverType = resolverType,
+                Ignored = false
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
 
             return this;
         }
@@ -110,14 +119,23 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(int columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = MetaDict.ContainsKey(pi)
-                ? MetaDict[pi]
-                : MetaDict[pi] = new PropertyMeta(columnIndex, pi, resolverType);
+            if (columnIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(columnIndex));
 
-            mapping.ResolverType = resolverType;
-            mapping.Ignored = false;
-            mapping.Mapped = true;
+            var pi = GetPropertyInfoByExpression(propertySelector);
+            if (pi == null) return this;
+
+            var attribute = new ColumnAttribute()
+            {
+                Index = columnIndex,
+                Property = pi,
+                ResolverType = resolverType,
+                Ignored = false
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
 
             return this;
         }
@@ -131,11 +149,17 @@ namespace Npoi.Mapper
         public Mapper UseLastNonBlankValue<T>(Expression<Func<T, object>> propertySelector)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = MetaDict.ContainsKey(pi)
-                ? MetaDict[pi]
-                : MetaDict[pi] = new PropertyMeta(null, pi);
+            if (pi == null) return this;
 
-            mapping.UseLastNonBlankValue = true;
+            var attribute = new ColumnAttribute()
+            {
+                Property = pi,
+                UseLastNonBlankValue = true
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
 
             return this;
         }
@@ -149,11 +173,17 @@ namespace Npoi.Mapper
         public Mapper Ignore<T>(Expression<Func<T, object>> propertySelector)
         {
             var pi = GetPropertyInfoByExpression(propertySelector);
-            var mapping = MetaDict.ContainsKey(pi)
-                ? MetaDict[pi]
-                : MetaDict[pi] = new PropertyMeta(null, pi);
+            if (pi == null) return this;
 
-            mapping.Ignored = true;
+            var attribute = new ColumnAttribute()
+            {
+                Property = pi,
+                Ignored = true
+            };
+
+            Attributes[pi] = Attributes.ContainsKey(pi)
+                ? MergeAttribute(Attributes[pi], attribute)
+                : Attributes[pi] = attribute;
 
             return this;
         }
@@ -201,6 +231,7 @@ namespace Npoi.Mapper
             var headerRow = sheet.GetRow(headerIndex);
             var headers = new List<ColumnInfo<T>>();
 
+            ScanAttributes<T>(Attributes);
             PrepareHeaders(headerRow, headers);
 
             // Loop rows in file. Generate one target object for each row.
@@ -218,6 +249,53 @@ namespace Npoi.Mapper
             }
         }
 
+        private static void ScanAttributes<T>(Dictionary<PropertyInfo, ColumnAttribute> attributes)
+        {
+            if (attributes == null) return;
+
+            var type = typeof(T);
+
+            foreach (var pi in type.GetProperties(BindingFlag))
+            {
+                var attributeMeta = pi.GetCustomAttributes<ColumnAttribute>().FirstOrDefault();
+
+                if (attributeMeta == null) continue;
+
+                attributeMeta.Property = pi;
+
+                if (attributes.ContainsKey(pi))
+                {
+                    // Fluent attribute takes precedence over attribute meta.
+                    attributes[pi] = MergeAttribute(attributeMeta, attributes[pi]);
+                }
+                else
+                {
+                    attributes[pi] = attributeMeta;
+                }
+            }
+        }
+
+        private static ColumnAttribute MergeAttribute(ColumnAttribute oldAttribute, ColumnAttribute newAttribute)
+        {
+            //
+            // New attribute takes precedence over old attribute.
+            //
+
+            if (newAttribute.Index < 0) newAttribute.Index = oldAttribute.Index;
+
+            if (newAttribute.Name == null) newAttribute.Name = oldAttribute.Name;
+
+            if (newAttribute.Property == null) newAttribute.Property = oldAttribute.Property;
+
+            if (newAttribute.ResolverType == null) newAttribute.ResolverType = oldAttribute.ResolverType;
+
+            if (!newAttribute.Ignored) newAttribute.Ignored = oldAttribute.Ignored;
+
+            if (!newAttribute.UseLastNonBlankValue) newAttribute.UseLastNonBlankValue = oldAttribute.UseLastNonBlankValue;
+
+            return newAttribute;
+        }
+
         private void PrepareHeaders<T>(IRow headerRow, ICollection<ColumnInfo<T>> columns)
         {
             //
@@ -228,14 +306,8 @@ namespace Npoi.Mapper
             // Prepare a list of ColumnInfo.
             foreach (ICell header in headerRow)
             {
-                // Custom mappings via Map<T> function.
-                var column = GetColumnInfoByMappings<T>(header, MetaDict);
-
-                // ColumnAttribute
-                if (column == null)
-                {
-                    column = GetColumnInfoByColumnAttribute<T>(header);
-                }
+                // Custom mappings via attributes.
+                var column = GetColumnInfoByAttribute<T>(header);
 
                 // Naming convention.
                 if (column == null && header.CellType == CellType.String)
@@ -248,12 +320,6 @@ namespace Npoi.Mapper
                     }
                 }
 
-                // MultiColumnsContainerAttribute
-                if (column == null)
-                {
-                    column = GetColumnInfoByMultiColumnsContainerAttribute<T>(header);
-                }
-
                 // DefaultResolverType
                 if (column == null)
                 {
@@ -262,128 +328,105 @@ namespace Npoi.Mapper
 
                 if (column != null)
                 {
-                    var meta = column.PropertyMeta;
-                    if (meta.Property != null && !meta.UseLastNonBlankValue)
-                    {
-                        meta.UseLastNonBlankValue = meta.Property
-                            .GetCustomAttributes<UseLastNonBlankValueAttribute>().Any();
-                    }
-
-                    UpdateMapping(column);
                     columns.Add(column);
                 }
             }
+        }
+
+        private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
+        {
+            var type = typeof(T);
+            var cellType = GetCellType(header);
+            var index = header.ColumnIndex;
+
+            foreach (var pair in Attributes)
+            {
+                if (pair.Key.ReflectedType != type || pair.Value.Ignored) continue;
+
+                var attribute = pair.Value;
+                var indexMatch = attribute.Index == index;
+                var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
+
+                if (indexMatch || nameMatch)
+                {
+                    attribute = attribute.Clone();
+                    attribute.Index = index;
+
+                    var resolver = pair.Value.ResolverType == null ?
+                        null :
+                        Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
+
+                    return new ColumnInfo<T>(GetHeaderValue(header), attribute)
+                    {
+                        Resolver = resolver
+                    };
+                }
+
+                if (attribute.Index < 0 && attribute.Name == null && attribute.ResolverType != null)
+                {
+                    var resolver = Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
+
+                    if (resolver != null)
+                    {
+                        var headerValue = GetHeaderValue(header);
+                        if (resolver.IsColumnMapped(ref headerValue, index))
+                        {
+                            attribute = attribute.Clone();
+                            attribute.Index = index;
+                            return new ColumnInfo<T>(headerValue, attribute)
+                            {
+                                Resolver = resolver
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         private ColumnInfo<T> GetColumnInfoByName<T>(string name, int index)
         {
             var type = typeof(T);
 
-            // First attempt: search by exact string.
+            // First attempt: search by string (ignore case).
             var pi = type.GetProperty(name, BindingFlag);
-            if (pi != null) return new ColumnInfo<T>(name, index, pi);
 
-            // Second attempt: search display name of DisplayAttribute if any.
-            foreach (var propertyInfo in GetProperties(type))
+            if (pi == null)
             {
-                var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
-
-                if (atts.Any(att => string.Equals(@att.Name, @name, StringComparison.InvariantCultureIgnoreCase)))
+                // Second attempt: search display name of DisplayAttribute if any.
+                foreach (var propertyInfo in type.GetProperties(BindingFlag))
                 {
-                    return new ColumnInfo<T>(name, index, propertyInfo);
-                }
-            }
+                    var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
 
-            // Third attempt: remove space chars, '-', '_' and truncate by parentheses.
-            name = Regex.Replace(name, @"\s", "").Replace("-", "").Replace("_", "");
-            var bracketIndex = name.IndexOfAny(new[] { '(', '[', '{' });
-            if (bracketIndex > 0) name = name.Remove(bracketIndex);
-            pi = type.GetProperty(name, BindingFlag);
-
-            return pi == null ? null : new ColumnInfo<T>(name, index, pi);
-        }
-
-        private static ColumnInfo<T> GetColumnInfoByMappings<T>(ICell header, Dictionary<PropertyInfo, PropertyMeta> mappings)
-        {
-            var type = typeof(T);
-            var cellType = GetCellType(header);
-
-            foreach (var pair in mappings)
-            {
-                if (pair.Key.ReflectedType != type || !pair.Value.Mapped || pair.Value.Ignored) continue;
-
-                var mapping = pair.Value;
-
-                if ((cellType == CellType.String && string.Equals(mapping.ColumnName, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase))
-                    || mapping.ColumnIndex == header.ColumnIndex)
-                {
-                    var resolver = pair.Value.ResolverType == null ?
-                        null :
-                        Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
-
-                    return new ColumnInfo<T>(GetHeaderValue(header), header.ColumnIndex, pair.Key)
+                    if (atts.Any(att => string.Equals(@att.Name, @name, StringComparison.CurrentCultureIgnoreCase)))
                     {
-                        Resolver = resolver
-                    };
+                        pi = propertyInfo;
+                        break;
+                    }
                 }
             }
 
-            return null;
-        }
-
-        private ColumnInfo<T> GetColumnInfoByColumnAttribute<T>(ICell header)
-        {
-            if (GetCellType(header) != CellType.String) return null;
-
-            var type = typeof(T);
-
-            foreach (var pi in GetProperties(type))
+            if (pi == null)
             {
-                var att = pi.GetCustomAttributes<ColumnAttribute>().FirstOrDefault();
-
-                if (att == null) continue;
-
-                if (string.Equals(att.Name, header.StringCellValue, StringComparison.CurrentCultureIgnoreCase)
-                    || att.Index == header.ColumnIndex)
-                {
-                    var resolver = att.ColumnResolverType == null ?
-                        null :
-                        Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
-
-                    return new ColumnInfo<T>(header.StringCellValue, header.ColumnIndex, pi)
-                    {
-                        Resolver = resolver
-                    };
-                }
+                // Third attempt: remove space chars, '-', '_', ',', '.' and truncate by parentheses.
+                name = Regex.Replace(name, @"\s", "").Replace("-", "").Replace("_", "").Replace(",", "").Replace("_", "");
+                var bracketIndex = name.IndexOfAny(new[] { '(', '[', '{', '<' });
+                if (bracketIndex > 0) name = name.Remove(bracketIndex);
+                pi = type.GetProperty(name, BindingFlag);
             }
 
-            return null;
-        }
+            ColumnAttribute attribute = null;
 
-        private ColumnInfo<T> GetColumnInfoByMultiColumnsContainerAttribute<T>(ICell header)
-        {
-            var type = typeof(T);
-
-            foreach (var pi in GetProperties(type))
+            if (pi != null && Attributes.ContainsKey(pi))
             {
-                var att = pi.GetCustomAttributes<MultiColumnContainerAttribute>().FirstOrDefault();
 
-                if (att == null) continue;
-
-                var resolver = Activator.CreateInstance(att.ColumnResolverType) as ColumnResolver<T>;
-
-                if (resolver == null) continue;
-
-                var headerValue = GetHeaderValue(header);
-                if (!resolver.TryResolveHeader(ref headerValue, header.ColumnIndex)) continue;
-
-                return new ColumnInfo<T>(headerValue, header.ColumnIndex, pi)
-                {
-                    Resolver = resolver
-                };
+                attribute = Attributes[pi].Clone();
+                attribute.Index = index;
+                if (attribute.Ignored) return null;
             }
 
-            return null;
+            return pi == null ? null : attribute == null ? new ColumnInfo<T>(name, index, pi) : new ColumnInfo<T>(name, attribute);
         }
 
         private static ColumnInfo<T> GetColumnInfoByResolverType<T>(ICell header, Type resolverType)
@@ -396,27 +439,12 @@ namespace Npoi.Mapper
 
             var headerValue = GetHeaderValue(header);
 
-            if (!resolver.TryResolveHeader(ref headerValue, header.ColumnIndex)) return null;
+            if (!resolver.IsColumnMapped(ref headerValue, header.ColumnIndex)) return null;
 
             return new ColumnInfo<T>(headerValue, header.ColumnIndex, null)
             {
                 Resolver = resolver
             };
-        }
-
-        private ColumnInfo<T> GetColumnInfo<T>(object headerValue, int index, PropertyInfo pi)
-        {
-            PropertyMeta pm;
-            if (pi != null && MetaDict.ContainsKey(pi))
-            {
-                pm = MetaDict[pi];
-            }
-            else
-            {
-                pm = new PropertyMeta(index, pi);
-            }
-
-            return new ColumnInfo<T>(headerValue, pm);
         }
 
         private static RowInfo<T> GetRowData<T>(IEnumerable<ColumnInfo<T>> columns, IRow row, Func<T> objectInitializer)
@@ -427,15 +455,18 @@ namespace Npoi.Mapper
 
             foreach (var column in columns)
             {
+                if (column.Attribute.Index < 0) continue;
+                var index = column.Attribute.Index;
+
                 try
                 {
-                    var cell = row.GetCell(column.PropertyMeta.ColumnIndex);
-                    var propertyType = column.PropertyMeta.Property?.PropertyType;
+                    var cell = row.GetCell(index);
+                    var propertyType = column.Attribute.Property?.PropertyType;
                     object valueObj;
 
                     if (!TryGetCellValue(cell, propertyType, out valueObj))
                     {
-                        errorIndex = column.PropertyMeta.ColumnIndex;
+                        errorIndex = index;
                         errorMessage = "CellType is not supported yet!";
                         break;
                     }
@@ -446,7 +477,7 @@ namespace Npoi.Mapper
                     {
                         if (!column.Resolver.TryResolveCell(column, valueObj, obj))
                         {
-                            errorIndex = column.PropertyMeta.ColumnIndex;
+                            errorIndex = index;
                             errorMessage = "Returned failure by custom cell resolver!";
                             break;
                         }
@@ -455,7 +486,7 @@ namespace Npoi.Mapper
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = Convert.ChangeType(valueObj, propertyType);
-                        column.PropertyMeta.Property.SetValue(obj, value);
+                        column.Attribute.Property.SetValue(obj, value);
                     }
                     else
                     {
@@ -464,7 +495,7 @@ namespace Npoi.Mapper
                 }
                 catch (Exception e)
                 {
-                    errorIndex = column.PropertyMeta.ColumnIndex;
+                    errorIndex = index;
                     errorMessage = e.Message;
                     break;
                 }
@@ -554,21 +585,6 @@ namespace Npoi.Mapper
             return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
         }
 
-        private IEnumerable<PropertyInfo> GetProperties(Type type)
-        {
-            if (type == null) yield break;
-
-            foreach (var pi in type.GetProperties(BindingFlag))
-            {
-                if (MetaDict.ContainsKey(pi) && MetaDict[pi].Ignored)
-                {
-                    continue;
-                }
-
-                yield return pi;
-            }
-        }
-
         private static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
         {
             var expression = propertySelector as LambdaExpression;
@@ -581,15 +597,6 @@ namespace Npoi.Mapper
                 (MemberExpression)((UnaryExpression)expression.Body).Operand;
 
             return (PropertyInfo)body.Member;
-        }
-
-        private void UpdateMapping<T>(ColumnInfo<T> column)
-        {
-            if (column.PropertyMeta.Property == null) return;
-            if (!MetaDict.ContainsKey(column.PropertyMeta.Property)) return;
-
-            var mapping = MetaDict[column.PropertyMeta.Property];
-            column.PropertyMeta.UseLastNonBlankValue = mapping.UseLastNonBlankValue;
         }
 
         #endregion

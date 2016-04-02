@@ -1,9 +1,12 @@
-﻿namespace Npoi.Mapper
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Npoi.Mapper
 {
     /// <summary>
     /// Information for one row that read from file.
     /// </summary>
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class RowInfo<TTarget>
     {
         #region Properties
