@@ -1,6 +1,6 @@
 # Npoi.Mapper
-Convention based mapper between strong typed object and Excel data via NPOI.
-Feel free to file bugs or raise pull requests
+Convention based mapper between strong typed object and Excel data via NPOI.  
+Feel free to file bugs or raise pull requests...
 
 ## Install
 
