@@ -44,8 +44,7 @@ mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet2");
 1. Fluent method Map<T>
 2. ColumnAttribute
 3. Default naming convention (see below section)
-4. MultiColumnsContainerAttribute
-5. DefaultResolverType
+4. DefaultResolverType
 
 ## Default naming convention for column header mapping
 
