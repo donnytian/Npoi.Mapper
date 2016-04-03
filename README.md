@@ -21,11 +21,12 @@ More use cases please check out source in "test" project.
 
 ```C#
 // Export objects.
-var mapper = new Mapper(workbook);
+//var objects = ...
+var mapper = new Mapper();
 mapper.Save("test.xlsx",  objects, "newSheet");
 
 // Export tracked objects.
-var mapper = new Mapper(workbook);
+var mapper = new Mapper("Book1.xlsx");
 var objectInfos = mapper.Take<SampleClass>("sheet2").ToList();
 // Modify tracked objects...then save back..
 mapper.Save("test.xlsx",  "sheet2");
