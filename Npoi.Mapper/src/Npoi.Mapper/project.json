@@ -1,5 +1,5 @@
 ﻿{
-  "version": "2.0.0.0",
+  "version": "2.0.1.0",
   "description": "Convention based mapper between strong typed object and Excel data via NPOI.",
   "authors": [ "Donny Tian" ],
   "tags": [ "Excel", "XLS", "XLSX", "NPOI", "Object mapping" ],

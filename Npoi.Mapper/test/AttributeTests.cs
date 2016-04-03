@@ -11,16 +11,14 @@ namespace test
     public class AttributeTests : TestBase
     {
         [TestMethod]
-        public void ColumnIndexTest()
+        public void ColumnAttributeIndexTest()
         {
             // Prepare
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
-            header.SetCellValue("targetColumn");
-            var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(11);
-            cell.SetCellValue(str);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11).SetCellValue("targetColumn");
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str);
             var importer = new Mapper(workbook);
 
             // Act
@@ -35,16 +33,14 @@ namespace test
         }
 
         [TestMethod]
-        public void ColumnNameTest()
+        public void ColumnAttributeNameTest()
         {
             // Prepare
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(21);
-            header.SetCellValue("By Name");
-            var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
-            cell.SetCellValue(str);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(21).SetCellValue("By Name");
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(21).SetCellValue(str);
             var importer = new Mapper(workbook);
 
             // Act
@@ -65,10 +61,8 @@ namespace test
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
-            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(21);
-            header.SetCellValue("Display Name");
-            var cell = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
-            cell.SetCellValue(str);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(21).SetCellValue("Display Name");
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(21).SetCellValue(str);
             var importer = new Mapper(workbook);
 
             // Act
@@ -80,39 +74,6 @@ namespace test
 
             var obj = objs[0];
             Assert.AreEqual(str, obj.Value.DisplayNameProperty);
-        }
-
-        [TestMethod]
-        public void ColumnIndexOverNameTest()
-        {
-            // Prepare
-            var date = DateTime.Now;
-            const string str1 = "aBC";
-            const string str2 = "BCD";
-            var workbook = GetSimpleWorkbook(date, str1);
-            var header1 = workbook.GetSheetAt(1).GetRow(0).CreateCell(21);
-            header1.SetCellValue("By Name");
-
-            var header2 = workbook.GetSheetAt(1).GetRow(0).CreateCell(12);
-            header2.SetCellValue("targetColumn");
-
-            var cell1 = workbook.GetSheetAt(1).GetRow(1).CreateCell(21);
-            cell1.SetCellValue(str1);
-
-            var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(12);
-            cell2.SetCellValue(str2);
-
-            var importer = new Mapper(workbook);
-
-            // Act
-            var objs = importer.Take<SampleClass>(1).ToList();
-
-            // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
-
-            var obj = objs[0];
-            Assert.AreEqual(str2, obj.Value.IndexOverNameAttributeProperty);
         }
 
         [TestMethod]
@@ -128,15 +89,11 @@ namespace test
             sheet.CreateRow(0);
             sheet.CreateRow(1);
 
-            var header1 = sheet.GetRow(0).CreateCell(51);
-            header1.SetCellValue(date1);
-            var cell1 = sheet.GetRow(1).CreateCell(51);
-            cell1.SetCellValue(str1);
+            sheet.GetRow(0).CreateCell(51).SetCellValue(date1);
+            sheet.GetRow(0).CreateCell(53).SetCellValue(date2);
 
-            var header2 = sheet.GetRow(0).CreateCell(53);
-            header2.SetCellValue(date2);
-            var cell2 = sheet.GetRow(1).CreateCell(53);
-            cell2.SetCellValue(str2);
+            sheet.GetRow(1).CreateCell(51).SetCellValue(str1);
+            sheet.GetRow(1).CreateCell(53).SetCellValue(str2);
 
             var importer = new Mapper(workbook);
 
@@ -158,15 +115,11 @@ namespace test
             const string str2 = "BCD";
             var workbook = GetSimpleWorkbook(date1, str1);
 
-            var header1 = workbook.GetSheetAt(1).GetRow(0).CreateCell(31);
-            header1.SetCellValue(date1);
-            var cell1 = workbook.GetSheetAt(1).GetRow(1).CreateCell(31);
-            cell1.SetCellValue(str1);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(31).SetCellValue(date1);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(33).SetCellValue(date2);
 
-            var header2 = workbook.GetSheetAt(1).GetRow(0).CreateCell(33);
-            header2.SetCellValue(date2);
-            var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(33);
-            cell2.SetCellValue(str2);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(31).SetCellValue(str1);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(33).SetCellValue(str2);
 
             var importer = new Mapper(workbook);
 
@@ -188,7 +141,7 @@ namespace test
         }
 
         [TestMethod]
-        public void UseLastNonBlankValueTest()
+        public void UseLastNonBlankValueAttributeTest()
         {
             // Prepare
             var sample = new SampleClass();
@@ -229,7 +182,7 @@ namespace test
         }
 
         [TestMethod]
-        public void IgnoredTest()
+        public void IgnoreAttributeTest()
         {
             // Prepare
             var sample = new SampleClass();
@@ -237,8 +190,7 @@ namespace test
             const string str1 = "aBC";
             var workbook = GetSimpleWorkbook(date, str1);
 
-            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
-            header.SetCellValue(nameof(sample.IgnoredAttributeProperty));
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(41).SetCellValue(nameof(sample.IgnoredAttributeProperty));
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
 
             var importer = new Mapper(workbook);

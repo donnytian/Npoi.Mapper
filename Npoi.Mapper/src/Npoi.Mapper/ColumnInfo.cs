@@ -12,15 +12,9 @@ namespace Npoi.Mapper
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
     public class ColumnInfo<TTarget>
     {
-        private static readonly List<Type> NumericTypes = new List<Type>
-        {
-            typeof(decimal),
-            typeof(byte), typeof(sbyte),
-            typeof(short), typeof(ushort),
-            typeof(int), typeof(uint),
-            typeof(long), typeof(ulong),
-            typeof(float), typeof(double)
-        };
+        #region Fields
+
+        #endregion
 
         #region Properties
 
@@ -112,7 +106,7 @@ namespace Npoi.Mapper
             // Specially check for string.
             if (string.IsNullOrWhiteSpace(value as string))
             {
-                return Attribute.UseLastNonBlankValue ? LastNonBlankValue : value;
+                return Attribute.UseLastNonBlankValue == true ? LastNonBlankValue : value;
             }
 
             LastNonBlankValue = value;
@@ -120,19 +114,17 @@ namespace Npoi.Mapper
             return value;
         }
 
-        public void SetCellFormat(ICell cell, short defaultFormat = 0)
+        /// <summary>
+        /// Set style for the cell.
+        /// </summary>
+        /// <param name="cell">The cell to be set.</param>
+        /// <param name="defaultFormat">The default format.</param>
+        public void SetCellStyle(ICell cell, short defaultFormat = 0)
         {
-            var workbook = cell.Row.Sheet.Workbook;
-            var style = workbook.CreateCellStyle();
-            style.DataFormat = Attribute.CustomFormat != null 
-                ? workbook.CreateDataFormat().GetFormat(Attribute.CustomFormat)
-                : Attribute.BuiltinFormat != 0 ? Attribute.BuiltinFormat : defaultFormat;
-            cell.CellStyle = style;
-        }
-
-        public bool IsNumeric(Type type)
-        {
-            return NumericTypes.Contains(type);
+            if (cell != null)
+            {
+                cell.CellStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, Attribute.BuiltinFormat, defaultFormat);
+            }
         }
 
         #endregion

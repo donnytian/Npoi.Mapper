@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -12,16 +13,19 @@ using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 
-// ReSharper disable UnusedAutoPropertyAccessor.Global
-
 namespace Npoi.Mapper
 {
     /// <summary>
     /// Import Excel row data as object.
     /// </summary>
+    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class Mapper
     {
         #region Fields
+
+        // Current working workbook.
+        private IWorkbook _workbook;
 
         // Binding flags to lookup object properties.
         private const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
@@ -40,19 +44,40 @@ namespace Npoi.Mapper
         // PropertyInfo map to ColumnAttribute
         private Dictionary<PropertyInfo, ColumnAttribute> Attributes { get; } = new Dictionary<PropertyInfo, ColumnAttribute>();
 
-        // Sheet name map to tracked objects from Excel file.
-        private Dictionary<string, Dictionary<int, object>> Objects { get; } = new Dictionary<string, Dictionary<int, object>>();
+        /// <summary>
+        /// Cache the tracked <see cref="ColumnInfo{TTarget}"/> objects by sheet name and target type.
+        /// </summary>
+        private Dictionary<string, Dictionary<Type, List<object>>> TrackedColumns { get; } =
+            new Dictionary<string, Dictionary<Type, List<object>>>();
+
+        /// <summary>
+        /// Sheet name map to tracked objects in dictionary with row number as key.
+        /// </summary>
+        public Dictionary<string, Dictionary<int, object>> Objects { get; } = new Dictionary<string, Dictionary<int, object>>();
 
         /// <summary>
         /// Type of resolver to handle unrecognized columns.
         /// </summary>
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public Type DefaultResolverType { get; set; }
 
         /// <summary>
         /// The Excel workbook.
         /// </summary>
-        public IWorkbook Workbook { get; private set; }
+        public IWorkbook Workbook
+        {
+            get { return _workbook; }
+
+            private set
+            {
+                if (value != _workbook)
+                {
+                    Objects.Clear();
+                    TrackedColumns.Clear();
+                    MapHelper.ClearCache();
+                }
+                _workbook = value;
+            }
+        }
 
         /// <summary>
         /// When map column, chars in this array will be removed from column header.
@@ -74,10 +99,18 @@ namespace Npoi.Mapper
         /// <summary>
         /// Whether to take the first row as column header. Default is true.
         /// </summary>
-        public bool FirstRowAsHeader { get; set; } = true;
+        public bool HasHeader { get; set; } = true;
+
         #endregion
 
         #region Constructors
+
+        /// <summary>
+        /// Initialize a new instance of <see cref="Mapper"/> class.
+        /// </summary>
+        public Mapper()
+        {
+        }
 
         /// <summary>
         /// Initialize a new instance of <see cref="Mapper"/> class.
@@ -134,17 +167,13 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
+            new ColumnAttribute
             {
-                Name = columnName,
                 Property = pi,
+                Name = columnName,
                 ResolverType = resolverType,
                 Ignored = false
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            }.MergeTo(Attributes);
 
             return this;
         }
@@ -157,25 +186,18 @@ namespace Npoi.Mapper
         /// <param name="propertySelector">Property selector.</param>
         /// <param name="resolverType">The type of resolver.</param>
         /// <returns>The mapper object.</returns>
-        public Mapper Map<T>(int columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
+        public Mapper Map<T>(ushort columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
-            if (columnIndex < 0)
-                throw new ArgumentOutOfRangeException(nameof(columnIndex));
-
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
+            new ColumnAttribute
             {
-                Index = columnIndex,
                 Property = pi,
+                Index = columnIndex,
                 ResolverType = resolverType,
                 Ignored = false
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            }.MergeTo(Attributes);
 
             return this;
         }
@@ -191,15 +213,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
-            {
-                Property = pi,
-                UseLastNonBlankValue = true
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            new ColumnAttribute { Property = pi, UseLastNonBlankValue = true }.MergeTo(Attributes);
 
             return this;
         }
@@ -215,15 +229,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
-            {
-                Property = pi,
-                Ignored = true
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            new ColumnAttribute { Property = pi, Ignored = true }.MergeTo(Attributes);
 
             return this;
         }
@@ -240,15 +246,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
-            {
-                Property = pi,
-                BuiltinFormat = builtinFormat
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            new ColumnAttribute { Property = pi, BuiltinFormat = builtinFormat }.MergeTo(Attributes);
 
             return this;
         }
@@ -265,15 +263,7 @@ namespace Npoi.Mapper
             var pi = GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
-            var attribute = new ColumnAttribute
-            {
-                Property = pi,
-                CustomFormat = customFormat
-            };
-
-            Attributes[pi] = Attributes.ContainsKey(pi)
-                ? MergeAttribute(Attributes[pi], attribute)
-                : Attributes[pi] = attribute;
+            new ColumnAttribute { Property = pi, CustomFormat = customFormat }.MergeTo(Attributes);
 
             return this;
         }
@@ -452,7 +442,7 @@ namespace Npoi.Mapper
             foreach (IRow row in sheet)
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
-                if (FirstRowAsHeader && row.RowNum == firstRowIndex) continue;
+                if (HasHeader && row.RowNum == firstRowIndex) continue;
 
                 var data = GetRowData(columns, row, objectInitializer);
 
@@ -469,40 +459,23 @@ namespace Npoi.Mapper
 
             foreach (var pi in type.GetProperties(BindingFlag))
             {
-                var attributeMeta = pi.GetCustomAttributes<ColumnAttribute>().FirstOrDefault();
+                var columnMeta = pi.GetCustomAttribute<ColumnAttribute>();
+                var ignore = Attribute.IsDefined(pi, typeof(IgnoreAttribute));
+                var useLastNonBlank = Attribute.IsDefined(pi, typeof(UseLastNonBlankValueAttribute));
 
-                if (attributeMeta == null) continue;
+                if (columnMeta == null && !ignore && !useLastNonBlank) continue;
 
-                attributeMeta.Property = pi;
-
-                if (Attributes.ContainsKey(pi))
+                if (columnMeta == null) columnMeta = new ColumnAttribute
                 {
-                    // Note that Map method takes precedence over attribute meta.
-                    Attributes[pi] = MergeAttribute(attributeMeta, Attributes[pi]);
-                }
-                else
-                {
-                    Attributes[pi] = attributeMeta;
-                }
+                    Ignored = ignore ? new bool?(true) : null,
+                    UseLastNonBlankValue = useLastNonBlank ? new bool?(true) : null
+                };
+
+                columnMeta.Property = pi;
+
+                // Note that attribute from Map method takes precedence over Attribute meta data.
+                columnMeta.MergeTo(Attributes, false);
             }
-        }
-
-        private static ColumnAttribute MergeAttribute(ColumnAttribute oldAttribute, ColumnAttribute newAttribute)
-        {
-            //
-            // New attribute takes precedence over old attribute.
-            //
-
-            if (newAttribute.Index < 0) newAttribute.Index = oldAttribute.Index;
-            if (newAttribute.Name == null) newAttribute.Name = oldAttribute.Name;
-            if (newAttribute.Property == null) newAttribute.Property = oldAttribute.Property;
-            if (newAttribute.ResolverType == null) newAttribute.ResolverType = oldAttribute.ResolverType;
-            if (!newAttribute.Ignored) newAttribute.Ignored = oldAttribute.Ignored;
-            if (!newAttribute.UseLastNonBlankValue) newAttribute.UseLastNonBlankValue = oldAttribute.UseLastNonBlankValue;
-            if (newAttribute.BuiltinFormat == 0) newAttribute.BuiltinFormat = oldAttribute.BuiltinFormat;
-            if (newAttribute.CustomFormat == null) newAttribute.CustomFormat = oldAttribute.CustomFormat;
-
-            return newAttribute;
         }
 
         private List<ColumnInfo<T>> GetColumns<T>(IRow headerRow)
@@ -512,7 +485,9 @@ namespace Npoi.Mapper
             // Map<T> > ColumnAttribute > naming convention > DefaultResolverType.
             //
 
+            var sheetName = headerRow.Sheet.SheetName;
             var columns = new List<ColumnInfo<T>>();
+            var columnsCache = new List<object>();
 
             // Prepare a list of ColumnInfo by the first row.
             foreach (ICell header in headerRow)
@@ -521,7 +496,7 @@ namespace Npoi.Mapper
                 var column = GetColumnInfoByAttribute<T>(header);
 
                 // Naming convention.
-                if (column == null && FirstRowAsHeader && GetCellType(header) == CellType.String)
+                if (column == null && HasHeader && GetCellType(header) == CellType.String)
                 {
                     var s = header.StringCellValue;
 
@@ -537,11 +512,16 @@ namespace Npoi.Mapper
                     column = GetColumnInfoByResolverType<T>(header, DefaultResolverType);
                 }
 
-                if (column != null)
-                {
-                    columns.Add(column);
-                }
+                if (column == null) continue;
+                columns.Add(column);
+                columnsCache.Add(column);
             }
+
+            var typeDict = TrackedColumns.ContainsKey(sheetName)
+                ? TrackedColumns[sheetName]
+                : TrackedColumns[sheetName] = new Dictionary<Type, List<object>>();
+
+            typeDict[typeof(T)] = columnsCache;
 
             return columns;
         }
@@ -554,11 +534,11 @@ namespace Npoi.Mapper
 
             foreach (var pair in Attributes)
             {
-                if (pair.Key.ReflectedType != type || pair.Value.Ignored) continue;
+                if (pair.Key.ReflectedType != type || pair.Value.Ignored == true) continue;
 
                 var attribute = pair.Value;
 
-                if (!FirstRowAsHeader && attribute.Index < 0) continue;
+                if (!HasHeader && attribute.Index < 0) continue;
 
                 var indexMatch = attribute.Index == index;
                 var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
@@ -572,7 +552,7 @@ namespace Npoi.Mapper
                     var resolver = pair.Value.ResolverType == null ?
                         null :
                         Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
-                    var headerValue = GetHeaderValue(header);
+                    var headerValue = HasHeader ? GetHeaderValue(header) : null;
                     resolver?.IsColumnMapped(ref headerValue, index); // Ignore return value since it's already mapped to column.
 
                     return new ColumnInfo<T>(headerValue, attribute)
@@ -581,6 +561,7 @@ namespace Npoi.Mapper
                     };
                 }
 
+                // Try map column by custom resolver.
                 if (attribute.Index < 0 && attribute.Name == null && attribute.ResolverType != null)
                 {
                     var resolver = Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
@@ -637,7 +618,7 @@ namespace Npoi.Mapper
 
                 attribute = Attributes[pi].Clone();
                 attribute.Index = index;
-                if (attribute.Ignored) return null;
+                if (attribute.Ignored == true) return null;
             }
 
             return pi == null ? null : attribute == null ? new ColumnInfo<T>(name, index, pi) : new ColumnInfo<T>(name, attribute);
@@ -669,8 +650,8 @@ namespace Npoi.Mapper
 
             foreach (var column in columns)
             {
-                if (column.Attribute.Index < 0) continue;
                 var index = column.Attribute.Index;
+                if (index < 0) continue;
 
                 try
                 {
@@ -829,12 +810,15 @@ namespace Npoi.Mapper
 
         private void Save<T>(Stream stream, ISheet sheet)
         {
-            if (!Objects.ContainsKey(sheet.SheetName)) return;
+            var sheetName = sheet.SheetName;
+            var objects = Objects.ContainsKey(sheetName) ? Objects[sheetName] : new Dictionary<int, object>();
+            var columns = GetTrackedColumns<T>(sheetName);
 
-            var objects = Objects[sheet.SheetName];
-            var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
-
-            var columns = GetColumns<T>(firstRow);
+            if (columns == null)
+            {
+                var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
+                columns = GetColumns<T>(firstRow);
+            }
 
             foreach (var pair in objects)
             {
@@ -860,7 +844,7 @@ namespace Npoi.Mapper
         {
             var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
             var columns = GetColumns<T>(firstRow);
-            var i = FirstRowAsHeader ? 1 : 0;
+            var i = HasHeader ? 1 : 0;
 
             foreach (var o in objects)
             {
@@ -901,30 +885,56 @@ namespace Npoi.Mapper
 
             foreach (var pair in attributes)
             {
+                var pi = pair.Key;
                 var attribute = pair.Value;
-                if (pair.Value.Index >= 0)
-                {
-                    row.CreateCell(attribute.Index).SetCellValue(attribute.Name);
-                    properties.Remove(pair.Key); // Remove populated property.
-                }
+                if (pair.Value.Index < 0) continue;
+
+                var cell = row.CreateCell(attribute.Index);
+                if (HasHeader) cell.SetCellValue(attribute.Name ?? pi.Name);
+                properties.Remove(pair.Key); // Remove populated property.
             }
 
             var index = 0;
 
             foreach (var pi in properties)
             {
-                if (Attributes.ContainsKey(pi) && Attributes[pi].Ignored) continue;
+                if (Attributes.ContainsKey(pi) && Attributes[pi].Ignored == true) continue;
+
                 while (row.GetCell(index) != null) index++;
-                row.CreateCell(index).SetCellValue(pi.Name);
+                var cell = row.CreateCell(index);
+                if (HasHeader)
+                {
+                    cell.SetCellValue(pi.Name);
+                }
+                else
+                {
+                    new ColumnAttribute { Index = index, Property = pi }.MergeTo(Attributes);
+                }
                 index++;
             }
 
             return row;
         }
 
+        private List<ColumnInfo<T>> GetTrackedColumns<T>(string sheetName)
+        {
+            if (!TrackedColumns.ContainsKey(sheetName)) return null;
+
+            IEnumerable<ColumnInfo<T>> columns = null;
+
+            var cols = TrackedColumns[sheetName];
+            var type = typeof(T);
+            if (cols.ContainsKey(type))
+            {
+                columns = cols[type].OfType<ColumnInfo<T>>();
+            }
+
+            return columns?.ToList();
+        }
+
         private static void SetCell<T>(ICell cell, object value, ColumnInfo<T> column)
         {
-            if (value == null || value is IEnumerable)
+            if (value == null || value is ICollection)
             {
                 cell.SetCellValue((string)null);
             }
@@ -932,7 +942,7 @@ namespace Npoi.Mapper
             {
                 cell.SetCellValue((DateTime)value);
             }
-            else if (column.IsNumeric(value.GetType()))
+            else if (value.GetType().IsNumeric())
             {
                 cell.SetCellValue(Convert.ToDouble(value));
             }
@@ -945,10 +955,10 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            column.SetCellFormat(cell);
+            column.SetCellStyle(cell);
         }
 
-        #endregion
+        #endregion Export
 
         #endregion
     }

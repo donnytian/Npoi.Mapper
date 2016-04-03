@@ -41,22 +41,21 @@ namespace test.Sample
         [Column(ResolverType = typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
 
-        [Column(Index = 51, ResolverType = typeof(SingleColumnResolver))]
+        [Column(51, ResolverType = typeof(SingleColumnResolver))]
         public string SingleColumnResolverProperty { get; set; }
 
-        [Column(Name = "By Name")]
+        [Column("By Name")]
         public string ColumnNameAttributeProperty { get; set; }
 
-        [Column(Index = 11)]
+        [Column(11)]
         public string ColumnIndexAttributeProperty { get; set; }
 
-        [Column(Index = 12, Name = "By Name")]
         public string IndexOverNameAttributeProperty { get; set; }
 
-        [Column(UseLastNonBlankValue = true)]
+        [UseLastNonBlankValue]
         public string UseLastNonBlankValueAttributeProperty { get; set; }
 
-        [Column(Ignored = true)]
+        [Ignore]
         public string IgnoredAttributeProperty { get; set; }
 
         [Display(Name = "Display Name")]

@@ -12,6 +12,20 @@ namespace test
     [TestClass]
     public class ExportTests : TestBase
     {
+        SampleClass sampleObj = new SampleClass
+        {
+            BuiltinFormatProperty = DateTime.Today,
+            ColumnIndexAttributeProperty = "Column Index",
+            CustomFormatProperty = 0.87,
+            DateProperty = DateTime.Now,
+            DoubleProperty = 78,
+            GeneralProperty = "general sting",
+            BoolProperty = true,
+            EnumProperty = SampleEnum.Value3,
+            IgnoredAttributeProperty = "Ignored column",
+            Int32Property = 100
+        };
+
         [TestMethod]
         public void SaveSheetTest()
         {
@@ -23,7 +37,6 @@ namespace test
             // Act
             exporter.Save<SampleClass>("test.xlsx", 1);
 
-
             // Assert
             Assert.IsNotNull(objs);
             Assert.IsNotNull(exporter);
@@ -32,6 +45,19 @@ namespace test
 
         [TestMethod]
         public void SaveObjectsTest()
+        {
+            // Prepare
+            var exporter = new Mapper();
+
+            // Act
+            exporter.Save("test.xlsx", new[] { sampleObj }, "newSheet");
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+        }
+
+        [TestMethod]
+        public void SaveTrackedObjectsTest()
         {
             // Prepare
             var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
@@ -58,12 +84,16 @@ namespace test
             objs[0].Value.CustomFormatProperty = 100.234;
 
             // Act
+            exporter.Map<SampleClass>(11, o => o.BuiltinFormatProperty);
+            exporter.Map<SampleClass>(12, o => o.CustomFormatProperty);
             exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNotNull(exporter);
+            var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
+            var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
             Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(0xf, dateStyle.DataFormat);
+            Assert.AreNotEqual(0, doubleStyle.DataFormat);
         }
 
         [TestMethod]
@@ -77,14 +107,46 @@ namespace test
             objs[0].Value.DoubleProperty = 100.234;
 
             // Act
+            exporter.Map<SampleClass>(11, o => o.DateProperty);
+            exporter.Map<SampleClass>(12, o => o.DoubleProperty);
             exporter.Format<SampleClass>(0xf, o => o.DateProperty);
             exporter.Format<SampleClass>("0%", o => o.DoubleProperty);
             exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNotNull(exporter);
+            var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
+            var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
             Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(0xf, dateStyle.DataFormat);
+            Assert.AreNotEqual(0, doubleStyle.DataFormat);
+        }
+
+        [TestMethod]
+        public void NoHeaderTest()
+        {
+            // Prepare
+            var exporter = new Mapper { HasHeader = false };
+            const string sheetName = "newSheet";
+            var obj = new SampleClass
+            {
+                BuiltinFormatProperty = DateTime.Today,
+                ColumnIndexAttributeProperty = "Column Index",
+                CustomFormatProperty = 0.87,
+                DateProperty = DateTime.Now,
+                DoubleProperty = 78,
+                GeneralProperty = "general sting",
+                BoolProperty = true,
+                EnumProperty = SampleEnum.Value3,
+                IgnoredAttributeProperty = "Ignored column",
+                Int32Property = 100
+            };
+
+            // Act
+            exporter.Save("test.xlsx", new[] { obj, }, sheetName);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
         }
     }
 }

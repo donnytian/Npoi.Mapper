@@ -22,10 +22,9 @@ namespace test
             sheet.CreateRow(0);
             sheet.CreateRow(11);
 
-            var header = sheet.GetRow(0).CreateCell(11);
-            header.SetCellValue("targetColumn");
-            var cell = sheet.GetRow(11).CreateCell(11);
-            cell.SetCellValue(str);
+            sheet.GetRow(0).CreateCell(11).SetCellValue("targetColumn");
+            sheet.GetRow(11).CreateCell(11).SetCellValue(str);
+
             var importer = new Mapper(workbook);
 
             // Act
@@ -51,10 +50,9 @@ namespace test
             sheet.CreateRow(0);
             sheet.CreateRow(11);
 
-            var header = sheet.GetRow(0).CreateCell(11);
-            header.SetCellValue(name);
-            var cell = sheet.GetRow(11).CreateCell(11);
-            cell.SetCellValue(str);
+            sheet.GetRow(0).CreateCell(11).SetCellValue(name);
+            sheet.GetRow(11).CreateCell(11).SetCellValue(str);
+
             var importer = new Mapper(workbook);
 
             // Act
@@ -70,6 +68,35 @@ namespace test
         }
 
         [TestMethod]
+        public void ColumnsWithSameNameTest()
+        {
+            // Prepare
+            const string str1 = "aBC";
+            const string str2 = "aBC";
+            const string name = "targetColumn";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(11);
+
+            sheet.GetRow(0).CreateCell(7).SetCellValue(name);
+            sheet.GetRow(0).CreateCell(9).SetCellValue(name);
+
+            sheet.GetRow(11).CreateCell(7).SetCellValue(str1);
+            sheet.GetRow(11).CreateCell(9).SetCellValue(str2);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<SampleClass>(name, o => o.GeneralProperty);
+            var objs = importer.Take<SampleClass>().ToList();
+
+            // Assert
+            var obj = objs[0];
+            Assert.AreEqual(str2, obj.Value.GeneralProperty);
+        }
+
+        [TestMethod]
         public void DefaultResolverTypeTest()
         {
             // Prepare
@@ -82,20 +109,16 @@ namespace test
             sheet.CreateRow(0);
             sheet.CreateRow(1);
 
-            var header1 = sheet.GetRow(0).CreateCell(41);
-            header1.SetCellValue(date1);
-            var cell1 = sheet.GetRow(1).CreateCell(41);
-            cell1.SetCellValue(str1);
+            sheet.GetRow(0).CreateCell(41).SetCellValue(date1);
+            sheet.GetRow(0).CreateCell(43).SetCellValue(date2);
 
-            var header2 = sheet.GetRow(0).CreateCell(43);
-            header2.SetCellValue(date2);
-            var cell2 = sheet.GetRow(1).CreateCell(43);
-            cell2.SetCellValue(str2);
+            sheet.GetRow(1).CreateCell(41).SetCellValue(str1);
+            sheet.GetRow(1).CreateCell(43).SetCellValue(str2);
 
             var importer = new Mapper(workbook);
 
             // Act
-            importer.DefaultResolverType = typeof (DefaultColumnResolver);
+            importer.DefaultResolverType = typeof(DefaultColumnResolver);
             var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
@@ -181,28 +204,60 @@ namespace test
             var date = DateTime.Now;
             const string str1 = "aBC";
             const string str2 = "BCD";
+            const string str3 = "EFG";
             var workbook = GetSimpleWorkbook(date, str1);
-            var header1 = workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
-            header1.SetCellValue("ColumnIndexAttributeProperty");
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11).SetCellValue("ColumnIndexAttributeProperty");
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(12).SetCellValue("targetColumn");
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(13).SetCellValue("By Name");
 
-            var header2 = workbook.GetSheetAt(1).GetRow(0).CreateCell(12);
-            header2.SetCellValue("targetColumn");
-
-            var cell1 = workbook.GetSheetAt(1).GetRow(1).CreateCell(11);
-            cell1.SetCellValue(str1);
-
-            var cell2 = workbook.GetSheetAt(1).GetRow(1).CreateCell(12);
-            cell2.SetCellValue(str2);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str1);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(12).SetCellValue(str2);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(13).SetCellValue(str3);
 
             var importer = new Mapper(workbook);
 
             // Act
             importer.Map<SampleClass>("targetColumn", o => o.ColumnIndexAttributeProperty);
+            importer.Map<SampleClass>(13, o => o.GeneralProperty);
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
             Assert.IsNotNull(objs);
-            Assert.AreEqual(str2, objs[0].Value.IndexOverNameAttributeProperty);
+            Assert.AreEqual(str2, objs[0].Value.ColumnIndexAttributeProperty);
+            Assert.AreEqual(str3, objs[0].Value.GeneralProperty);
+            Assert.IsNull(objs[0].Value.ColumnNameAttributeProperty);
+        }
+
+        [TestMethod]
+        public void NameOverIndexTest()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            const string str3 = "EFG";
+            const string str4 = "FGH";
+            var workbook = GetSimpleWorkbook(date, str1);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(12).SetCellValue("ColumnIndexAttributeProperty");
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(13);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(14).SetCellValue("targetColumn");
+
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str1);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(12).SetCellValue(str2);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(13).SetCellValue(str3);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(14).SetCellValue(str4);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<SampleClass>(13, o => o.ColumnIndexAttributeProperty);
+            importer.Map<SampleClass>("targetColumn", o => o.ColumnIndexAttributeProperty);
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(str4, objs[0].Value.ColumnIndexAttributeProperty);
         }
     }
 }
