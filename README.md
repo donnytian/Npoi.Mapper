@@ -10,7 +10,10 @@ PM> Install-Package Npoi.Mapper
 
 ```C#
 var mapper = new Mapper("Book1.xlsx");
-var objs = mapper.Take<SampleClass>("sheet2");
+var objs1 = mapper.Take<SampleClass>("sheet2");
+
+// You can take objects from the same sheet with different type.
+var objs2 = mapper.Take<AnotherClass>("sheet2");
 ```
 More use cases please check out source in "test" project.
 
@@ -24,8 +27,9 @@ mapper.Save("test.xlsx",  objects, "newSheet");
 // Export tracked objects.
 var mapper = new Mapper(workbook);
 var objectInfos = mapper.Take<SampleClass>("sheet2").ToList();
-// Modify tracked objects...
-mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet2");
+// Modify tracked objects...then save back..
+mapper.Save("test.xlsx",  "sheet2");
+mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet3");
 ```
 
 ## Features
@@ -76,10 +80,10 @@ Or by Attributes tagged on object properties:
         [Display(Name = "Display Name")]
         public string DisplayNameProperty { get; set; }
         
-        [Column(Index = 1)]
+        [Column(1)]
         public string Property1 { get; set; }
         
-        [Column(Name = "ColumnABC")]
+        [Column("ColumnABC")]
         public string Property2 { get; set; }
         
         [Column(BuiltinFormat = 0xf)]
@@ -90,6 +94,12 @@ Or by Attributes tagged on object properties:
         
         [Column(ResolverType = typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
+        
+        [UseLastNonBlankValue]
+        public string UseLastNonBlankValueAttributeProperty { get; set; }
+        
+        [Ignore]
+        public string IgnoredAttributeProperty { get; set; }
     }
 ```
 
