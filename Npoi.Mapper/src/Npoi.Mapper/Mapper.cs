@@ -496,7 +496,7 @@ namespace Npoi.Mapper
                 var column = GetColumnInfoByAttribute<T>(header);
 
                 // Naming convention.
-                if (column == null && HasHeader && GetCellType(header) == CellType.String)
+                if (column == null && HasHeader && MapHelper.GetCellType(header) == CellType.String)
                 {
                     var s = header.StringCellValue;
 
@@ -529,30 +529,32 @@ namespace Npoi.Mapper
         private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
         {
             var type = typeof(T);
-            var cellType = GetCellType(header);
+            var cellType = MapHelper.GetCellType(header);
             var index = header.ColumnIndex;
 
             foreach (var pair in Attributes)
             {
-                if (pair.Key.ReflectedType != type || pair.Value.Ignored == true) continue;
-
                 var attribute = pair.Value;
 
+                if (pair.Key.ReflectedType != type || attribute.Ignored == true) continue;
+
+                // If no header, cannot get a ColumnInfo by resolving header via custom resolver.
                 if (!HasHeader && attribute.Index < 0) continue;
 
+                var headerValue = HasHeader ? GetHeaderValue(header) : null;
                 var indexMatch = attribute.Index == index;
                 var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
 
                 // Index takes precedence over Name.
                 if (indexMatch || (attribute.Index < 0 && nameMatch))
                 {
-                    attribute = attribute.Clone();
-                    attribute.Index = index;
+                    // Use a clone so no pollution to original attribute,
+                    // The origin might be used later again for multi-column/DefaultResolverType purpose.
+                    attribute = attribute.Clone(index);
 
-                    var resolver = pair.Value.ResolverType == null ?
+                    var resolver = attribute.ResolverType == null ?
                         null :
-                        Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
-                    var headerValue = HasHeader ? GetHeaderValue(header) : null;
+                        Activator.CreateInstance(attribute.ResolverType) as ColumnResolver<T>;
                     resolver?.IsColumnMapped(ref headerValue, index); // Ignore return value since it's already mapped to column.
 
                     return new ColumnInfo<T>(headerValue, attribute)
@@ -561,18 +563,18 @@ namespace Npoi.Mapper
                     };
                 }
 
-                // Try map column by custom resolver.
+                // If goes this far, try map column by custom resolver.
                 if (attribute.Index < 0 && attribute.Name == null && attribute.ResolverType != null)
                 {
-                    var resolver = Activator.CreateInstance(pair.Value.ResolverType) as ColumnResolver<T>;
+                    var resolver = Activator.CreateInstance(attribute.ResolverType) as ColumnResolver<T>;
 
                     if (resolver == null) continue;
-                    var headerValue = GetHeaderValue(header);
 
+                    // Check if this column is desired by resolver.
                     if (!resolver.IsColumnMapped(ref headerValue, index)) continue;
 
-                    attribute = attribute.Clone();
-                    attribute.Index = index;
+                    attribute = attribute.Clone(index);
+
                     return new ColumnInfo<T>(headerValue, attribute)
                     {
                         Resolver = resolver
@@ -615,9 +617,7 @@ namespace Npoi.Mapper
 
             if (pi != null && Attributes.ContainsKey(pi))
             {
-
-                attribute = Attributes[pi].Clone();
-                attribute.Index = index;
+                attribute = Attributes[pi].Clone(index);
                 if (attribute.Ignored == true) return null;
             }
 
@@ -659,7 +659,7 @@ namespace Npoi.Mapper
                     var propertyType = column.Attribute.Property?.PropertyType;
                     object valueObj;
 
-                    if (!TryGetCellValue(cell, propertyType, out valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, out valueObj))
                     {
                         errorIndex = index;
                         errorMessage = "CellType is not supported yet!";
@@ -725,52 +725,6 @@ namespace Npoi.Mapper
             return value;
         }
 
-        private static bool TryGetCellValue(ICell cell, Type targetType, out object value)
-        {
-            value = null;
-            if (cell == null) return true;
-
-            var success = true;
-
-            switch (GetCellType(cell))
-            {
-                case CellType.String:
-                    if (targetType != null && targetType.IsEnum) // Enum type.
-                    {
-                        value = Enum.Parse(targetType, cell.StringCellValue, true);
-                    }
-                    else // String type.
-                    {
-                        value = cell.StringCellValue;
-                    }
-
-                    break;
-
-                case CellType.Numeric:
-                    if (DateUtil.IsCellDateFormatted(cell) || targetType == typeof(DateTime)) // DateTime type.
-                    {
-                        value = cell.DateCellValue;
-                    }
-                    else // Number type
-                    {
-                        value = cell.NumericCellValue;
-                    }
-
-                    break;
-
-                case CellType.Blank:
-                    // Dose nothing to keep return value null.
-                    break;
-
-                default: // TODO. Support other types.
-                    success = false;
-
-                    break;
-            }
-
-            return success;
-        }
-
         private string RefineName(string name)
         {
             if (name == null) return null;
@@ -785,11 +739,6 @@ namespace Npoi.Mapper
             if (index >= 0) name = name.Remove(index);
 
             return name;
-        }
-
-        private static CellType GetCellType(ICell cell)
-        {
-            return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
         }
 
         private static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
@@ -811,14 +760,9 @@ namespace Npoi.Mapper
         private void Save<T>(Stream stream, ISheet sheet)
         {
             var sheetName = sheet.SheetName;
+            var firstRow = sheet.GetRow(sheet.FirstRowNum);
             var objects = Objects.ContainsKey(sheetName) ? Objects[sheetName] : new Dictionary<int, object>();
-            var columns = GetTrackedColumns<T>(sheetName);
-
-            if (columns == null)
-            {
-                var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
-                columns = GetColumns<T>(firstRow);
-            }
+            var columns = GetTrackedColumns<T>(sheetName) ?? GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
 
             foreach (var pair in objects)
             {
@@ -842,13 +786,24 @@ namespace Npoi.Mapper
 
         private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects)
         {
-            var firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow<T>(sheet);
-            var columns = GetColumns<T>(firstRow);
-            var i = HasHeader ? 1 : 0;
+            var sheetName = sheet.SheetName;
+            var firstRow = sheet.GetRow(sheet.FirstRowNum);
+            var columns = GetTrackedColumns<T>(sheetName);
+
+            if (columns == null)
+            {
+                columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
+            }
+            else if (firstRow == null)
+            {
+                PopulateFirstRow(sheet, columns);
+            }
+
+            var rowIndex = HasHeader ? 1 : 0;
 
             foreach (var o in objects)
             {
-                var row = sheet.GetRow(i) ?? sheet.CreateRow(i);
+                var row = sheet.GetRow(rowIndex) ?? sheet.CreateRow(rowIndex);
 
                 foreach (var column in columns)
                 {
@@ -859,30 +814,43 @@ namespace Npoi.Mapper
                     SetCell(cell, value, column);
                 }
 
-                i++;
+                rowIndex++;
             }
 
-            while (i <= sheet.LastRowNum)
+            while (rowIndex <= sheet.LastRowNum)
             {
-                var row = sheet.GetRow(i);
+                var row = sheet.GetRow(rowIndex);
                 while (row.Cells.Any())
                     row.RemoveCell(row.GetCell(row.FirstCellNum));
-                i++;
+                rowIndex++;
             }
 
             Workbook.Write(stream);
         }
 
-        private IRow PopulateFirstRow<T>(ISheet sheet)
+        private IRow PopulateFirstRow<T>(ISheet sheet, List<ColumnInfo<T>> columns = null)
         {
+            var row = sheet.CreateRow(sheet.FirstRowNum);
+
+            if (columns != null)
+            {
+                foreach (var column in columns)
+                {
+                    var cell = row.CreateCell(column.Attribute.Index);
+                    if (HasHeader) cell.SetCellValue(column.Attribute.Name ?? column.HeaderValue as string);
+                }
+
+                return row;
+            }
+
             var type = typeof(T);
 
             ScanAttributes<T>();
 
-            var row = sheet.CreateRow(sheet.FirstRowNum);
             var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
             var properties = new List<PropertyInfo>(type.GetProperties(BindingFlag));
 
+            // First to populate for those already have attribute specified.
             foreach (var pair in attributes)
             {
                 var pi = pair.Key;
@@ -896,15 +864,17 @@ namespace Npoi.Mapper
 
             var index = 0;
 
+            // Populate for those do not have attribute specified.
             foreach (var pi in properties)
             {
-                if (Attributes.ContainsKey(pi) && Attributes[pi].Ignored == true) continue;
+                var attribute = Attributes.ContainsKey(pi) ? Attributes[pi] : null;
+                if (attribute?.Ignored == true) continue;
 
                 while (row.GetCell(index) != null) index++;
                 var cell = row.CreateCell(index);
                 if (HasHeader)
                 {
-                    cell.SetCellValue(pi.Name);
+                    cell.SetCellValue(attribute?.Name ?? pi.Name);
                 }
                 else
                 {

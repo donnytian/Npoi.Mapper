@@ -98,10 +98,22 @@ namespace Npoi.Mapper.Attributes
         /// <summary>
         /// Get a member wise clone of this object.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The member wise clone.</returns>
         public ColumnAttribute Clone()
         {
             return (ColumnAttribute)MemberwiseClone();
+        }
+
+        /// <summary>
+        /// Get a member wise clone of this object with given index.
+        /// </summary>
+        /// <param name="index">The index of column.</param>
+        /// <returns>The member wise clone with specified index.</returns>
+        public ColumnAttribute Clone(int index)
+        {
+            var clone = Clone();
+            clone.Index = index;
+            return clone;
         }
 
         /// <summary>

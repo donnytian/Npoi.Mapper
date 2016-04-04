@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using Npoi.Mapper.Attributes;
+using System.Globalization;
 using NPOI.SS.UserModel;
 
 namespace Npoi.Mapper
 {
     /// <summary>
-    /// Provide support functionalities for <see cref="Mapper"/> class.
+    /// Provide static supportive functionalities for <see cref="Mapper"/> class.
     /// </summary>
     public static class MapHelper
     {
@@ -38,6 +38,31 @@ namespace Npoi.Mapper
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Extension for <see cref="IEnumerable{T}"/> object to handle each item.
+        /// </summary>
+        /// <typeparam name="T">The item type.</typeparam>
+        /// <param name="sequence">The enumerable sequence.</param>
+        /// <param name="action">Action to apply to each item.</param>
+        public static void ForEach<T>(this IEnumerable<T> sequence, Action<T> action)
+        {
+            if (sequence == null) return;
+
+            foreach (var item in sequence)
+            {
+                action(item);
+            }
+        }
+
+        /// <summary>
+        /// Clear cached data for cell styles and tracked column info.
+        /// </summary>
+        public static void ClearCache()
+        {
+            BuiltinStyles.Clear();
+            CustomStyles.Clear();
+        }
 
         /// <summary>
         /// Check if the given type is a numeric type.
@@ -95,28 +120,80 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Clear cached data for cell styles and tracked column info.
+        /// Get underline cell type if the cell is in formula.
         /// </summary>
-        public static void ClearCache()
+        /// <param name="cell">The cell.</param>
+        /// <returns>The underline cell type.</returns>
+        public static CellType GetCellType(ICell cell)
         {
-            BuiltinStyles.Clear();
-            CustomStyles.Clear();
+            return cell.CellType == CellType.Formula ? cell.CachedFormulaResultType : cell.CellType;
         }
 
         /// <summary>
-        /// Extension for <see cref="IEnumerable{T}"/> object to handle each item.
+        /// Try get cell value.
         /// </summary>
-        /// <typeparam name="T">The item type.</typeparam>
-        /// <param name="sequence">The enumerable sequence.</param>
-        /// <param name="action">Action to apply to each item.</param>
-        public static void ForEach<T>(this IEnumerable<T> sequence, Action<T> action)
+        /// <param name="cell">The cell to retrieve value.</param>
+        /// <param name="targetType">Type of target property.</param>
+        /// <param name="value">The returned value for cell.</param>
+        /// <returns><c>true</c> if get value successfully; otherwise false.</returns>
+        public static bool TryGetCellValue(ICell cell, Type targetType, out object value)
         {
-            if (sequence == null) return;
+            value = null;
+            if (cell == null) return true;
 
-            foreach (var item in sequence)
+            var success = true;
+
+            switch (GetCellType(cell))
             {
-                action(item);
+                case CellType.String:
+
+                    if (targetType?.IsEnum == true) // Enum type.
+                    {
+                        value = Enum.Parse(targetType, cell.StringCellValue, true);
+                    }
+                    else // String type.
+                    {
+                        value = cell.StringCellValue;
+                    }
+
+                    break;
+
+                case CellType.Numeric:
+
+                    if (DateUtil.IsCellDateFormatted(cell) || targetType == typeof(DateTime)) // DateTime type.
+                    {
+                        value = cell.DateCellValue;
+                    }
+                    else if (targetType?.IsEnum == true) // Enum type.
+                    {
+                        value = Enum.Parse(targetType, cell.NumericCellValue.ToString(CultureInfo.InvariantCulture));
+                    }
+                    else // Number type
+                    {
+                        value = cell.NumericCellValue;
+                    }
+
+                    break;
+
+                case CellType.Boolean:
+
+                    value = cell.BooleanCellValue;
+                    break;
+
+                case CellType.Error:
+                case CellType.Unknown:
+                case CellType.Blank:
+                    // Dose nothing to keep return value null.
+                    break;
+
+                default:
+
+                    success = false;
+
+                    break;
             }
+
+            return success;
         }
 
         #endregion

@@ -23,7 +23,8 @@ namespace test
             BoolProperty = true,
             EnumProperty = SampleEnum.Value3,
             IgnoredAttributeProperty = "Ignored column",
-            Int32Property = 100
+            Int32Property = 100,
+            SingleColumnResolverProperty = "I'm here..."
         };
 
         [TestMethod]
@@ -48,12 +49,14 @@ namespace test
         {
             // Prepare
             var exporter = new Mapper();
+            exporter.Map<SampleClass>("General Column", o => o.GeneralProperty);
 
             // Act
             exporter.Save("test.xlsx", new[] { sampleObj }, "newSheet");
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
         }
 
         [TestMethod]
@@ -68,9 +71,8 @@ namespace test
             exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNotNull(exporter);
             Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
         }
 
         [TestMethod]
@@ -127,22 +129,9 @@ namespace test
             // Prepare
             var exporter = new Mapper { HasHeader = false };
             const string sheetName = "newSheet";
-            var obj = new SampleClass
-            {
-                BuiltinFormatProperty = DateTime.Today,
-                ColumnIndexAttributeProperty = "Column Index",
-                CustomFormatProperty = 0.87,
-                DateProperty = DateTime.Now,
-                DoubleProperty = 78,
-                GeneralProperty = "general sting",
-                BoolProperty = true,
-                EnumProperty = SampleEnum.Value3,
-                IgnoredAttributeProperty = "Ignored column",
-                Int32Property = 100
-            };
 
             // Act
-            exporter.Save("test.xlsx", new[] { obj, }, sheetName);
+            exporter.Save("test.xlsx", new[] { sampleObj, }, sheetName);
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
