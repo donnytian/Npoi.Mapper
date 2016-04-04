@@ -39,12 +39,11 @@ mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet3");
 2. Export objects to Excel file (XLS or XLSX) (inspired by [ExcelMapper](https://github.com/mganss/ExcelMapper))
 3. No code required to map object properties and column headers by default naming convention (see below sectioin)
 4. Support escaping and truncate chars in column header for mapping
-4. Also support explicit column mapping with attributes or fluent methods
-5. Support built-in and custom Excel cell format
+5. Also support explicit column mapping with attributes or fluent methods
 6. Support custom object factory injection
 7. Support custom header and cell resolver
 8. Support custom logic to handle multiple column for collection property
-9. Support built-in format and custom format for exporting (see Column format section)
+9. Support Excel built-in format and custom format for exporting (see Column format section)
 
 ## Column mapping order
 
