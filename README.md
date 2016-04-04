@@ -43,7 +43,8 @@ mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet3");
 5. Support built-in and custom Excel cell format
 6. Support custom object factory injection
 7. Support custom header and cell resolver
-8. Support custom logic to handle multiple column for collection property.
+8. Support custom logic to handle multiple column for collection property
+9. Support built-in format and custom format for exporting (see Column format section)
 
 ## Column mapping order
 
@@ -104,3 +105,27 @@ Or by Attributes tagged on object properties:
     }
 ```
 
+## Column format
+
+By method:
+
+```C#
+mapper.Map<SampleClass>("ColumnA", o => o.Property1)
+    .Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
+    .Format<SampleClass>("0%", o => o.DoubleProperty);
+```
+
+Or by ColumnAttribute
+
+```C#
+    public class SampleClass
+    {
+        [Column(BuiltinFormat = 0xf)]
+        public DateTime BuiltinFormatProperty { get; set; }
+        
+        [Column(CustomFormat = "0%")]
+        public double CustomFormatProperty { get; set; }
+    }
+```
+
+You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
