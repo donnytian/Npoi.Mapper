@@ -101,6 +101,11 @@ namespace Npoi.Mapper
         /// </summary>
         public bool HasHeader { get; set; } = true;
 
+        /// <summary>
+        /// Set a zero-based row index for header. It will be auto-detected if not set.
+        /// </summary>
+        public int HeaderRowIndex { get; set; } = -1; // TODO: enable this...
+
         #endregion
 
         #region Constructors
@@ -123,7 +128,7 @@ namespace Npoi.Mapper
 
             using (stream)
             {
-                Workbook = WorkbookFactory.Create(stream, ImportOption.SheetContentOnly);
+                Workbook = WorkbookFactory.Create(stream);
             }
         }
 
@@ -303,12 +308,12 @@ namespace Npoi.Mapper
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
         {
             using (var fs = GetFileStream(path, overwrite))
-                Save(fs, objects, sheetName, xlsx);
+                Save(fs, objects, sheetName, overwrite, xlsx);
         }
 
         /// <summary>
@@ -318,12 +323,12 @@ namespace Npoi.Mapper
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
             using (var fs = GetFileStream(path, overwrite))
-                Save(fs, objects, sheetIndex, xlsx);
+                Save(fs, objects, sheetIndex, overwrite, xlsx);
         }
 
         /// <summary>
@@ -333,14 +338,14 @@ namespace Npoi.Mapper
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
             var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
-            Save(stream, sheet, objects);
+            Save(stream, sheet, objects, overwrite);
         }
 
         /// <summary>
@@ -350,14 +355,14 @@ namespace Npoi.Mapper
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
             var sheet = Workbook.NumberOfSheets > sheetIndex ? Workbook.GetSheetAt(sheetIndex) : Workbook.CreateSheet();
-            Save(stream, sheet, objects);
+            Save(stream, sheet, objects, overwrite);
         }
 
         /// <summary>
@@ -366,12 +371,12 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(string path, string sheetName, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(string path, string sheetName, bool overwrite = true, bool xlsx = true)
         {
             using (var fs = GetFileStream(path, overwrite))
-                Save<T>(fs, sheetName, xlsx);
+                Save<T>(fs, sheetName, overwrite, xlsx);
         }
 
         /// <summary>
@@ -381,11 +386,11 @@ namespace Npoi.Mapper
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(string path, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
+        /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
+        public void Save<T>(string path, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
             using (var fs = GetFileStream(path, overwrite))
-                Save<T>(fs, sheetIndex, xlsx);
+                Save<T>(fs, sheetIndex, overwrite, xlsx);
         }
 
         /// <summary>
@@ -394,15 +399,15 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(Stream stream, string sheetName, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(Stream stream, string sheetName, bool overwrite = true, bool xlsx = true)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
             var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
 
-            Save<T>(stream, sheet);
+            Save<T>(stream, sheet, overwrite);
         }
 
         /// <summary>
@@ -411,15 +416,15 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
-        public void Save<T>(Stream stream, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
+        public void Save<T>(Stream stream, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
             var sheet = Workbook.GetSheetAt(sheetIndex) ?? Workbook.CreateSheet();
 
-            Save<T>(stream, sheet);
+            Save<T>(stream, sheet, overwrite);
         }
 
         #endregion
@@ -436,8 +441,13 @@ namespace Npoi.Mapper
             var firstRowIndex = sheet.FirstRowNum;
             var firstRow = sheet.GetRow(firstRowIndex);
 
+            // Scan object attributes.
             ScanAttributes<T>();
+
+            // Read the first row to get column information.
             var columns = GetColumns<T>(firstRow);
+            LookupDataFormat(sheet.GetRow(firstRowIndex + 1), columns);
+
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
             // Loop rows in file. Generate one target object for each row.
@@ -516,6 +526,8 @@ namespace Npoi.Mapper
                 }
 
                 if (column == null) continue;
+
+                if(header.CellStyle != null) column.HeaderFormat = header.CellStyle.DataFormat;
                 columns.Add(column);
                 columnsCache.Add(column);
             }
@@ -527,6 +539,18 @@ namespace Npoi.Mapper
             typeDict[typeof(T)] = columnsCache;
 
             return columns;
+        }
+
+        private static void LookupDataFormat<T>(IRow dataRow, IEnumerable<ColumnInfo<T>> columns)
+        {
+            if (dataRow == null || columns == null) return;
+
+            foreach (var column in columns)
+            {
+                var cell = dataRow.GetCell(column.Attribute.Index);
+
+                if (cell != null) column.DataFormat = cell.CellStyle.DataFormat;
+            }
         }
 
         private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
@@ -616,15 +640,17 @@ namespace Npoi.Mapper
                 pi = type.GetProperty(RefineName(name), BindingFlag);
             }
 
+            if (pi == null) return null;
+
             ColumnAttribute attribute = null;
 
-            if (pi != null && Attributes.ContainsKey(pi))
+            if (Attributes.ContainsKey(pi))
             {
                 attribute = Attributes[pi].Clone(index);
                 if (attribute.Ignored == true) return null;
             }
 
-            return pi == null ? null : attribute == null ? new ColumnInfo<T>(name, index, pi) : new ColumnInfo<T>(name, attribute);
+            return attribute == null ? new ColumnInfo<T>(name, index, pi) : new ColumnInfo<T>(name, attribute);
         }
 
         private static ColumnInfo<T> GetColumnInfoByResolverType<T>(ICell header, Type resolverType)
@@ -766,19 +792,32 @@ namespace Npoi.Mapper
 
         #region Export
 
-        private void Save<T>(Stream stream, ISheet sheet)
+        private void Save<T>(Stream stream, ISheet sheet, bool overwrite)
         {
             var sheetName = sheet.SheetName;
             var firstRow = sheet.GetRow(sheet.FirstRowNum);
             var objects = Objects.ContainsKey(sheetName) ? Objects[sheetName] : new Dictionary<int, object>();
-            var columns = GetTrackedColumns<T>(sheetName) ?? GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
+
+            List<ColumnInfo<T>> columns = null;
+            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
+            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
+            if (firstRow == null) PopulateFirstRow(sheet, columns);
+
+            var rowIndex = HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum;
 
             foreach (var pair in objects)
             {
                 if (pair.Value == null) continue;
 
-                var i = pair.Key;
-                var row = sheet.GetRow(i) ?? sheet.CreateRow(i);
+                var row = sheet.GetRow(rowIndex);
+
+                if (overwrite && row != null)
+                {
+                    sheet.RemoveRow(row);
+                    sheet.CreateRow(rowIndex);
+                }
+
+                row = row ?? sheet.CreateRow(rowIndex);
 
                 foreach (var column in columns)
                 {
@@ -788,31 +827,43 @@ namespace Npoi.Mapper
 
                     SetCell(cell, value, column);
                 }
+
+                rowIndex++;
+            }
+
+            // Remove not used rows if any.
+            while (overwrite && rowIndex <= sheet.LastRowNum)
+            {
+                var row = sheet.GetRow(rowIndex);
+                if (row != null) sheet.RemoveRow(row);
             }
 
             Workbook.Write(stream);
         }
 
-        private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects)
+        private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects, bool overwrite)
         {
             var sheetName = sheet.SheetName;
             var firstRow = sheet.GetRow(sheet.FirstRowNum);
-            var columns = GetTrackedColumns<T>(sheetName);
 
-            if (columns == null)
-            {
-                columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
-            }
-            else if (firstRow == null)
-            {
-                PopulateFirstRow(sheet, columns);
-            }
+            List<ColumnInfo<T>> columns = null;
+            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
+            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
+            if (firstRow == null) PopulateFirstRow(sheet, columns);
 
-            var rowIndex = HasHeader ? 1 : 0;
+            var rowIndex = HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum;
 
             foreach (var o in objects)
             {
-                var row = sheet.GetRow(rowIndex) ?? sheet.CreateRow(rowIndex);
+                var row = sheet.GetRow(rowIndex);
+
+                if (overwrite && row != null)
+                {
+                    sheet.RemoveRow(row);
+                    sheet.CreateRow(rowIndex);
+                }
+
+                row = row ?? sheet.CreateRow(rowIndex);
 
                 foreach (var column in columns)
                 {
@@ -826,12 +877,11 @@ namespace Npoi.Mapper
                 rowIndex++;
             }
 
-            while (rowIndex <= sheet.LastRowNum)
+            // Remove not used rows if any.
+            while (overwrite && rowIndex <= sheet.LastRowNum)
             {
                 var row = sheet.GetRow(rowIndex);
-                while (row.Cells.Any())
-                    row.RemoveCell(row.GetCell(row.FirstCellNum));
-                rowIndex++;
+                if (row != null) sheet.RemoveRow(row);
             }
 
             Workbook.Write(stream);
@@ -841,16 +891,23 @@ namespace Npoi.Mapper
         {
             var row = sheet.CreateRow(sheet.FirstRowNum);
 
+            // Use existing column populate the first row.
+
             if (columns != null)
             {
                 foreach (var column in columns)
                 {
                     var cell = row.CreateCell(column.Attribute.Index);
-                    if (HasHeader) cell.SetCellValue(column.Attribute.Name ?? column.HeaderValue as string);
+
+                    if (!HasHeader) continue;
+
+                    SetCell(cell, column.Attribute.Name ?? column.HeaderValue, column, true);
                 }
 
                 return row;
             }
+
+            // If no column cached, populate the first row with attributes and object properties.
 
             var type = typeof(T);
 
@@ -859,7 +916,7 @@ namespace Npoi.Mapper
             var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
             var properties = new List<PropertyInfo>(type.GetProperties(BindingFlag));
 
-            // First to populate for those already have attribute specified.
+            // Firstly populate for those have attribute specified.
             foreach (var pair in attributes)
             {
                 var pi = pair.Key;
@@ -873,7 +930,7 @@ namespace Npoi.Mapper
 
             var index = 0;
 
-            // Populate for those do not have attribute specified.
+            // Then populate for those do not have attribute specified.
             foreach (var pi in properties)
             {
                 var attribute = Attributes.ContainsKey(pi) ? Attributes[pi] : null;
@@ -911,7 +968,7 @@ namespace Npoi.Mapper
             return columns?.ToList();
         }
 
-        private static void SetCell<T>(ICell cell, object value, ColumnInfo<T> column)
+        private static void SetCell<T>(ICell cell, object value, ColumnInfo<T> column, bool isHeader = false)
         {
             if (value == null || value is ICollection)
             {
@@ -934,7 +991,7 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            column.SetCellStyle(cell);
+            column.SetCellStyle(cell, isHeader);
         }
 
         #endregion Export

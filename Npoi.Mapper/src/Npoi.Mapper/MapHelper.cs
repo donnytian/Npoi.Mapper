@@ -80,9 +80,9 @@ namespace Npoi.Mapper
         /// <param name="cell">The cell.</param>
         /// <param name="customFormat">The custom format string.</param>
         /// <param name="builtinFormat">The built-in format number.</param>
-        /// <param name="defaultFormat">The default format number.</param>
+        /// <param name="columnFormat">The default column format number.</param>
         /// <returns><c>ICellStyle</c> object for the given cell.</returns>
-        public static ICellStyle GetCellStyle(ICell cell, string customFormat, short builtinFormat, short defaultFormat = 0)
+        public static ICellStyle GetCellStyle(ICell cell, string customFormat, short builtinFormat, short? columnFormat)
         {
             ICellStyle style = null;
             var workbook = cell?.Row.Sheet.Workbook;
@@ -102,7 +102,7 @@ namespace Npoi.Mapper
             }
             else if (workbook != null)
             {
-                var format = builtinFormat != 0 ? builtinFormat : defaultFormat;
+                var format = builtinFormat != 0 ? builtinFormat : columnFormat ?? 0; /*default to 0*/
 
                 if (BuiltinStyles.ContainsKey(format))
                 {

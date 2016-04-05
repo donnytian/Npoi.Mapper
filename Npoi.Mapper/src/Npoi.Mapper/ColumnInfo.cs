@@ -38,6 +38,16 @@ namespace Npoi.Mapper
         /// </summary>
         public object LastNonBlankValue { get; set; }
 
+        /// <summary>
+        /// Get or set the header cell format.
+        /// </summary>
+        public short? HeaderFormat { get; set; }
+
+        /// <summary>
+        /// Get or set the data cell format.
+        /// </summary>
+        public short? DataFormat { get; set; }
+
         #endregion
 
         #region Constructors
@@ -117,12 +127,16 @@ namespace Npoi.Mapper
         /// Set style for the cell.
         /// </summary>
         /// <param name="cell">The cell to be set.</param>
-        /// <param name="defaultFormat">The default format.</param>
-        public void SetCellStyle(ICell cell, short defaultFormat = 0)
+        /// <param name="isHeader">If <c>true</c>, use HeaderFormat; otherwise use DataFormat.</param>
+        public void SetCellStyle(ICell cell, bool isHeader = false)
         {
             if (cell != null)
             {
-                cell.CellStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, Attribute.BuiltinFormat, defaultFormat);
+                cell.CellStyle = MapHelper.GetCellStyle(
+                    cell,
+                    isHeader ? null : Attribute.CustomFormat,
+                    isHeader ? HeaderFormat ?? 0 : Attribute.BuiltinFormat,
+                    isHeader ? HeaderFormat : DataFormat);
             }
         }
 

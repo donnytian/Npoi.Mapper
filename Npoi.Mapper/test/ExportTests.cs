@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,6 +28,8 @@ namespace test
             SingleColumnResolverProperty = "I'm here..."
         };
 
+        const string FileName = "test.xlsx";
+
         [TestMethod]
         public void SaveSheetTest()
         {
@@ -36,12 +39,15 @@ namespace test
             var objs = exporter.Take<SampleClass>(1).ToList();
 
             // Act
-            exporter.Save<SampleClass>("test.xlsx", 1);
+            exporter.Save<SampleClass>(FileName, 1);
 
             // Assert
             Assert.IsNotNull(objs);
             Assert.IsNotNull(exporter);
             Assert.IsNotNull(exporter.Workbook);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -52,11 +58,14 @@ namespace test
             exporter.Map<SampleClass>("General Column", o => o.GeneralProperty);
 
             // Act
-            exporter.Save("test.xlsx", new[] { sampleObj }, "newSheet");
+            exporter.Save(FileName, new[] { sampleObj }, "newSheet");
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -68,11 +77,14 @@ namespace test
             var objs = exporter.Take<SampleClass>(1).ToList();
 
             // Act
-            exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
+            exporter.Save(FileName, objs.Select(info => info.Value), "newSheet");
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -88,7 +100,7 @@ namespace test
             // Act
             exporter.Map<SampleClass>(11, o => o.BuiltinFormatProperty);
             exporter.Map<SampleClass>(12, o => o.CustomFormatProperty);
-            exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
+            exporter.Save(FileName, objs.Select(info => info.Value), "newSheet");
 
             // Assert
             var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
@@ -96,6 +108,9 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -113,7 +128,7 @@ namespace test
             exporter.Map<SampleClass>(12, o => o.DoubleProperty);
             exporter.Format<SampleClass>(0xf, o => o.DateProperty);
             exporter.Format<SampleClass>("0%", o => o.DoubleProperty);
-            exporter.Save("test.xlsx", objs.Select(info => info.Value), "newSheet");
+            exporter.Save(FileName, objs.Select(info => info.Value), "newSheet");
 
             // Assert
             var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
@@ -121,6 +136,9 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -131,11 +149,14 @@ namespace test
             const string sheetName = "newSheet";
 
             // Act
-            exporter.Save("test.xlsx", new[] { sampleObj, }, sheetName);
+            exporter.Save(FileName, new[] { sampleObj, }, sheetName);
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -143,17 +164,19 @@ namespace test
         {
             // Prepare
             var exporter = new Mapper();
-            const string fileName = "test.xlsx";
             const string sheetName = "oldSheet";
-            exporter.Save(fileName, new[] { sampleObj, }, sheetName);
+            exporter.Save(FileName, new[] { sampleObj, }, sheetName);
             exporter.Workbook.CreateSheet("newSheet");
 
             // Act
-            exporter.Save(fileName, new[] { sampleObj, }, sheetName, true, false);
+            exporter.Save(FileName, new[] { sampleObj, }, sheetName, true, false);
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.NumberOfSheets);
+
+            // Cleanup
+            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -161,17 +184,40 @@ namespace test
         {
             // Prepare
             var exporter = new Mapper();
-            const string fileName = "test.xlsx";
-            const string sheetName = "oldSheet";
-            exporter.Save(fileName, new[] { sampleObj, }, sheetName);
-            exporter.Workbook.CreateSheet("newSheet");
+            const string sheetName = "newSheet";
 
             // Act
-            exporter.Save(fileName, new[] { sampleObj, }, sheetName, true, true);
+            exporter.Save(FileName, new[] { sampleObj, }, sheetName, true, true);
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
+
+            // Cleanup
+            File.Delete(FileName);
+        }
+
+        [TestMethod]
+        public void OverwriteExistedRowsTest() // TODO fix corrupted file
+        {
+            // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "Allocations";
+            File.Delete(existingFile);
+            File.Copy("Book1.xlsx", existingFile);
+            var exporter = new Mapper();
+            exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
+            exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+
+            // Act
+            exporter.Save(existingFile, new[] { sampleObj, }, sheetName, false);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            //Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
+
+            // Cleanup
+            //File.Delete(existingFile);
         }
     }
 }

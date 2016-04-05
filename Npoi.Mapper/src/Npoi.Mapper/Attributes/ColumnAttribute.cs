@@ -50,17 +50,11 @@ namespace Npoi.Mapper.Attributes
         /// <summary>
         /// Gets or sets the built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.
         /// </summary>
-        /// <value>
-        /// The built-in format.
-        /// </value>
         public short BuiltinFormat { get; set; }
 
         /// <summary>
         /// Gets or sets the custom format, see https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
         /// </summary>
-        /// <value>
-        /// The custom format.
-        /// </value>
         public string CustomFormat { get; set; }
 
         #endregion
@@ -144,7 +138,7 @@ namespace Npoi.Mapper.Attributes
             if (source.Ignored != null && (overwrite || Ignored == null)) Ignored = source.Ignored;
             if (source.BuiltinFormat != 0 && (overwrite || BuiltinFormat == 0)) BuiltinFormat = source.BuiltinFormat;
             if (source.CustomFormat != null && (overwrite || CustomFormat == null)) CustomFormat = source.CustomFormat;
-            // TODO: fix bug for Mapper.Format(0) and Mapper.Format(null);
+            // TODO: fix for Mapper.Format(0) and Mapper.Format(null);
         }
 
         /// <summary>
