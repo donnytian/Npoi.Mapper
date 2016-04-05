@@ -300,13 +300,14 @@ namespace Npoi.Mapper
         /// Saves the specified objects to the specified Excel file.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="path">The path to the Excel file.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string file, IEnumerable<T> objects, string sheetName, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool xlsx = true, bool overwrite = false)
         {
-            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+            using (var fs = GetFileStream(path, overwrite))
                 Save(fs, objects, sheetName, xlsx);
         }
 
@@ -314,13 +315,14 @@ namespace Npoi.Mapper
         /// Saves the specified objects to the specified Excel file.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="path">The path to the Excel file.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string file, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
         {
-            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+            using (var fs = GetFileStream(path, overwrite))
                 Save(fs, objects, sheetIndex, xlsx);
         }
 
@@ -332,12 +334,12 @@ namespace Npoi.Mapper
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool xlsx = true, bool overwrite = false)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
-            var sheet = Workbook.GetSheet(sheetName);
-            if (sheet == null) sheet = Workbook.CreateSheet(sheetName);
+            var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
             Save(stream, sheet, objects);
         }
 
@@ -349,15 +351,12 @@ namespace Npoi.Mapper
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
-            ISheet sheet;
-            if (Workbook.NumberOfSheets > sheetIndex)
-                sheet = Workbook.GetSheetAt(sheetIndex);
-            else
-                sheet = Workbook.CreateSheet();
+            var sheet = Workbook.NumberOfSheets > sheetIndex ? Workbook.GetSheetAt(sheetIndex) : Workbook.CreateSheet();
             Save(stream, sheet, objects);
         }
 
@@ -365,12 +364,13 @@ namespace Npoi.Mapper
         /// Saves tracked objects to the specified Excel file.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="path">The path to the Excel file.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string file, string sheetName, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(string path, string sheetName, bool xlsx = true, bool overwrite = false)
         {
-            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+            using (var fs = GetFileStream(path, overwrite))
                 Save<T>(fs, sheetName, xlsx);
         }
 
@@ -378,12 +378,13 @@ namespace Npoi.Mapper
         /// Saves tracked objects to the specified Excel file.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="file">The path to the Excel file.</param>
+        /// <param name="path">The path to the Excel file.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string file, int sheetIndex = 0, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(string path, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
         {
-            using (var fs = File.Open(file, FileMode.Create, FileAccess.Write))
+            using (var fs = GetFileStream(path, overwrite))
                 Save<T>(fs, sheetIndex, xlsx);
         }
 
@@ -394,7 +395,8 @@ namespace Npoi.Mapper
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, string sheetName, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(Stream stream, string sheetName, bool xlsx = true, bool overwrite = false)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
@@ -410,7 +412,8 @@ namespace Npoi.Mapper
         /// <param name="stream">The stream to save the objects to.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, int sheetIndex = 0, bool xlsx = true)
+        /// <param name="overwrite"><c>true</c> to overwrite existing file; otherwise false.</param>
+        public void Save<T>(Stream stream, int sheetIndex = 0, bool xlsx = true, bool overwrite = false)
         {
             if (Workbook == null)
                 Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
@@ -753,6 +756,12 @@ namespace Npoi.Mapper
                 (MemberExpression)((UnaryExpression)expression.Body).Operand;
 
             return (PropertyInfo)body.Member;
+        }
+
+        private static FileStream GetFileStream(string path, bool overwrite)
+        {
+            return File.Open(path, overwrite ? FileMode.Create : FileMode.OpenOrCreate,
+                overwrite ? FileAccess.Write : FileAccess.ReadWrite);
         }
 
         #region Export

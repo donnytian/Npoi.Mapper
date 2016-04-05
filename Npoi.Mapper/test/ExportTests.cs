@@ -137,5 +137,41 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
         }
+
+        [TestMethod]
+        public void ExportToExistingFileTest()
+        {
+            // Prepare
+            var exporter = new Mapper();
+            const string fileName = "test.xlsx";
+            const string sheetName = "oldSheet";
+            exporter.Save(fileName, new[] { sampleObj, }, sheetName);
+            exporter.Workbook.CreateSheet("newSheet");
+
+            // Act
+            exporter.Save(fileName, new[] { sampleObj, }, sheetName, true, false);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(2, exporter.Workbook.NumberOfSheets);
+        }
+
+        [TestMethod]
+        public void ExportToNewFileTest()
+        {
+            // Prepare
+            var exporter = new Mapper();
+            const string fileName = "test.xlsx";
+            const string sheetName = "oldSheet";
+            exporter.Save(fileName, new[] { sampleObj, }, sheetName);
+            exporter.Workbook.CreateSheet("newSheet");
+
+            // Act
+            exporter.Save(fileName, new[] { sampleObj, }, sheetName, true, true);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
+        }
     }
 }
