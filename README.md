@@ -1,6 +1,6 @@
 # Npoi.Mapper
 Convention based mapper between strong typed object and Excel data via NPOI.  
-Feel free to file bugs or raise pull requests...
+This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
 ## Install
 
@@ -38,11 +38,11 @@ mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet3");
 1. Import POCOs from Excel file (XLS or XLSX) via [NPOI](https://github.com/tonyqus/npoi)
 2. Export objects to Excel file (XLS or XLSX) (inspired by [ExcelMapper](https://github.com/mganss/ExcelMapper))
 3. No code required to map object properties and column headers by default naming convention (see below sectioin)
-4. Support escaping and truncate chars in column header for mapping
+4. Support to escape and truncate chars in column header for mapping
 5. Also support explicit column mapping with attributes or fluent methods
 6. Support custom object factory injection
 7. Support custom header and cell resolver
-8. Support custom logic to handle multiple column for collection property
+8. Support custom logic to handle multiple columns for collection property
 9. Support Excel built-in format and custom format for exporting (see Column format section)
 
 ## Column mapping order
@@ -109,8 +109,7 @@ Or by Attributes tagged on object properties:
 By method:
 
 ```C#
-mapper.Map<SampleClass>("ColumnA", o => o.Property1)
-    .Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
+mapper.Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
     .Format<SampleClass>("0%", o => o.DoubleProperty);
 ```
 
