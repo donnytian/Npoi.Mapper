@@ -131,3 +131,8 @@ Or by ColumnAttribute
 ```
 
 You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
+
+## Change log
+### v2.0.3
+* Support "overwrite" flag for export data, use existing file if set to false.
+
