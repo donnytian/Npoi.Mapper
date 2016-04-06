@@ -19,18 +19,22 @@ More use cases please check out source in "test" project.
 
 ## Export objects to Excel (XLS or XLSX)
 
+### 1. Export objects.
+Set **overwrite** parameter to false to use existing columns and formats, otherwise always create new file.
 ```C#
-// Export objects.
 //var objects = ...
 var mapper = new Mapper();
-mapper.Save("test.xlsx",  objects, "newSheet");
+mapper.Save("test.xlsx",  objects, "newSheet", overwrite: false);
+```
 
-// Export tracked objects.
+### 2. Export tracked objects.
+Set **TrackObjects** to true, objects can be tracked after a Take method and then you can modify and save them back.
+```C#
 var mapper = new Mapper("Book1.xlsx");
-var objectInfos = mapper.Take<SampleClass>("sheet2").ToList();
-// Modify tracked objects...then save back..
+mapper.TrackObjects = true; // It's default true.
+var objectInfos = mapper.Take<SampleClass>("sheet2"); // You can Take first then modify tracked objects.
+var objectsDict = mapper.Objects; // Also you can directly access objects in a sheet by property.
 mapper.Save("test.xlsx",  "sheet2");
-mapper.Save("test.xlsx",  objectInfos.Select(info => info.Value), "sheet3");
 ```
 
 ## Features
