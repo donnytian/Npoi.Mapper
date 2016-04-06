@@ -27,9 +27,6 @@ namespace Npoi.Mapper
         // Current working workbook.
         private IWorkbook _workbook;
 
-        // Binding flags to lookup object properties.
-        private const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
-
         // Default chars that will be removed when mapping by column header name.
         private static readonly char[] DefaultIgnoredChars =
         {'`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '=', '|', ',', '.', '/', '?'};
@@ -118,7 +115,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="Mapper"/> class.
+        /// Initialize a new instance of <see cref="Mapper"/> class with stream to read workbook.
         /// </summary>
         /// <param name="stream">The input Excel(XLS, XLSX) file stream</param>
         public Mapper(Stream stream)
@@ -133,7 +130,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="Mapper"/> class.
+        /// Initialize a new instance of <see cref="Mapper"/> class with a workbook.
         /// </summary>
         /// <param name="workbook">The input IWorkbook object.</param>
         public Mapper(IWorkbook workbook)
@@ -145,7 +142,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="Mapper"/> class.
+        /// Initialize a new instance of <see cref="Mapper"/> class with file path to read workbook.
         /// </summary>
         /// <param name="filePath">The path of Excel file.</param>
         public Mapper(string filePath) : this(new FileStream(filePath, FileMode.Open))
@@ -162,7 +159,9 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnName">The column name.</param>
         /// <param name="propertySelector">Property selector.</param>
-        /// <param name="resolverType">The type of resolver.</param>
+        /// <param name="resolverType">
+        /// The type of custom header and cell resolver that derived from <see cref="ColumnResolver{TTarget}"/>.
+        /// </param>
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
@@ -189,7 +188,9 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnIndex">The column index.</param>
         /// <param name="propertySelector">Property selector.</param>
-        /// <param name="resolverType">The type of resolver.</param>
+        /// <param name="resolverType">
+        /// The type of custom header and cell resolver that derived from <see cref="ColumnResolver{TTarget}"/>.
+        /// </param>
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(ushort columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
@@ -208,7 +209,8 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Specify to use last non-blank value for a property. Useful in merged cells.
+        /// Specify to use last non-blank value from above cell for a property.
+        /// Typically to address the blank cell issue in merged cells.
         /// </summary>
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="propertySelector">Property selector.</param>
@@ -224,7 +226,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Specify to ignore a property.
+        /// Specify to ignore a property. Ignored property will not be mapped for import and export.
         /// </summary>
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="propertySelector">Property selector.</param>
@@ -312,7 +314,7 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadFile(path);
+            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
 
             using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save(fs, objects, sheetName, overwrite, xlsx);
@@ -329,7 +331,7 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadFile(path);
+            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
 
             using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save(fs, objects, sheetIndex, overwrite, xlsx);
@@ -379,7 +381,7 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, string sheetName, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadFile(path);
+            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
 
             using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save<T>(fs, sheetName, overwrite, xlsx);
@@ -395,7 +397,7 @@ namespace Npoi.Mapper
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         public void Save<T>(string path, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadFile(path);
+            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
 
             using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save<T>(fs, sheetIndex, overwrite, xlsx);
@@ -439,6 +441,8 @@ namespace Npoi.Mapper
 
         #region Private Methods
 
+        #region Import
+
         private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
         {
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
@@ -450,11 +454,11 @@ namespace Npoi.Mapper
             var firstRow = sheet.GetRow(firstRowIndex);
 
             // Scan object attributes.
-            ScanAttributes<T>();
+            MapHelper.LoadAttributes<T>(Attributes);
 
             // Read the first row to get column information.
             var columns = GetColumns<T>(firstRow);
-            LookupDataFormat(sheet.GetRow(firstRowIndex + 1), columns);
+            MapHelper.LoadDataFormats(sheet.GetRow(firstRowIndex + 1), columns);
 
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
@@ -474,31 +478,6 @@ namespace Npoi.Mapper
             }
         }
 
-        private void ScanAttributes<T>()
-        {
-            var type = typeof(T);
-
-            foreach (var pi in type.GetProperties(BindingFlag))
-            {
-                var columnMeta = pi.GetCustomAttribute<ColumnAttribute>();
-                var ignore = Attribute.IsDefined(pi, typeof(IgnoreAttribute));
-                var useLastNonBlank = Attribute.IsDefined(pi, typeof(UseLastNonBlankValueAttribute));
-
-                if (columnMeta == null && !ignore && !useLastNonBlank) continue;
-
-                if (columnMeta == null) columnMeta = new ColumnAttribute
-                {
-                    Ignored = ignore ? new bool?(true) : null,
-                    UseLastNonBlankValue = useLastNonBlank ? new bool?(true) : null
-                };
-
-                columnMeta.Property = pi;
-
-                // Note that attribute from Map method takes precedence over Attribute meta data.
-                columnMeta.MergeTo(Attributes, false);
-            }
-        }
-
         private List<ColumnInfo<T>> GetColumns<T>(IRow headerRow)
         {
             //
@@ -508,7 +487,7 @@ namespace Npoi.Mapper
 
             var sheetName = headerRow.Sheet.SheetName;
             var columns = new List<ColumnInfo<T>>();
-            var columnsCache = new List<object>();
+            var columnsCache = new List<object>(); // Cached for export usage.
 
             // Prepare a list of ColumnInfo by the first row.
             foreach (ICell header in headerRow)
@@ -533,7 +512,7 @@ namespace Npoi.Mapper
                     column = GetColumnInfoByResolverType<T>(header, DefaultResolverType);
                 }
 
-                if (column == null) continue;
+                if (column == null) continue; // No property was mapped to this column.
 
                 if (header.CellStyle != null) column.HeaderFormat = header.CellStyle.DataFormat;
                 columns.Add(column);
@@ -547,18 +526,6 @@ namespace Npoi.Mapper
             typeDict[typeof(T)] = columnsCache;
 
             return columns;
-        }
-
-        private static void LookupDataFormat<T>(IRow dataRow, IEnumerable<ColumnInfo<T>> columns)
-        {
-            if (dataRow == null || columns == null) return;
-
-            foreach (var column in columns)
-            {
-                var cell = dataRow.GetCell(column.Attribute.Index);
-
-                if (cell != null) column.DataFormat = cell.CellStyle.DataFormat;
-            }
         }
 
         private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
@@ -625,12 +592,12 @@ namespace Npoi.Mapper
             var type = typeof(T);
 
             // First attempt: search by string (ignore case).
-            var pi = type.GetProperty(name, BindingFlag);
+            var pi = type.GetProperty(name, MapHelper.BindingFlag);
 
             if (pi == null)
             {
                 // Second attempt: search display name of DisplayAttribute if any.
-                foreach (var propertyInfo in type.GetProperties(BindingFlag))
+                foreach (var propertyInfo in type.GetProperties(MapHelper.BindingFlag))
                 {
                     var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
 
@@ -645,7 +612,7 @@ namespace Npoi.Mapper
             if (pi == null)
             {
                 // Third attempt: remove ignored chars and do the truncation.
-                pi = type.GetProperty(RefineName(name), BindingFlag);
+                pi = type.GetProperty(RefineName(name), MapHelper.BindingFlag);
             }
 
             if (pi == null) return null;
@@ -792,11 +759,12 @@ namespace Npoi.Mapper
             return (PropertyInfo)body.Member;
         }
 
-        private void LoadFile(string path)
+        private void LoadWorkbookFromFile(string path)
         {
-            // Load from file first if it's not going to overwrite.
             Workbook = WorkbookFactory.Create(new FileStream(path, FileMode.Open));
         }
+
+        #endregion
 
         #region Export
 
@@ -919,10 +887,10 @@ namespace Npoi.Mapper
 
             var type = typeof(T);
 
-            ScanAttributes<T>();
+            MapHelper.LoadAttributes<T>(Attributes);
 
             var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
-            var properties = new List<PropertyInfo>(type.GetProperties(BindingFlag));
+            var properties = new List<PropertyInfo>(type.GetProperties(MapHelper.BindingFlag));
 
             // Firstly populate for those have attribute specified.
             foreach (var pair in attributes)

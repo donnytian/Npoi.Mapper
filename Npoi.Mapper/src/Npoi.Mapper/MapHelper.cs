@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
+using Npoi.Mapper.Attributes;
 using NPOI.SS.UserModel;
 
 namespace Npoi.Mapper
@@ -11,6 +13,9 @@ namespace Npoi.Mapper
     public static class MapHelper
     {
         #region Fields
+
+        // Binding flags to lookup object properties.
+        public const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
         /// <summary>
         /// Collection of numeric types.
@@ -38,6 +43,36 @@ namespace Npoi.Mapper
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Load attributes to a dictionary.
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="attributes">Container to hold loaded attributes.</param>
+        public static void LoadAttributes<T>(Dictionary<PropertyInfo, ColumnAttribute> attributes)
+        {
+            var type = typeof(T);
+
+            foreach (var pi in type.GetProperties(BindingFlag))
+            {
+                var columnMeta = pi.GetCustomAttribute<ColumnAttribute>();
+                var ignore = Attribute.IsDefined(pi, typeof(IgnoreAttribute));
+                var useLastNonBlank = Attribute.IsDefined(pi, typeof(UseLastNonBlankValueAttribute));
+
+                if (columnMeta == null && !ignore && !useLastNonBlank) continue;
+
+                if (columnMeta == null) columnMeta = new ColumnAttribute
+                {
+                    Ignored = ignore ? new bool?(true) : null,
+                    UseLastNonBlankValue = useLastNonBlank ? new bool?(true) : null
+                };
+
+                columnMeta.Property = pi;
+
+                // Note that attribute from Map method takes precedence over Attribute meta data.
+                columnMeta.MergeTo(attributes, false);
+            }
+        }
 
         /// <summary>
         /// Extension for <see cref="IEnumerable{T}"/> object to handle each item.
@@ -72,6 +107,24 @@ namespace Npoi.Mapper
         public static bool IsNumeric(this Type type)
         {
             return NumericTypes.Contains(type);
+        }
+
+        /// <summary>
+        /// Load cell data format by a specified row.
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="dataRow">The row to load format from.</param>
+        /// <param name="columns">The column collection to load formats into.</param>
+        public static void LoadDataFormats<T>(IRow dataRow, IEnumerable<ColumnInfo<T>> columns)
+        {
+            if (dataRow == null || columns == null) return;
+
+            foreach (var column in columns)
+            {
+                var cell = dataRow.GetCell(column.Attribute.Index);
+
+                if (cell != null) column.DataFormat = cell.CellStyle.DataFormat;
+            }
         }
 
         /// <summary>
