@@ -312,7 +312,9 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
         {
-            using (var fs = GetFileStream(path, overwrite))
+            if (Workbook == null && !overwrite) LoadFile(path);
+
+            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save(fs, objects, sheetName, overwrite, xlsx);
         }
 
@@ -327,7 +329,9 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            using (var fs = GetFileStream(path, overwrite))
+            if (Workbook == null && !overwrite) LoadFile(path);
+
+            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save(fs, objects, sheetIndex, overwrite, xlsx);
         }
 
@@ -335,7 +339,7 @@ namespace Npoi.Mapper
         /// Saves the specified objects to the specified stream.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
@@ -352,7 +356,7 @@ namespace Npoi.Mapper
         /// Saves the specified objects to the specified stream.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
@@ -375,7 +379,9 @@ namespace Npoi.Mapper
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         public void Save<T>(string path, string sheetName, bool overwrite = true, bool xlsx = true)
         {
-            using (var fs = GetFileStream(path, overwrite))
+            if (Workbook == null && !overwrite) LoadFile(path);
+
+            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save<T>(fs, sheetName, overwrite, xlsx);
         }
 
@@ -389,7 +395,9 @@ namespace Npoi.Mapper
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         public void Save<T>(string path, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            using (var fs = GetFileStream(path, overwrite))
+            if (Workbook == null && !overwrite) LoadFile(path);
+
+            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
                 Save<T>(fs, sheetIndex, overwrite, xlsx);
         }
 
@@ -397,7 +405,7 @@ namespace Npoi.Mapper
         /// Saves tracked objects to the specified stream.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
@@ -414,7 +422,7 @@ namespace Npoi.Mapper
         /// Saves tracked objects to the specified stream.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
-        /// <param name="stream">The stream to save the objects to.</param>
+        /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
@@ -527,7 +535,7 @@ namespace Npoi.Mapper
 
                 if (column == null) continue;
 
-                if(header.CellStyle != null) column.HeaderFormat = header.CellStyle.DataFormat;
+                if (header.CellStyle != null) column.HeaderFormat = header.CellStyle.DataFormat;
                 columns.Add(column);
                 columnsCache.Add(column);
             }
@@ -784,10 +792,10 @@ namespace Npoi.Mapper
             return (PropertyInfo)body.Member;
         }
 
-        private static FileStream GetFileStream(string path, bool overwrite)
+        private void LoadFile(string path)
         {
-            return File.Open(path, overwrite ? FileMode.Create : FileMode.OpenOrCreate,
-                overwrite ? FileAccess.Write : FileAccess.ReadWrite);
+            // Load from file first if it's not going to overwrite.
+            Workbook = WorkbookFactory.Create(new FileStream(path, FileMode.Open));
         }
 
         #region Export
@@ -825,7 +833,7 @@ namespace Npoi.Mapper
                     var value = pi.GetValue(pair.Value);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                    SetCell(cell, value, column);
+                    SetCell(cell, value, column, setStyle: overwrite);
                 }
 
                 rowIndex++;
@@ -871,7 +879,7 @@ namespace Npoi.Mapper
                     var value = pi.GetValue(o);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                    SetCell(cell, value, column);
+                    SetCell(cell, value, column, setStyle: overwrite);
                 }
 
                 rowIndex++;
@@ -968,7 +976,12 @@ namespace Npoi.Mapper
             return columns?.ToList();
         }
 
-        private static void SetCell<T>(ICell cell, object value, ColumnInfo<T> column, bool isHeader = false)
+        private static void SetCell<T>(
+            ICell cell,
+            object value,
+            ColumnInfo<T> column,
+            bool isHeader = false,
+            bool setStyle = true)
         {
             if (value == null || value is ICollection)
             {
@@ -991,7 +1004,7 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            column.SetCellStyle(cell, isHeader);
+            if (setStyle) column.SetCellStyle(cell, isHeader);
         }
 
         #endregion Export

@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NPOI.HSSF.UserModel;
+using NPOI.XSSF.UserModel;
 using test.Sample;
 
 namespace test
@@ -160,45 +162,48 @@ namespace test
         }
 
         [TestMethod]
-        public void ExportToExistingFileTest()
+        public void ExportXlsTest()
         {
             // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "newSheet";
+            File.Delete(existingFile);
+            File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper();
-            const string sheetName = "oldSheet";
-            exporter.Save(FileName, new[] { sampleObj, }, sheetName);
-            exporter.Workbook.CreateSheet("newSheet");
 
             // Act
-            exporter.Save(FileName, new[] { sampleObj, }, sheetName, true, false);
+            exporter.Save(existingFile, new[] { sampleObj, }, sheetName, true, false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(2, exporter.Workbook.NumberOfSheets);
+            Assert.IsNotNull(exporter.Workbook as HSSFWorkbook);
+            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
 
             // Cleanup
-            File.Delete(FileName);
+            File.Delete(existingFile);
         }
 
         [TestMethod]
-        public void ExportToNewFileTest()
+        public void OverwriteNewFileTest()
         {
             // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "Allocations";
+            File.Delete(existingFile);
+            File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper();
-            const string sheetName = "newSheet";
 
             // Act
-            exporter.Save(FileName, new[] { sampleObj, }, sheetName, true, true);
+            exporter.Save(existingFile, new[] { sampleObj, }, sheetName, true);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
 
             // Cleanup
-            File.Delete(FileName);
+            File.Delete(existingFile);
         }
 
         [TestMethod]
-        public void OverwriteExistedRowsTest() // TODO fix corrupted file
+        public void MergeToExistedRowsTest()
         {
             // Prepare
             const string existingFile = "Book2.xlsx";
@@ -213,11 +218,12 @@ namespace test
             exporter.Save(existingFile, new[] { sampleObj, }, sheetName, false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            //Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
+            var sheet = exporter.Workbook.GetSheet(sheetName);
+            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(1).GetCell(1).StringCellValue);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1).GetCell(2).DateCellValue.Date);
 
             // Cleanup
-            //File.Delete(existingFile);
+            File.Delete(existingFile);
         }
     }
 }
