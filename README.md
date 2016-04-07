@@ -28,13 +28,22 @@ mapper.Save("test.xlsx",  objects, "newSheet", overwrite: false);
 ```
 
 ### 2. Export tracked objects.
-Set **TrackObjects** to true, objects can be tracked after a Take method and then you can modify and save them back.
+Set **TrackObjects** property to true, objects can be tracked after a Take method and then you can modify and save them back.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
 mapper.TrackObjects = true; // It's default true.
 var objectInfos = mapper.Take<SampleClass>("sheet2"); // You can Take first then modify tracked objects.
 var objectsDict = mapper.Objects; // Also you can directly access objects in a sheet by property.
 mapper.Save("test.xlsx",  "sheet2");
+```
+
+### 3. Put different types of objects into memory workbook and export together.
+Set **overwrite** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
+```C#
+var mapper = new Mapper("Book1.xlsx");
+var productInfos = mapper.Put(products, "sheet1", true);
+var orderInfos = mapper.Put(orders, "sheet2", false);
+mapper.Save("Book1.xlsx");
 ```
 
 ## Features
@@ -133,6 +142,10 @@ Or by ColumnAttribute
 You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
 
 ## Change log
+
+### v2.0.4
+* Added **Put** methods and new **Save** methods, so you can put different type of objects in memory workbook first and then save them together.
+
 ### v2.0.3
 * Support "overwrite" flag for export data, use existing file if set to false.
 

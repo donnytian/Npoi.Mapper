@@ -304,6 +304,55 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
+        /// Put objects in the sheet with specified name.
+        /// </summary>
+        /// <typeparam name="T">Target object type</typeparam>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetName">The sheet name</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing rows; otherwise append.</param>
+        public void Put<T>(IEnumerable<T> objects, string sheetName, bool overwrite = true)
+        {
+            if (Workbook == null) Workbook = new XSSFWorkbook();
+            var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
+            Put(sheet, objects, overwrite);
+        }
+
+        /// <summary>
+        /// Put objects in the sheet with specified zero-based index.
+        /// </summary>
+        /// <typeparam name="T">Target object type</typeparam>
+        /// <param name="objects">The objects to save.</param>
+        /// <param name="sheetIndex">The sheet index, default is 0.</param>
+        /// <param name="overwrite"><c>true</c> to overwrite existing rows; otherwise append.</param>
+        public void Put<T>(IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = false)
+        {
+            if (Workbook == null) Workbook = new XSSFWorkbook();
+            var sheet = Workbook.GetSheetAt(sheetIndex);
+            Put(sheet, objects, overwrite);
+        }
+
+        /// <summary>
+        /// Saves the current workbook to specified file.
+        /// </summary>
+        /// <param name="path">The path to the Excel file.</param>
+        public void Save(string path)
+        {
+            if (Workbook == null) return;
+
+            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
+                Workbook.Write(fs);
+        }
+
+        /// <summary>
+        /// Saves the current workbook to specified stream.
+        /// </summary>
+        /// <param name="stream">The stream to save the workbook.</param>
+        public void Save(Stream stream)
+        {
+            Workbook?.Write(stream);
+        }
+
+        /// <summary>
         /// Saves the specified objects to the specified Excel file.
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
@@ -768,6 +817,53 @@ namespace Npoi.Mapper
 
         #region Export
 
+        private void Put<T>(ISheet sheet, IEnumerable<T> objects, bool overwrite)
+        {
+            var sheetName = sheet.SheetName;
+            var firstRow = sheet.GetRow(sheet.FirstRowNum);
+
+            List<ColumnInfo<T>> columns = null;
+            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
+            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
+            if (firstRow == null) PopulateFirstRow(sheet, columns);
+
+            var rowIndex = overwrite
+                ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
+                : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
+
+            foreach (var o in objects)
+            {
+                var row = sheet.GetRow(rowIndex);
+
+                if (overwrite && row != null)
+                {
+                    sheet.RemoveRow(row);
+                    row = sheet.CreateRow(rowIndex);
+                }
+
+                row = row ?? sheet.CreateRow(rowIndex);
+
+                foreach (var column in columns)
+                {
+                    var pi = column.Attribute.Property;
+                    var value = pi.GetValue(o);
+                    var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
+
+                    SetCell(cell, value, column, setStyle: overwrite);
+                }
+
+                rowIndex++;
+            }
+
+            // Remove not used rows if any.
+            while (overwrite && rowIndex <= sheet.LastRowNum)
+            {
+                var row = sheet.GetRow(rowIndex);
+                if (row != null) sheet.RemoveRow(row);
+                rowIndex++;
+            }
+        }
+
         private void Save<T>(Stream stream, ISheet sheet, bool overwrite)
         {
             var sheetName = sheet.SheetName;
@@ -812,6 +908,7 @@ namespace Npoi.Mapper
             {
                 var row = sheet.GetRow(rowIndex);
                 if (row != null) sheet.RemoveRow(row);
+                rowIndex++;
             }
 
             Workbook.Write(stream);
@@ -819,47 +916,7 @@ namespace Npoi.Mapper
 
         private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects, bool overwrite)
         {
-            var sheetName = sheet.SheetName;
-            var firstRow = sheet.GetRow(sheet.FirstRowNum);
-
-            List<ColumnInfo<T>> columns = null;
-            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
-            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
-            if (firstRow == null) PopulateFirstRow(sheet, columns);
-
-            var rowIndex = HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum;
-
-            foreach (var o in objects)
-            {
-                var row = sheet.GetRow(rowIndex);
-
-                if (overwrite && row != null)
-                {
-                    sheet.RemoveRow(row);
-                    sheet.CreateRow(rowIndex);
-                }
-
-                row = row ?? sheet.CreateRow(rowIndex);
-
-                foreach (var column in columns)
-                {
-                    var pi = column.Attribute.Property;
-                    var value = pi.GetValue(o);
-                    var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
-                    SetCell(cell, value, column, setStyle: overwrite);
-                }
-
-                rowIndex++;
-            }
-
-            // Remove not used rows if any.
-            while (overwrite && rowIndex <= sheet.LastRowNum)
-            {
-                var row = sheet.GetRow(rowIndex);
-                if (row != null) sheet.RemoveRow(row);
-            }
-
+            Put(sheet, objects, overwrite);
             Workbook.Write(stream);
         }
 

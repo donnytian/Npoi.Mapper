@@ -167,7 +167,7 @@ namespace test
             // Prepare
             const string existingFile = "Book2.xlsx";
             const string sheetName = "newSheet";
-            File.Delete(existingFile);
+            if (File.Exists(existingFile)) File.Delete(existingFile);
             File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper();
 
@@ -188,7 +188,7 @@ namespace test
             // Prepare
             const string existingFile = "Book2.xlsx";
             const string sheetName = "Allocations";
-            File.Delete(existingFile);
+            if (File.Exists(existingFile)) File.Delete(existingFile);
             File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper();
 
@@ -208,7 +208,7 @@ namespace test
             // Prepare
             const string existingFile = "Book2.xlsx";
             const string sheetName = "Allocations";
-            File.Delete(existingFile);
+            if (File.Exists(existingFile)) File.Delete(existingFile);
             File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper();
             exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
@@ -219,11 +219,80 @@ namespace test
 
             // Assert
             var sheet = exporter.Workbook.GetSheet(sheetName);
+            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
+
+            // Cleanup
+            File.Delete(existingFile);
+        }
+
+        [TestMethod]
+        public void PutAppendRowTest()
+        {
+            // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "Allocations";
+            if (File.Exists(existingFile)) File.Delete(existingFile);
+            File.Copy("Book1.xlsx", existingFile);
+            var exporter = new Mapper(existingFile);
+            exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
+            exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+
+            // Act
+            exporter.Put(new[] { sampleObj, }, sheetName, false);
+
+            // Assert
+            var sheet = exporter.Workbook.GetSheet(sheetName);
+            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
+
+            // Cleanup
+            File.Delete(existingFile);
+        }
+
+        [TestMethod]
+        public void PutOverwriteRowTest()
+        {
+            // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "Allocations";
+            if(File.Exists(existingFile))File.Delete(existingFile);
+            File.Copy("Book1.xlsx", existingFile);
+            var exporter = new Mapper(existingFile);
+            exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
+            exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+
+            // Act
+            exporter.Put(new[] { sampleObj, }, sheetName, true);
+
+            // Assert
+            var sheet = exporter.Workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(1).GetCell(1).StringCellValue);
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1).GetCell(2).DateCellValue.Date);
 
             // Cleanup
             File.Delete(existingFile);
+        }
+
+        [TestMethod]
+        public void SaveWorkbookToFileTest()
+        {
+            // Prepare
+            const string existingFile = "Book2.xlsx";
+            const string sheetName = "Allocations";
+            if (File.Exists(existingFile)) File.Delete(existingFile);
+            
+            var exporter = new Mapper("Book1.xlsx");
+
+            // Act
+            exporter.Save(existingFile);
+
+            // Assert
+            Assert.IsTrue(File.Exists(existingFile));
+
+            // Cleanup
+            File.Delete(existingFile);
+
         }
     }
 }
