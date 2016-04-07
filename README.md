@@ -41,8 +41,8 @@ mapper.Save("test.xlsx",  "sheet2");
 Set **overwrite** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
-var productInfos = mapper.Put(products, "sheet1", true);
-var orderInfos = mapper.Put(orders, "sheet2", false);
+mapper.Put(products, "sheet1", true);
+mapper.Put(orders, "sheet2", false);
 mapper.Save("Book1.xlsx");
 ```
 
