@@ -32,7 +32,7 @@ namespace Npoi.Mapper.Attributes
         public PropertyInfo Property { get; internal set; }
 
         /// <summary>
-        /// The type of class that is derived from <see cref="ColumnResolver{TTarget}"/> class.
+        /// The type of class that is implemented <see cref="IColumnResolver{TTarget}"/> interface.
         /// </summary>
         public Type ResolverType { get; set; }
 

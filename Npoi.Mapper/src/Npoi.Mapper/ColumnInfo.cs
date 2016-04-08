@@ -26,7 +26,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// The column resolver.
         /// </summary>
-        public ColumnResolver<TTarget> Resolver { get; set; }
+        public IColumnResolver<TTarget> Resolver { get; set; }
 
         /// <summary>
         /// The mapped property information.

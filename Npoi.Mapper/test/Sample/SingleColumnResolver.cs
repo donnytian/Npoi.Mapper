@@ -17,9 +17,9 @@ namespace test.Sample
     /// But you can still use this method to change header value in order to use it in TryResolveCell method.
     /// Header value is either in string or double (even for int and date type). Try convert by needs.
     /// </summary>
-    public class SingleColumnResolver : ColumnResolver<SampleClass>
+    public class SingleColumnResolver : IColumnResolver<SampleClass>
     {
-        public override bool IsColumnMapped(ref object value, int index)
+        public bool IsColumnMapped(ref object value, int index)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace test.Sample
             return true;
         }
 
-        public override bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
+        public bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
         {
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;

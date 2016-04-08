@@ -16,9 +16,9 @@ namespace test.Sample
     /// 
     /// Also you can achieve this by set Mapper's DefaultResolverType.
     /// </summary>
-    public class DefaultColumnResolver : ColumnResolver<SampleClass>
+    public class DefaultColumnResolver : IColumnResolver<SampleClass>
     {
-        public override bool IsColumnMapped(ref object value, int index)
+        public bool IsColumnMapped(ref object value, int index)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace test.Sample
             return false;
         }
 
-        public override bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
+        public bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
         {
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;

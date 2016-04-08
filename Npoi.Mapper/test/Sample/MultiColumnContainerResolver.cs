@@ -3,9 +3,9 @@ using Npoi.Mapper;
 
 namespace test.Sample
 {
-    public class MultiColumnContainerResolver : ColumnResolver<SampleClass>
+    public class MultiColumnContainerResolver : IColumnResolver<SampleClass>
     {
-        public override bool IsColumnMapped(ref object headerValue, int index)
+        public bool IsColumnMapped(ref object headerValue, int index)
         {
             try
             {
@@ -27,7 +27,7 @@ namespace test.Sample
             return false;
         }
 
-        public override bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
+        public bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
         {
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;

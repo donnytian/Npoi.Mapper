@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Npoi.Mapper.Attributes;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -16,7 +15,7 @@ using NPOI.XSSF.UserModel;
 namespace Npoi.Mapper
 {
     /// <summary>
-    /// Import Excel row data as object.
+    /// Map object properties with Excel columns for importing from and exporting to file.
     /// </summary>
     [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
@@ -26,13 +25,6 @@ namespace Npoi.Mapper
 
         // Current working workbook.
         private IWorkbook _workbook;
-
-        // Default chars that will be removed when mapping by column header name.
-        private static readonly char[] DefaultIgnoredChars =
-        {'`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '=', '|', ',', '.', '/', '?'};
-
-        // Default chars to truncate column header name during mapping.
-        private static readonly char[] DefaultTruncateChars = { '[', '<', '(', '{' };
 
         #endregion
 
@@ -53,7 +45,7 @@ namespace Npoi.Mapper
         public Dictionary<string, Dictionary<int, object>> Objects { get; } = new Dictionary<string, Dictionary<int, object>>();
 
         /// <summary>
-        /// Type of resolver to handle unrecognized columns.
+        /// Type of class that implemented <see cref="IColumnResolver{TTarget}"/> to handle unrecognized/ unmapped columns.
         /// </summary>
         public Type DefaultResolverType { get; set; }
 
@@ -154,13 +146,13 @@ namespace Npoi.Mapper
         #region Public Methods
 
         /// <summary>
-        /// Map property to a column by name.
+        /// Map property to a column by specified column name.
         /// </summary>
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnName">The column name.</param>
         /// <param name="propertySelector">Property selector.</param>
         /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="ColumnResolver{TTarget}"/>.
+        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
         /// </param>
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
@@ -168,7 +160,7 @@ namespace Npoi.Mapper
             if (columnName == null)
                 throw new ArgumentNullException(nameof(columnName));
 
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
             new ColumnAttribute
@@ -183,18 +175,18 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Map property to a column by index.
+        /// Map property to a column by specified column index(zero-based).
         /// </summary>
         /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnIndex">The column index.</param>
         /// <param name="propertySelector">Property selector.</param>
         /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="ColumnResolver{TTarget}"/>.
+        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
         /// </param>
         /// <returns>The mapper object.</returns>
         public Mapper Map<T>(ushort columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
 
             new ColumnAttribute
@@ -217,9 +209,8 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper UseLastNonBlankValue<T>(Expression<Func<T, object>> propertySelector)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
-
             new ColumnAttribute { Property = pi, UseLastNonBlankValue = true }.MergeTo(Attributes);
 
             return this;
@@ -233,9 +224,8 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper Ignore<T>(Expression<Func<T, object>> propertySelector)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
-
             new ColumnAttribute { Property = pi, Ignored = true }.MergeTo(Attributes);
 
             return this;
@@ -250,9 +240,8 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper Format<T>(short builtinFormat, Expression<Func<T, object>> propertySelector)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
-
             new ColumnAttribute { Property = pi, BuiltinFormat = builtinFormat }.MergeTo(Attributes);
 
             return this;
@@ -267,9 +256,8 @@ namespace Npoi.Mapper
         /// <returns>The mapper object.</returns>
         public Mapper Format<T>(string customFormat, Expression<Func<T, object>> propertySelector)
         {
-            var pi = GetPropertyInfoByExpression(propertySelector);
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) return this;
-
             new ColumnAttribute { Property = pi, CustomFormat = customFormat }.MergeTo(Attributes);
 
             return this;
@@ -605,7 +593,7 @@ namespace Npoi.Mapper
 
                     var resolver = attribute.ResolverType == null ?
                         null :
-                        Activator.CreateInstance(attribute.ResolverType) as ColumnResolver<T>;
+                        Activator.CreateInstance(attribute.ResolverType) as IColumnResolver<T>;
                     resolver?.IsColumnMapped(ref headerValue, index); // Ignore return value since it's already mapped to column.
 
                     return new ColumnInfo<T>(headerValue, attribute)
@@ -617,7 +605,7 @@ namespace Npoi.Mapper
                 // If goes this far, try map column by custom resolver.
                 if (attribute.Index < 0 && attribute.Name == null && attribute.ResolverType != null)
                 {
-                    var resolver = Activator.CreateInstance(attribute.ResolverType) as ColumnResolver<T>;
+                    var resolver = Activator.CreateInstance(attribute.ResolverType) as IColumnResolver<T>;
 
                     if (resolver == null) continue;
 
@@ -661,7 +649,7 @@ namespace Npoi.Mapper
             if (pi == null)
             {
                 // Third attempt: remove ignored chars and do the truncation.
-                pi = type.GetProperty(RefineName(name), MapHelper.BindingFlag);
+                pi = type.GetProperty(MapHelper.GetRefinedName(name, IgnoredNameChars, TruncateNameFrom), MapHelper.BindingFlag);
             }
 
             if (pi == null) return null;
@@ -681,7 +669,7 @@ namespace Npoi.Mapper
         {
             if (resolverType == null) return null;
 
-            var resolver = Activator.CreateInstance(resolverType) as ColumnResolver<T>;
+            var resolver = Activator.CreateInstance(resolverType) as IColumnResolver<T>;
 
             if (resolver == null) return null;
 
@@ -776,36 +764,6 @@ namespace Npoi.Mapper
             }
 
             return value;
-        }
-
-        private string RefineName(string name)
-        {
-            if (name == null) return null;
-
-            name = Regex.Replace(name, @"\s", "");
-            var ignoredChars = IgnoredNameChars ?? DefaultIgnoredChars;
-            var truncateChars = TruncateNameFrom ?? DefaultTruncateChars;
-
-            name = ignoredChars.Aggregate(name, (current, c) => current.Replace(c, '\0'));
-
-            var index = name.IndexOfAny(truncateChars);
-            if (index >= 0) name = name.Remove(index);
-
-            return name;
-        }
-
-        private static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
-        {
-            var expression = propertySelector as LambdaExpression;
-
-            if (expression == null)
-                throw new ArgumentException("Only LambdaExpression is allowed!", nameof(propertySelector));
-
-            var body = expression.Body.NodeType == ExpressionType.MemberAccess ?
-                (MemberExpression)expression.Body :
-                (MemberExpression)((UnaryExpression)expression.Body).Operand;
-
-            return (PropertyInfo)body.Member;
         }
 
         private void LoadWorkbookFromFile(string path)

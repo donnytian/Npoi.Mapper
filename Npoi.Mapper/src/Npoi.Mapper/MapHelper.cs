@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Npoi.Mapper.Attributes;
 using NPOI.SS.UserModel;
+using System.Linq;
 
 namespace Npoi.Mapper
 {
@@ -13,6 +16,13 @@ namespace Npoi.Mapper
     public static class MapHelper
     {
         #region Fields
+
+        // Default chars that will be removed when mapping by column header name.
+        private static readonly char[] DefaultIgnoredChars =
+        {'`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '=', '|', ',', '.', '/', '?'};
+
+        // Default chars to truncate column header name during mapping.
+        private static readonly char[] DefaultTruncateChars = { '[', '<', '(', '{' };
 
         // Binding flags to lookup object properties.
         public const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
@@ -247,6 +257,49 @@ namespace Npoi.Mapper
             }
 
             return success;
+        }
+
+        /// <summary>
+        /// Get mapped <c>PropertyInfo</c> by property selector expression.
+        /// </summary>
+        /// <typeparam name="T">The object type that property belongs to.</typeparam>
+        /// <param name="propertySelector">The property selector expression.</param>
+        /// <returns>The mapped <c>PropertyInfo</c> object.</returns>
+        public static PropertyInfo GetPropertyInfoByExpression<T>(Expression<Func<T, object>> propertySelector)
+        {
+            var expression = propertySelector as LambdaExpression;
+
+            if (expression == null)
+                throw new ArgumentException("Only LambdaExpression is allowed!", nameof(propertySelector));
+
+            var body = expression.Body.NodeType == ExpressionType.MemberAccess ?
+                (MemberExpression)expression.Body :
+                (MemberExpression)((UnaryExpression)expression.Body).Operand;
+
+            return (PropertyInfo)body.Member;
+        }
+
+        /// <summary>
+        /// Get refined name by removing specified chars and truncating by specified chars.
+        /// </summary>
+        /// <param name="name">The name to be refined.</param>
+        /// <param name="ignoringChars">Chars will be removed from the name string.</param>
+        /// <param name="truncatingChars">Chars used truncate the name string.</param>
+        /// <returns>Refined name string.</returns>
+        public static string GetRefinedName(string name, char[] ignoringChars, char[] truncatingChars)
+        {
+            if (name == null) return null;
+
+            name = Regex.Replace(name, @"\s", "");
+            var ignoredChars = ignoringChars ?? DefaultIgnoredChars;
+            var truncateChars = truncatingChars ?? DefaultTruncateChars;
+
+            name = ignoredChars.Aggregate(name, (current, c) => current.Replace(c, '\0'));
+
+            var index = name.IndexOfAny(truncateChars);
+            if (index >= 0) name = name.Remove(index);
+
+            return name;
         }
 
         #endregion

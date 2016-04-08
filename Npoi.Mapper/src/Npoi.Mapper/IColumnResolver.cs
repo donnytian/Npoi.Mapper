@@ -1,10 +1,11 @@
 ﻿namespace Npoi.Mapper
 {
     /// <summary>
-    /// Use derived of this class to resolve header and cells for a column.
+    /// Base contract for column resolver.
+    /// Implement this interface to resolve header and cells for column(s).
     /// </summary>
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
-    public abstract class ColumnResolver<TTarget>
+    public interface IColumnResolver<TTarget>
     {
         /// <summary>
         /// Determine whether the given column mapped by this resolver or not.
@@ -16,7 +17,7 @@
         /// </param>
         /// <param name="index">Column index</param>
         /// <returns>True if can map header and column; otherwise false.</returns>
-        public abstract bool IsColumnMapped(ref object headerValue, int index);
+        bool IsColumnMapped(ref object headerValue, int index);
 
         /// <summary>
         /// Try resolve cell.
@@ -25,6 +26,6 @@
         /// <param name="cellValue">The cell value object that is either string or double.</param>
         /// <param name="target">The target object of the mapped type.</param>
         /// <returns>True if cell was resolved without error; otherwise false.</returns>
-        public abstract bool TryResolveCell(ColumnInfo<TTarget> columnInfo, object cellValue, TTarget target);
+        bool TryResolveCell(ColumnInfo<TTarget> columnInfo, object cellValue, TTarget target);
     }
 }
