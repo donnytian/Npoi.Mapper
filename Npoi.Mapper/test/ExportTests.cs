@@ -23,6 +23,7 @@ namespace test
             DateProperty = DateTime.Now,
             DoubleProperty = 78,
             GeneralProperty = "general sting",
+            StringProperty = "balabala",
             BoolProperty = true,
             EnumProperty = SampleEnum.Value3,
             IgnoredAttributeProperty = "Ignored column",
@@ -261,9 +262,13 @@ namespace test
             var exporter = new Mapper(existingFile);
             exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
             exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+            exporter.Map<SampleClass>("Name", o => o.StringProperty);
+            exporter.Map<SampleClass>("email", o => o.BoolProperty);
 
             // Act
             exporter.Put(new[] { sampleObj, }, sheetName, true);
+            exporter.Put(new[] {sampleObj}, "Resources");
+            exporter.Save(existingFile);
 
             // Assert
             var sheet = exporter.Workbook.GetSheet(sheetName);
@@ -271,7 +276,7 @@ namespace test
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1).GetCell(2).DateCellValue.Date);
 
             // Cleanup
-            File.Delete(existingFile);
+            //File.Delete(existingFile);
         }
 
         [TestMethod]

@@ -312,7 +312,7 @@ namespace Npoi.Mapper
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetIndex">The sheet index, default is 0.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing rows; otherwise append.</param>
-        public void Put<T>(IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = false)
+        public void Put<T>(IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true)
         {
             if (Workbook == null) Workbook = new XSSFWorkbook();
             var sheet = Workbook.GetSheetAt(sheetIndex);
