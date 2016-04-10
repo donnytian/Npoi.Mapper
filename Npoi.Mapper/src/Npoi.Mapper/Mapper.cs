@@ -711,7 +711,7 @@ namespace Npoi.Mapper
 
                     if (column.Resolver != null)
                     {
-                        if (!column.Resolver.TryResolveCell(column, valueObj, obj))
+                        if (!column.Resolver.TryTakeCell(column, valueObj, obj))
                         {
                             errorIndex = index;
                             errorMessage = "Returned failure by custom cell resolver!";
@@ -804,10 +804,17 @@ namespace Npoi.Mapper
                 foreach (var column in columns)
                 {
                     var pi = column.Attribute.Property;
-                    var value = pi.GetValue(o);
+                    var value = pi?.GetValue(o);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                    SetCell(cell, value, column, setStyle: overwrite);
+                    if (column.Resolver != null)
+                    {
+                        column.Resolver.TryPutCell(column, out value, o);
+                    }
+                    else
+                    {
+                        SetCell(cell, value, column, setStyle: overwrite);
+                    }
                 }
 
                 rowIndex++;
@@ -825,50 +832,9 @@ namespace Npoi.Mapper
         private void Save<T>(Stream stream, ISheet sheet, bool overwrite)
         {
             var sheetName = sheet.SheetName;
-            var firstRow = sheet.GetRow(sheet.FirstRowNum);
             var objects = Objects.ContainsKey(sheetName) ? Objects[sheetName] : new Dictionary<int, object>();
 
-            List<ColumnInfo<T>> columns = null;
-            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
-            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
-            if (firstRow == null) PopulateFirstRow(sheet, columns);
-
-            var rowIndex = HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum;
-
-            foreach (var pair in objects)
-            {
-                if (pair.Value == null) continue;
-
-                var row = sheet.GetRow(rowIndex);
-
-                if (overwrite && row != null)
-                {
-                    sheet.RemoveRow(row);
-                    sheet.CreateRow(rowIndex);
-                }
-
-                row = row ?? sheet.CreateRow(rowIndex);
-
-                foreach (var column in columns)
-                {
-                    var pi = column.Attribute.Property;
-                    var value = pi.GetValue(pair.Value);
-                    var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
-
-                    SetCell(cell, value, column, setStyle: overwrite);
-                }
-
-                rowIndex++;
-            }
-
-            // Remove not used rows if any.
-            while (overwrite && rowIndex <= sheet.LastRowNum)
-            {
-                var row = sheet.GetRow(rowIndex);
-                if (row != null) sheet.RemoveRow(row);
-                rowIndex++;
-            }
-
+            Put(sheet, objects.Values.OfType<T>(), overwrite);
             Workbook.Write(stream);
         }
 

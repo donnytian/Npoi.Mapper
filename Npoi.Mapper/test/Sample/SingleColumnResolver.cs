@@ -39,15 +39,30 @@ namespace test.Sample
             return true;
         }
 
-        public bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
+        public bool TryTakeCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
         {
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;
 
             if (!(columnInfo.HeaderValue is DateTime)) return false;
 
-            // Custom logic to handle the cell value.
+            // Custom logic to get the cell value.
             target.SingleColumnResolverProperty =((DateTime)columnInfo.HeaderValue).ToLongDateString() + cellValue;
+
+            return true;
+        }
+
+        public bool TryPutCell(ColumnInfo<SampleClass> columnInfo, out object cellValue, SampleClass source)
+        {
+            cellValue = null;
+
+            // Note: return false to indicate a failure; and that will increase error count.
+            if (!(columnInfo?.HeaderValue is DateTime)) return false;
+
+            var s = ((DateTime)columnInfo.HeaderValue).ToLongDateString();
+
+            // Custom logic to set the cell value.
+            cellValue = source.SingleColumnResolverProperty?.Remove(0, s.Length);
 
             return true;
         }

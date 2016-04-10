@@ -20,12 +20,21 @@
         bool IsColumnMapped(ref object headerValue, int index);
 
         /// <summary>
-        /// Try resolve cell.
+        /// Try take cell value for the given column when import data from file.
         /// </summary>
         /// <param name="columnInfo">The column info.</param>
         /// <param name="cellValue">The cell value object that is either string or double.</param>
         /// <param name="target">The target object of the mapped type.</param>
         /// <returns>True if cell was resolved without error; otherwise false.</returns>
-        bool TryResolveCell(ColumnInfo<TTarget> columnInfo, object cellValue, TTarget target);
+        bool TryTakeCell(ColumnInfo<TTarget> columnInfo, object cellValue, TTarget target);
+
+        /// <summary>
+        /// Try set value to cell for the given column when export object to file.
+        /// </summary>
+        /// <param name="columnInfo">The column info.</param>
+        /// <param name="cellValue">The value that will be set to cell.</param>
+        /// <param name="source">The object of the mapped type.</param>
+        /// <returns>True if cell was resolved without error; otherwise false.</returns>
+        bool TryPutCell(ColumnInfo<TTarget> columnInfo, out object cellValue, TTarget source);
     }
 }

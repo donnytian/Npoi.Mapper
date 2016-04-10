@@ -186,6 +186,9 @@ Implement **IColumnResolver** to handle complex scenarios. Such as data conversi
 
 ## Change log
 
+### v2.0.5
+* Revised `IColumnResolver` interface to inject complex logic when export data to file.
+
 ### v2.0.4
 * Added **Put** methods and new **Save** methods, so you can put different type of objects in memory workbook first and then save them together.
 
