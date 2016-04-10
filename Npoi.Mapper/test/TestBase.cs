@@ -39,6 +39,16 @@ namespace test
             return workbook;
         }
 
+        protected static IWorkbook WriteAndReadBack(IWorkbook workbook, string fileName = "TempWrite")
+        {
+            using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+            {
+                workbook.Write(fs);
+            }
+
+            return WorkbookFactory.Create(fileName);
+        }
+
         #endregion
     }
 }

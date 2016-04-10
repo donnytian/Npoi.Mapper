@@ -39,6 +39,7 @@ namespace test
             // Prepare
             var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
             var exporter = new Mapper(workbook);
+            if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
 
             // Act
@@ -48,9 +49,6 @@ namespace test
             Assert.IsNotNull(objs);
             Assert.IsNotNull(exporter);
             Assert.IsNotNull(exporter.Workbook);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -59,6 +57,7 @@ namespace test
             // Prepare
             var exporter = new Mapper();
             exporter.Map<SampleClass>("General Column", o => o.GeneralProperty);
+            if (File.Exists(FileName)) File.Delete(FileName);
 
             // Act
             exporter.Save(FileName, new[] { sampleObj }, "newSheet");
@@ -66,9 +65,6 @@ namespace test
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -77,6 +73,7 @@ namespace test
             // Prepare
             var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
             var exporter = new Mapper(workbook);
+            if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
 
             // Act
@@ -85,9 +82,6 @@ namespace test
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -96,6 +90,7 @@ namespace test
             // Prepare
             var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
             var exporter = new Mapper(workbook);
+            if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
             objs[0].Value.BuiltinFormatProperty = DateTime.Now;
             objs[0].Value.CustomFormatProperty = 100.234;
@@ -111,9 +106,6 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -122,6 +114,7 @@ namespace test
             // Prepare
             var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
             var exporter = new Mapper(workbook);
+            if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
             objs[0].Value.DateProperty = DateTime.Now;
             objs[0].Value.DoubleProperty = 100.234;
@@ -139,9 +132,6 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -150,6 +140,7 @@ namespace test
             // Prepare
             var exporter = new Mapper { HasHeader = false };
             const string sheetName = "newSheet";
+            if (File.Exists(FileName)) File.Delete(FileName);
 
             // Act
             exporter.Save(FileName, new[] { sampleObj, }, sheetName);
@@ -157,9 +148,6 @@ namespace test
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-
-            // Cleanup
-            File.Delete(FileName);
         }
 
         [TestMethod]
@@ -178,9 +166,6 @@ namespace test
             // Assert
             Assert.IsNotNull(exporter.Workbook as HSSFWorkbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-
-            // Cleanup
-            File.Delete(existingFile);
         }
 
         [TestMethod]
@@ -198,9 +183,6 @@ namespace test
 
             // Assert
             Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
-
-            // Cleanup
-            File.Delete(existingFile);
         }
 
         [TestMethod]
@@ -222,9 +204,6 @@ namespace test
             var sheet = exporter.Workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
-
-            // Cleanup
-            File.Delete(existingFile);
         }
 
         [TestMethod]
@@ -241,14 +220,12 @@ namespace test
 
             // Act
             exporter.Put(new[] { sampleObj, }, sheetName, false);
+            var workbook = WriteAndReadBack(exporter.Workbook, existingFile);
 
             // Assert
-            var sheet = exporter.Workbook.GetSheet(sheetName);
+            var sheet = workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
-
-            // Cleanup
-            File.Delete(existingFile);
         }
 
         [TestMethod]
@@ -268,15 +245,12 @@ namespace test
             // Act
             exporter.Put(new[] { sampleObj, }, sheetName, true);
             exporter.Put(new[] {sampleObj}, "Resources");
-            exporter.Save(existingFile);
+            var workbook = WriteAndReadBack(exporter.Workbook, existingFile);
 
             // Assert
-            var sheet = exporter.Workbook.GetSheet(sheetName);
+            var sheet = workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(1).GetCell(1).StringCellValue);
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1).GetCell(2).DateCellValue.Date);
-
-            // Cleanup
-            //File.Delete(existingFile);
         }
 
         [TestMethod]
@@ -294,10 +268,6 @@ namespace test
 
             // Assert
             Assert.IsTrue(File.Exists(existingFile));
-
-            // Cleanup
-            File.Delete(existingFile);
-
         }
     }
 }
