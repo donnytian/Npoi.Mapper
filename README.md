@@ -2,9 +2,10 @@
 Convention based mapper between strong typed object and Excel data via NPOI.  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
-## Install
+## Install from NuGet
+In the Package Manager Console:
 
-PM> Install-Package Npoi.Mapper
+`PM> Install-Package Npoi.Mapper`
 
 ## Get objects from Excel (XLS or XLSX)
 
@@ -60,10 +61,10 @@ mapper.Save("Book1.xlsx");
 
 ## Column mapping order
 
-1. Fluent method Map<T>
-2. ColumnAttribute
+1. Fluent method `Map<T>`
+2. `ColumnAttribute`
 3. Default naming convention (see below section)
-4. DefaultResolverType
+4. `Mapper.DefaultResolverType` property
 
 ## Default naming convention for column header mapping
 
@@ -126,7 +127,7 @@ mapper.Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
     .Format<SampleClass>("0%", o => o.DoubleProperty);
 ```
 
-Or by ColumnAttribute
+Or by `ColumnAttribute`
 
 ```C#
     public class SampleClass
@@ -142,7 +143,7 @@ Or by ColumnAttribute
 You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
 
 ## Custom column resolver
-Implement **IColumnResolver** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
+Implement **`IColumnResolver`** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
 
 ```C#
     public class MultiColumnContainerResolver : IColumnResolver<SampleClass>
@@ -209,11 +210,11 @@ Implement **IColumnResolver** to handle complex scenarios. Such as data conversi
 ## Change log
 
 ### v2.0.5
-* Convert `ColumnResolver` to `IColumnResolver` interface to inject custom logic when export data to file.
+* Convert **`ColumnResolver`** to **`IColumnResolver`** interface to inject custom logic when export data to file.
 
 ### v2.0.4
-* Added **Put** methods and new **Save** methods, so you can put different type of objects in memory workbook first and then save them together.
+* Added **`Put`** methods and new **`Save`** methods, so you can put different type of objects in memory workbook first and then save them together.
 
 ### v2.0.3
-* Support "overwrite" flag for export data, use existing file if set to false.
+* Support **`overwrite`** parameter for exporting data, use existing file if set to false.
 
