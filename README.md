@@ -21,7 +21,7 @@ More use cases please check out source in "test" project.
 ## Export objects to Excel (XLS or XLSX)
 
 ### 1. Export objects.
-Set **overwrite** parameter to false to use existing columns and formats, otherwise always create new file.
+Set **`overwrite`** parameter to false to use existing columns and formats, otherwise always create new file.
 ```C#
 //var objects = ...
 var mapper = new Mapper();
@@ -29,7 +29,7 @@ mapper.Save("test.xlsx",  objects, "newSheet", overwrite: false);
 ```
 
 ### 2. Export tracked objects.
-Set **TrackObjects** property to true, objects can be tracked after a Take method and then you can modify and save them back.
+Set **`TrackObjects`** property to true, objects can be tracked after a `Take` method and then you can modify and save them back.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
 mapper.TrackObjects = true; // It's default true.
@@ -39,7 +39,7 @@ mapper.Save("test.xlsx",  "sheet2");
 ```
 
 ### 3. Put different types of objects into memory workbook and export together.
-Set **overwrite** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
+Set **`overwrite`** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
 mapper.Put(products, "sheet1", true);
@@ -69,7 +69,7 @@ mapper.Save("Book1.xlsx");
 ## Default naming convention for column header mapping
 
 1. Map column to property by name.
-2. Map column to the Name of DisplayAttribute of property.
+2. Map column to the Name of `DisplayAttribute` of property.
 3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first braket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
 
 ## Explicit column mapping
