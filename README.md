@@ -2,9 +2,10 @@
 Convention based mapper between strong typed object and Excel data via NPOI.  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
-## Install
+## Install from NuGet
+In the Package Manager Console:
 
-PM> Install-Package Npoi.Mapper
+`PM> Install-Package Npoi.Mapper`
 
 ## Get objects from Excel (XLS or XLSX)
 
@@ -20,7 +21,7 @@ More use cases please check out source in "test" project.
 ## Export objects to Excel (XLS or XLSX)
 
 ### 1. Export objects.
-Set **overwrite** parameter to false to use existing columns and formats, otherwise always create new file.
+Set **`overwrite`** parameter to false to use existing columns and formats, otherwise always create new file.
 ```C#
 //var objects = ...
 var mapper = new Mapper();
@@ -28,7 +29,7 @@ mapper.Save("test.xlsx",  objects, "newSheet", overwrite: false);
 ```
 
 ### 2. Export tracked objects.
-Set **TrackObjects** property to true, objects can be tracked after a Take method and then you can modify and save them back.
+Set **`TrackObjects`** property to true, objects can be tracked after a `Take` method and then you can modify and save them back.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
 mapper.TrackObjects = true; // It's default true.
@@ -38,7 +39,7 @@ mapper.Save("test.xlsx",  "sheet2");
 ```
 
 ### 3. Put different types of objects into memory workbook and export together.
-Set **overwrite** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
+Set **`overwrite`** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
 mapper.Put(products, "sheet1", true);
@@ -60,15 +61,15 @@ mapper.Save("Book1.xlsx");
 
 ## Column mapping order
 
-1. Fluent method Map<T>
-2. ColumnAttribute
+1. Fluent method `Map<T>`
+2. `ColumnAttribute`
 3. Default naming convention (see below section)
-4. DefaultResolverType
+4. `Mapper.DefaultResolverType` property
 
 ## Default naming convention for column header mapping
 
 1. Map column to property by name.
-2. Map column to the Name of DisplayAttribute of property.
+2. Map column to the Name of `DisplayAttribute` of property.
 3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first braket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
 
 ## Explicit column mapping
@@ -126,7 +127,7 @@ mapper.Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
     .Format<SampleClass>("0%", o => o.DoubleProperty);
 ```
 
-Or by ColumnAttribute
+Or by `ColumnAttribute`
 
 ```C#
     public class SampleClass
@@ -142,7 +143,7 @@ Or by ColumnAttribute
 You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
 
 ## Custom column resolver
-Implement **IColumnResolver** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
+Implement **`IColumnResolver`** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
 
 ```C#
     public class MultiColumnContainerResolver : IColumnResolver<SampleClass>
@@ -169,7 +170,7 @@ Implement **IColumnResolver** to handle complex scenarios. Such as data conversi
             return false;
         }
 
-        public bool TryResolveCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
+        public bool TryTakeCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
         {
             // Note: return false to indicate a failure; and that will increase error count.
             if (columnInfo?.HeaderValue == null || cellValue == null) return false;
@@ -181,17 +182,39 @@ Implement **IColumnResolver** to handle complex scenarios. Such as data conversi
 
             return true;
         }
+
+        public bool TryPutCell(ColumnInfo<SampleClass> columnInfo, out object cellValue, SampleClass source)
+        {
+            cellValue = null;
+
+            // Note: return false to indicate a failure; and that will increase error count.
+            if (!(columnInfo?.HeaderValue is DateTime)) return false;
+
+            var s = ((DateTime)columnInfo.HeaderValue).ToLongDateString();
+
+            // Custom logic to set the cell value.
+            if (source.CollectionGenericProperty.Count > 0 && columnInfo.Attribute.Index == 31)
+            {
+                cellValue = source.CollectionGenericProperty.ToList()[0].Remove(0, s.Length);
+            }
+            else if (source.CollectionGenericProperty.Count > 1 && columnInfo.Attribute.Index == 33)
+            {
+                cellValue = source.CollectionGenericProperty.ToList()[1].Remove(0, s.Length);
+            }
+
+            return true;
+        }
     }
 ```
 
 ## Change log
 
 ### v2.0.5
-* Revised `IColumnResolver` interface to inject complex logic when export data to file.
+* Convert **`ColumnResolver`** to **`IColumnResolver`** interface to inject custom logic when export data to file.
 
 ### v2.0.4
-* Added **Put** methods and new **Save** methods, so you can put different type of objects in memory workbook first and then save them together.
+* Added **`Put`** methods and new **`Save`** methods, so you can put different type of objects in memory workbook first and then save them together.
 
 ### v2.0.3
-* Support "overwrite" flag for export data, use existing file if set to false.
+* Support **`overwrite`** parameter for exporting data, use existing file if set to false.
 
