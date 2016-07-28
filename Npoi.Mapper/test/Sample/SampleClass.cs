@@ -11,7 +11,7 @@ namespace test.Sample
     /// <summary>
     /// Sample class for testing purpose.
     /// </summary>
-    public class SampleClass
+    public class SampleClass : BaseClass
     {
         public SampleClass()
         {

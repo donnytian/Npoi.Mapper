@@ -146,6 +146,7 @@ namespace test
 
             var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
             header.SetCellValue(nameof(sample.GeneralProperty));
+            workbook.GetSheetAt(1).GetRow(1).GetCell(1).SetCellValue(str1);
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
 
             var importer = new Mapper(workbook);
@@ -156,6 +157,30 @@ namespace test
 
             // Assert
             Assert.IsNull(objs[0].Value.GeneralProperty);
+            Assert.IsNull(objs[1].Value.GeneralProperty);
+        }
+
+        [TestMethod]
+        public void Issue_1_Test()
+        {
+            // Prepare
+            var sample = new SampleClass();
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            var workbook = GetSimpleWorkbook(date, str1);
+
+            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
+            header.SetCellValue(nameof(sample.BaseStringProperty));
+            workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Ignore<SampleClass>(o => o.BaseStringProperty);
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNull(objs[1].Value.BaseStringProperty);
         }
 
         [TestMethod]

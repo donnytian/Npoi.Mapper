@@ -873,7 +873,7 @@ namespace Npoi.Mapper
             var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
             var properties = new List<PropertyInfo>(type.GetProperties(MapHelper.BindingFlag));
 
-            // Firstly populate for those have attribute specified.
+            // Firstly populate for those have Attribute specified.
             foreach (var pair in attributes)
             {
                 var pi = pair.Key;
@@ -887,7 +887,7 @@ namespace Npoi.Mapper
 
             var index = 0;
 
-            // Then populate for those do not have attribute specified.
+            // Then populate for those do not have Attribute specified.
             foreach (var pi in properties)
             {
                 var attribute = Attributes.ContainsKey(pi) ? Attributes[pi] : null;
