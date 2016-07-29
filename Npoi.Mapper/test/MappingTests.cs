@@ -160,6 +160,9 @@ namespace test
             Assert.IsNull(objs[1].Value.GeneralProperty);
         }
 
+        /// <summary>
+        /// Test for Issue 1: cannot ignore properties from base class.
+        /// </summary>
         [TestMethod]
         public void Issue_1_Test()
         {
@@ -167,20 +170,56 @@ namespace test
             var sample = new SampleClass();
             var date = DateTime.Now;
             const string str1 = "aBC";
-            var workbook = GetSimpleWorkbook(date, str1);
+            var workbook1 = GetSimpleWorkbook(date, str1); // For import.
+            var workbook2 = GetBlankWorkbook(); // For export.
 
-            var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
+            // For flunt method Ignore.
+            var header = workbook1.GetSheetAt(1).GetRow(0).CreateCell(41);
+            var row = workbook1.GetSheetAt(1).CreateRow(21);
             header.SetCellValue(nameof(sample.BaseStringProperty));
-            workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
+            row.CreateCell(41).SetCellValue(str1);
 
-            var importer = new Mapper(workbook);
+            // For Ignore Attribute.
+            header = workbook1.GetSheetAt(1).GetRow(0).CreateCell(42);
+            header.SetCellValue(nameof(sample.BaseIgnoredProperty));
+            row.CreateCell(42).SetCellValue(str1);
+
+            var importer = new Mapper(workbook1);
+            var exporter = new Mapper(workbook2);
 
             // Act
             importer.Ignore<SampleClass>(o => o.BaseStringProperty);
             var objs = importer.Take<SampleClass>(1).ToList();
 
+            exporter.Ignore<SampleClass>(o => o.BaseStringProperty);
+            sample.BaseStringProperty = "abc";
+            exporter.Put(new[] { sample });
+            var hasBaseStringProperty = false;
+            var hasBaseIgnoredProperty = false;
+
+            foreach (var cell in workbook2.GetSheetAt(0).GetRow(0))
+            {
+                if (cell.StringCellValue == nameof(sample.BaseStringProperty))
+                {
+                    hasBaseStringProperty = true;
+                    break;
+                }
+            }
+
+            foreach (var cell in workbook2.GetSheetAt(0).GetRow(0))
+            {
+                if (cell.StringCellValue == nameof(sample.BaseIgnoredProperty))
+                {
+                    hasBaseIgnoredProperty = true;
+                    break;
+                }
+            }
+
             // Assert
             Assert.IsNull(objs[1].Value.BaseStringProperty);
+            Assert.IsNull(objs[1].Value.BaseIgnoredProperty);
+            Assert.IsFalse(hasBaseStringProperty);
+            Assert.IsFalse(hasBaseIgnoredProperty);
         }
 
         [TestMethod]

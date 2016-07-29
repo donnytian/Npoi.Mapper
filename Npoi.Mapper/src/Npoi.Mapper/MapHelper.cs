@@ -276,7 +276,9 @@ namespace Npoi.Mapper
                 (MemberExpression)expression.Body :
                 (MemberExpression)((UnaryExpression)expression.Body).Operand;
 
-            return (PropertyInfo)body.Member;
+            // body.Member will return the MemberInfo of base class, so we have to get it from T...
+            //return (PropertyInfo)body.Member;
+            return typeof(T).GetMember(body.Member.Name)[0] as PropertyInfo;
         }
 
         /// <summary>
