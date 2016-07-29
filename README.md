@@ -209,6 +209,9 @@ Implement **`IColumnResolver`** to handle complex scenarios. Such as data conver
 
 ## Change log
 
+### v2.0.6
+* Fixed issue #1: cannot ignore properties from base class.
+
 ### v2.0.5
 * Convert **`ColumnResolver`** to **`IColumnResolver`** interface to inject custom logic when export data to file.
 
