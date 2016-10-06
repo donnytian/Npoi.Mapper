@@ -807,11 +807,7 @@ namespace Npoi.Mapper
                     var value = pi?.GetValue(o);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                    if (column.Resolver != null)
-                    {
-                        column.Resolver.TryPutCell(column, out value, o);
-                    }
-                    else
+                    if (column.Resolver == null || column.Resolver.TryPutCell(column, out value, o))
                     {
                         SetCell(cell, value, column, setStyle: overwrite);
                     }

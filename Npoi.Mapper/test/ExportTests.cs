@@ -232,7 +232,7 @@ namespace test
         public void PutOverwriteRowTest()
         {
             // Prepare
-            const string existingFile = "Book2.xlsx";
+            const string existingFile = "Book3.xlsx";
             const string sheetName = "Allocations";
             if(File.Exists(existingFile))File.Delete(existingFile);
             File.Copy("Book1.xlsx", existingFile);

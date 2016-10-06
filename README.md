@@ -209,6 +209,9 @@ Implement **`IColumnResolver`** to handle complex scenarios. Such as data conver
 
 ## Change log
 
+### v2.0.7
+* Fixed issue #3: **`Put`** method does not work when using a custom column resolver.
+
 ### v2.0.6
 * Fixed issue #1: cannot ignore properties from base class.
 

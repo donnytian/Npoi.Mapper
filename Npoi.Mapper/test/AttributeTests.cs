@@ -81,7 +81,7 @@ namespace test
         {
             // Prepare
             var date1 = DateTime.Now;
-            var date2 = date1.AddMonths(1);
+            //var date2 = date1.AddMonths(1);
             const string str1 = "aBC";
             const string str2 = "BCD";
             var workbook = GetBlankWorkbook();
@@ -90,19 +90,26 @@ namespace test
             sheet.CreateRow(1);
 
             sheet.GetRow(0).CreateCell(51).SetCellValue(date1);
-            sheet.GetRow(0).CreateCell(53).SetCellValue(date2);
+            //sheet.GetRow(0).CreateCell(53).SetCellValue(date2);
 
             sheet.GetRow(1).CreateCell(51).SetCellValue(str1);
-            sheet.GetRow(1).CreateCell(53).SetCellValue(str2);
+            //sheet.GetRow(1).CreateCell(53).SetCellValue(str2);
 
             var importer = new Mapper(workbook);
 
-            // Act
+            // Act "Take"
             var objs = importer.Take<SampleClass>().ToList();
 
-            // Assert
+            // Assert "Take"
             Assert.IsNotNull(objs);
             Assert.AreEqual(date1.ToLongDateString() + str1, objs[0].Value.SingleColumnResolverProperty);
+
+            // Act "Put"
+            objs[0].Value.SingleColumnResolverProperty = date1.ToLongDateString() + str2;
+            importer.Put(new[] { objs[0].Value });
+
+            // Assert "Put"
+            Assert.AreEqual(str2, sheet.GetRow(1).GetCell(51).StringCellValue);
         }
 
         [TestMethod]
