@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
@@ -26,10 +27,40 @@ namespace Npoi.Mapper.Attributes
         /// </summary>
         public string Name { get; internal set; }
 
+        private PropertyInfo _property;
         /// <summary>
         /// Mapped property for this column.
         /// </summary>
-        public PropertyInfo Property { get; internal set; }
+        public PropertyInfo Property
+        {
+            get { return _property; }
+
+            internal set
+            {
+                _property = value;
+
+                if (value != null)
+                {
+                    PropertyUnderlyingType = Nullable.GetUnderlyingType(value.PropertyType);
+                    PropertyUnderlyingConverter = PropertyUnderlyingType != null ? TypeDescriptor.GetConverter(PropertyUnderlyingType) : null;
+                }
+                else
+                {
+                    PropertyUnderlyingType = null;
+                    PropertyUnderlyingConverter = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get underlying type if property is nullable value type.
+        /// </summary>
+        public Type PropertyUnderlyingType { get; private set; }
+
+        /// <summary>
+        /// Get converter if property is nullable value type.
+        /// </summary>
+        public TypeConverter PropertyUnderlyingConverter { get; private set; }
 
         /// <summary>
         /// The type of class that is implemented <see cref="IColumnResolver{TTarget}"/> interface.
@@ -53,7 +84,7 @@ namespace Npoi.Mapper.Attributes
         public short BuiltinFormat { get; set; }
 
         /// <summary>
-        /// Gets or sets the custom format, see https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
+        /// Gets or sets the custom format, see https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
         /// </summary>
         public string CustomFormat { get; set; }
 

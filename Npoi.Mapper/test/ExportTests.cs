@@ -31,7 +31,94 @@ namespace test
             SingleColumnResolverProperty = "I'm here..."
         };
 
+        private class DummyClass
+        {
+            public string String { get; set; }
+            public DateTime DateTime { get; set; }
+            public double Double { get; set; }
+            public DateTime DateTime2 { get; set; }
+        }
+
+        private DummyClass dummyObj = new DummyClass
+        {
+            String = "My string",
+            DateTime = DateTime.Now,
+            Double = 0.4455,
+            DateTime2 = DateTime.Now.AddDays(1)
+        };
+
+        private class NullableClass
+        {
+            public DateTime? NullableDateTime { get; set; }
+            public string DummyString { get; set; }
+        }
+
         const string FileName = "test.xlsx";
+
+        [TestMethod]
+        public void SaveSheetWithoutAnyMapping()
+        {
+            // Arrange
+            var exporter = new Mapper();
+            var sheetName = "newSheet";
+            if (File.Exists(FileName)) File.Delete(FileName);
+
+            // Act
+            exporter.Save(FileName, new[] { dummyObj }, sheetName);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.AreEqual(dummyObj.String, exporter.Take<DummyClass>(sheetName).First().Value.String);
+            Assert.AreEqual(dummyObj.Double, exporter.Take<DummyClass>(sheetName).First().Value.Double);
+        }
+
+        [TestMethod]
+        public void SaveSheetUseFormat()
+        {
+            // Arrange
+            var exporter = new Mapper();
+            var sheetName = "newSheet";
+            var dateFormat = "yyyy.MM.dd hh.mm.ss";
+            var doubleFormat = "0%";
+            if (File.Exists(FileName)) File.Delete(FileName);
+
+            // Act
+            exporter.UseFormat(typeof(DateTime), dateFormat);
+            exporter.UseFormat(typeof(double), doubleFormat);
+            exporter.Save(FileName, new[] { dummyObj }, sheetName);
+            var items = exporter.Take<DummyClass>(sheetName).ToList();
+
+            // Assert
+            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.AreEqual(dummyObj.DateTime.ToLongDateString(), items.First().Value.DateTime.ToLongDateString());
+            Assert.AreEqual(dummyObj.Double, items.First().Value.Double);
+            Assert.AreEqual(dummyObj.DateTime2.ToLongDateString(), items.First().Value.DateTime2.ToLongDateString());
+        }
+
+        [TestMethod]
+        public void SaveSheetUseFormatForNullable()
+        {
+            // Arrange
+            var exporter = new Mapper();
+            var sheetName = "newSheet";
+            var dateFormat = "yyyy.MM.dd hh.mm.ss";
+            var doubleFormat = "0%";
+            var obj1 = new NullableClass {NullableDateTime = DateTime.Now};
+            var obj2 = new NullableClass {NullableDateTime = null, DummyString = "dummy"};
+            if (File.Exists(FileName)) File.Delete(FileName);
+
+            // Act
+            exporter.UseFormat(typeof(DateTime), dateFormat);
+            exporter.Save(FileName, new[] { obj1, obj2 }, sheetName);
+            var items = exporter.Take<NullableClass>(sheetName).ToList();
+
+            // Assert
+            Assert.AreEqual(3, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.AreEqual(obj1.NullableDateTime.Value.ToLongDateString(), items.First().Value.NullableDateTime.Value.ToLongDateString());
+            Assert.AreEqual(obj2.DummyString, items.Skip(1).First().Value.DummyString);
+            Assert.IsFalse(exporter.Take<NullableClass>(sheetName).Skip(1).First().Value.NullableDateTime.HasValue);
+        }
 
         [TestMethod]
         public void SaveSheetTest()

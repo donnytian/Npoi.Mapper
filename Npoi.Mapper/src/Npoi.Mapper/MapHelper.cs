@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -49,6 +50,16 @@ namespace Npoi.Mapper
         /// Store cached custom styles to avoid create new ICellStyle for each customized cell.
         /// </summary>
         private static readonly Dictionary<string, ICellStyle> CustomStyles = new Dictionary<string, ICellStyle>();
+
+        /// <summary>
+        /// Cache for type of string during parsing.
+        /// </summary>
+        private static readonly Type StringType = typeof(string);
+
+        /// <summary>
+        /// Cache for type of DateTime during parsing.
+        /// </summary>
+        private static readonly Type DateTimeType = typeof(DateTime);
 
         #endregion
 
@@ -122,18 +133,37 @@ namespace Npoi.Mapper
         /// <summary>
         /// Load cell data format by a specified row.
         /// </summary>
-        /// <typeparam name="T">The target type.</typeparam>
         /// <param name="dataRow">The row to load format from.</param>
         /// <param name="columns">The column collection to load formats into.</param>
-        public static void LoadDataFormats<T>(IRow dataRow, IEnumerable<ColumnInfo<T>> columns)
+        /// <param name="defaultFormats">The default formats specified for certain types.</param>
+        public static void LoadDataFormats(IRow dataRow, IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
         {
-            if (dataRow == null || columns == null) return;
+            if (columns == null) return;
 
             foreach (var column in columns)
             {
-                var cell = dataRow.GetCell(column.Attribute.Index);
+                var pi = column.Attribute.Property;
+                var type = pi?.PropertyType;
 
-                if (cell != null) column.DataFormat = cell.CellStyle.DataFormat;
+                if (column.Attribute.CustomFormat == null)
+                {
+                    if (type != null && !defaultFormats.ContainsKey(type))
+                    {
+                        type = column.Attribute.PropertyUnderlyingType;
+                    }
+
+                    if (type != null && defaultFormats.ContainsKey(type))
+                    {
+                        column.Attribute.CustomFormat = defaultFormats[type];
+                    }
+                }
+
+                var cell = dataRow?.GetCell(column.Attribute.Index);
+
+                if (cell != null)
+                {
+                    column.DataFormat = cell.CellStyle.DataFormat;
+                }
             }
         }
 
@@ -150,7 +180,7 @@ namespace Npoi.Mapper
             ICellStyle style = null;
             var workbook = cell?.Row.Sheet.Workbook;
 
-            if (customFormat != null)
+            if (!string.IsNullOrWhiteSpace(customFormat))
             {
                 if (CustomStyles.ContainsKey(customFormat))
                 {
@@ -158,8 +188,7 @@ namespace Npoi.Mapper
                 }
                 else if (workbook != null)
                 {
-                    style = workbook.CreateCellStyle();
-                    style.DataFormat = workbook.CreateDataFormat().GetFormat(customFormat);
+                    style = CreateCellStyle(workbook, customFormat);
                     CustomStyles[customFormat] = style;
                 }
             }
@@ -167,16 +196,90 @@ namespace Npoi.Mapper
             {
                 var format = builtinFormat != 0 ? builtinFormat : columnFormat ?? 0; /*default to 0*/
 
+                if (format == 0)
+                {
+                    return null;
+                }
+
                 if (BuiltinStyles.ContainsKey(format))
                 {
                     style = BuiltinStyles[format];
                 }
                 else
                 {
-                    style = workbook.CreateCellStyle();
-                    style.DataFormat = format;
+                    style = CreateCellStyle(workbook, format);
                     BuiltinStyles[format] = style;
                 }
+            }
+
+            return style;
+        }
+
+        /// <summary>
+        /// Creates a <see cref="ICellStyle"/> object by the given <see cref="IWorkbook"/>.
+        /// </summary>
+        /// <param name="workbook">The <see cref="IWorkbook"/> object.</param>
+        /// <param name="format">The custom format.</param>
+        /// <returns>The <see cref="ICellStyle"/> object.</returns>
+        public static ICellStyle CreateCellStyle(IWorkbook workbook, string format)
+        {
+            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException($"Parameter '{nameof(format)}' cannot be null or white string.");
+
+            var style = workbook.CreateCellStyle();
+            style.DataFormat = workbook.CreateDataFormat().GetFormat(format);
+
+            return style;
+        }
+
+        /// <summary>
+        /// Creates a <see cref="ICellStyle"/> object by the given <see cref="IWorkbook"/>.
+        /// </summary>
+        /// <param name="workbook">The <see cref="IWorkbook"/> object.</param>
+        /// <param name="format">The builtin format.</param>
+        /// <returns>The <see cref="ICellStyle"/> object.</returns>
+        public static ICellStyle CreateCellStyle(IWorkbook workbook, short format)
+        {
+            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            if (format == 0) return null;
+
+            var style = workbook.CreateCellStyle();
+            style.DataFormat = format;
+
+            return style;
+        }
+
+        /// <summary>
+        /// Gets a <see cref="ICellStyle"/> object based on value's type by looking up the default format dictionary.
+        /// </summary>
+        /// <param name="workbook">The <see cref="IWorkbook"/> object.</param>
+        /// <param name="value">The value object.</param>
+        /// <param name="defaultFormats">Default format dictionary.</param>
+        /// <returns>The <see cref="ICellStyle"/> object.</returns>
+        public static ICellStyle GetDefaultStyle(IWorkbook workbook, object value, Dictionary<Type, string> defaultFormats)
+        {
+            if (value == null || workbook == null || defaultFormats == null) return null;
+
+            ICellStyle style;
+            var type = value.GetType();
+
+            if (!defaultFormats.ContainsKey(type)) return null;
+
+            var format = defaultFormats[type];
+
+            if (string.IsNullOrWhiteSpace(format))
+            {
+                return null;
+            }
+
+            if (!CustomStyles.ContainsKey(format))
+            {
+                style = CreateCellStyle(workbook, format);
+                CustomStyles[format] = style;
+            }
+            else
+            {
+                style = CustomStyles[format];
             }
 
             return style;
@@ -305,5 +408,63 @@ namespace Npoi.Mapper
         }
 
         #endregion
+
+        internal static void EnsureDefaultFormats(Dictionary<Type, string> defaultFormats)
+        {
+            //
+            // For now, only take care DateTime.
+            //
+
+            if (!defaultFormats.ContainsKey(DateTimeType))
+            {
+                defaultFormats[DateTimeType] = CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+            }
+        }
+
+        // Convert the input object as the target type.
+        internal static object ConvertType(object value, IColumnInfo column)
+        {
+            if (value == null || column == null || column.Attribute.Property == null) return null;
+
+            var stringValue = value as string;
+            var targeType = column.Attribute.Property.PropertyType;
+            var underlyingType = column.Attribute.PropertyUnderlyingType;
+            targeType = underlyingType ?? targeType;
+
+            if (stringValue != null)
+            {
+                if (targeType == StringType)
+                {
+                    return stringValue;
+                }
+
+                if (targeType == DateTimeType)
+                {
+                    DateTime dateTime;
+                    if (DateTime.TryParseExact(
+                        stringValue,
+                        column.Attribute.CustomFormat,
+                        CultureInfo.CurrentCulture,
+                        DateTimeStyles.AllowWhiteSpaces,
+                        out dateTime)
+                    )
+                    {
+                        return dateTime;
+                    }
+                }
+
+                // Ensure we are not throwing exception and just read a null for nullable property.
+                if (underlyingType != null)
+                {
+                    var converter = column.Attribute.PropertyUnderlyingConverter;
+                    if (!converter.IsValid(value))
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            return Convert.ChangeType(value, targeType);
+        }
     }
 }

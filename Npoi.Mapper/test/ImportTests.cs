@@ -23,18 +23,71 @@ namespace test
         {
         }
 
+        private class TestClass
+        {
+            public string String { get; set; }
+            public DateTime DateTime { get; set; }
+            public double Double { get; set; }
+        }
+
+        private class NullableClass
+        {
+            public DateTime? NullableDateTime { get; set; }
+        }
+
         [TestMethod]
-        public void ImporterConstructorStreamTest()
+        public void ImporterWithoutAnyMapping()
         {
             // Prepare
             var stream = new FileStream("Book1.xlsx", FileMode.Open);
 
             // Act
             var importer = new Mapper(stream);
+            var items = importer.Take<TestClass>("TestClass").ToList();
 
             // Assert
             Assert.IsNotNull(importer);
             Assert.IsNotNull(importer.Workbook);
+            Assert.AreEqual(3, items.Count);
+            Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
+            Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
+        [TestMethod]
+        public void ImporterWithFormat()
+        {
+            // Prepare
+            var stream = new FileStream("Book1.xlsx", FileMode.Open);
+
+            // Act
+            var importer = new Mapper(stream);
+            importer.UseFormat(typeof(DateTime), "MM^dd^yyyy");
+            var items = importer.Take<TestClass>("TestClass").ToList();
+
+            // Assert
+            Assert.IsNotNull(importer);
+            Assert.IsNotNull(importer.Workbook);
+            Assert.AreEqual(3, items.Count);
+            Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
+            Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
+        [TestMethod]
+        public void ImportToNullable()
+        {
+            // Prepare
+            var stream = new FileStream("Book1.xlsx", FileMode.Open);
+
+            // Act
+            var importer = new Mapper(stream);
+            importer.UseFormat(typeof(DateTime), "MM^dd^yyyy");
+            var items = importer.Take<NullableClass>("NullableClass").ToList();
+
+            // Assert
+            Assert.IsTrue(items[0].Value.NullableDateTime.Value.Year == 2017);
+            Assert.IsTrue(items[1].Value.NullableDateTime.Value.Year == 2017);
+            Assert.IsTrue(items[2].Value.NullableDateTime.Value.Year == 2017);
+            Assert.IsFalse(items[3].Value.NullableDateTime.HasValue);
         }
 
         [TestMethod]

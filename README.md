@@ -120,14 +120,18 @@ Or by Attributes tagged on object properties:
 
 ## Column format
 
+When you use a format during import, it will try to parse string value with specified format.
+
+When you use a format during export, it will try to set Excel display format with specified format.
+
 By method:
 
 ```C#
-mapper.Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
-    .Format<SampleClass>("0%", o => o.DoubleProperty);
+    mapper.Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
+          .Format<SampleClass>("0%", o => o.DoubleProperty);
 ```
 
-Or by `ColumnAttribute`
+Or by `ColumnAttribute`:
 
 ```C#
     public class SampleClass
@@ -140,7 +144,14 @@ Or by `ColumnAttribute`
     }
 ```
 
-You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-nz/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
+Or if you want to set format for all properties in a same type:
+
+```C#
+    mapper.UseFormat(typeof(DateTime), "yyyy.MM.dd hh.mm.ss");
+```
+You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
+
+*Note*: **builtin formats will be obsolete** in next major release since it is rarely used but just increase internal complexity.
 
 ## Custom column resolver
 Implement **`IColumnResolver`** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
@@ -208,6 +219,11 @@ Implement **`IColumnResolver`** to handle complex scenarios. Such as data conver
 ```
 
 ## Change log
+
+### v2.1
+* Enhancement for #4: Added **`UseFormat`** method to use a default format for all properties that have a same type.
+* Support Nullable properties.
+* Builtin format will be obsolete in v3.0.
 
 ### v2.0.7
 * Fixed issue #3: **`Put`** method does not work when using a custom column resolver.

@@ -30,6 +30,9 @@ namespace Npoi.Mapper
 
         #region Properties
 
+        // Stores formats for type rather than specific property.
+        internal readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>();
+
         // PropertyInfo map to ColumnAttribute
         private Dictionary<PropertyInfo, ColumnAttribute> Attributes { get; } = new Dictionary<PropertyInfo, ColumnAttribute>();
 
@@ -238,6 +241,7 @@ namespace Npoi.Mapper
         /// <param name="builtinFormat">The built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.</param>
         /// <param name="propertySelector">Property selector.</param>
         /// <returns>The mapper object.</returns>
+        [Obsolete("Builtin format will not be supported in next major release!")]// TODO: remove this method in next release.
         public Mapper Format<T>(short builtinFormat, Expression<Func<T, object>> propertySelector)
         {
             var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
@@ -495,7 +499,9 @@ namespace Npoi.Mapper
 
             // Read the first row to get column information.
             var columns = GetColumns<T>(firstRow);
-            MapHelper.LoadDataFormats(sheet.GetRow(firstRowIndex + 1), columns);
+
+            // Set column format based on the first data row, which is assumed the next row of the header.
+            MapHelper.LoadDataFormats(sheet.GetRow(firstRowIndex + 1), columns, TypeFormats);
 
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
@@ -671,7 +677,10 @@ namespace Npoi.Mapper
 
             var resolver = Activator.CreateInstance(resolverType) as IColumnResolver<T>;
 
-            if (resolver == null) return null;
+            if (resolver == null)
+            {
+                throw new InvalidOperationException($"The resolver type '{resolverType}' does not implement '{typeof(IColumnResolver<T>)}'.");
+            }
 
             var headerValue = GetHeaderValue(header);
 
@@ -697,7 +706,7 @@ namespace Npoi.Mapper
                 try
                 {
                     var cell = row.GetCell(index);
-                    var propertyType = column.Attribute.Property?.PropertyType;
+                    var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
                     object valueObj;
 
                     if (!MapHelper.TryGetCellValue(cell, propertyType, out valueObj))
@@ -721,7 +730,8 @@ namespace Npoi.Mapper
                     else if (propertyType != null && valueObj != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        var value = Convert.ChangeType(valueObj, propertyType);
+                        var value = MapHelper.ConvertType(valueObj, column);
+                        //var value = Convert.ChangeType(valueObj, column.Attribute.PropertyUnderlyingType ?? propertyType);
                         column.Attribute.Property.SetValue(obj, value);
                     }
                 }
@@ -788,6 +798,8 @@ namespace Npoi.Mapper
             var rowIndex = overwrite
                 ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
                 : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
+
+            MapHelper.EnsureDefaultFormats(TypeFormats);
 
             foreach (var o in objects)
             {
@@ -921,7 +933,7 @@ namespace Npoi.Mapper
             return columns?.ToList();
         }
 
-        private static void SetCell<T>(
+        private void SetCell<T>(
             ICell cell,
             object value,
             ColumnInfo<T> column,
@@ -949,7 +961,7 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            if (setStyle) column.SetCellStyle(cell, isHeader);
+            if (setStyle) column.SetCellStyle(cell, value, isHeader, TypeFormats);
         }
 
         #endregion Export

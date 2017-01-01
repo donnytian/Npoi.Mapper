@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Npoi.Mapper.Attributes;
 using NPOI.SS.UserModel;
@@ -9,9 +10,15 @@ namespace Npoi.Mapper
     /// Information required for one column when mapping between object and file rows.
     /// </summary>
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
-    public class ColumnInfo<TTarget>
+    public class ColumnInfo<TTarget> : IColumnInfo
     {
         #region Fields
+
+        // For cache purpose, avoid lookup style dictionary for every cell.
+        private ICellStyle _headerStyle;
+        private ICellStyle _dataStyle;
+        private bool _headerStyleCached;
+        private bool _dataStyleCached;
 
         #endregion
 
@@ -124,20 +131,41 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Set style for the cell.
+        /// Set style of the cell for export.
+        /// Assume the cell belongs to current column.
         /// </summary>
         /// <param name="cell">The cell to be set.</param>
+        /// <param name="value">The cell value object.</param>
         /// <param name="isHeader">If <c>true</c>, use HeaderFormat; otherwise use DataFormat.</param>
-        public void SetCellStyle(ICell cell, bool isHeader = false)
+        /// <param name="defaultFormats">The default formats dictionary.</param>
+        public void SetCellStyle(ICell cell, object value, bool isHeader, Dictionary<Type, string> defaultFormats)
         {
-            if (cell != null)
+            if (cell == null) throw new ArgumentNullException(nameof(cell));
+
+            if (isHeader && !_headerStyleCached)
             {
-                cell.CellStyle = MapHelper.GetCellStyle(
-                    cell,
-                    isHeader ? null : Attribute.CustomFormat,
-                    isHeader ? HeaderFormat ?? 0 : Attribute.BuiltinFormat,
-                    isHeader ? HeaderFormat : DataFormat);
+                _headerStyle = MapHelper.GetCellStyle(cell, null, HeaderFormat ?? 0, HeaderFormat);
+
+                if (_headerStyle == null && HeaderValue != null)
+                {
+                    _headerStyle = MapHelper.GetDefaultStyle(cell.Sheet.Workbook, HeaderValue, defaultFormats);
+                }
+
+                _headerStyleCached = true;
             }
+            else if (!isHeader && !_dataStyleCached)
+            {
+                _dataStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, Attribute.BuiltinFormat, DataFormat);
+
+                if (_dataStyle == null && value != null)
+                {
+                    _dataStyle = MapHelper.GetDefaultStyle(cell.Sheet.Workbook, value, defaultFormats);
+                }
+
+                _dataStyleCached = true;
+            }
+
+            cell.CellStyle = isHeader ? _headerStyle : _dataStyle;
         }
 
         #endregion
