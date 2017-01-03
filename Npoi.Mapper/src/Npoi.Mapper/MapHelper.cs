@@ -427,7 +427,7 @@ namespace Npoi.Mapper
                     attributes.BuiltinFormat == 0 &&
                     attributes.CustomFormat == null)
                 {
-                    var type = attributes.PropertyUnderlyingType ?? attributes.Property.PropertyType;
+                    var type = attributes.Property.PropertyType;
 
                     if (defaultFormats.ContainsKey(type))
                     {

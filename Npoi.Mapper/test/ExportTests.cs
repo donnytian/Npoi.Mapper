@@ -114,7 +114,7 @@ namespace test
             if (File.Exists(FileName)) File.Delete(FileName);
 
             // Act
-            exporter.UseFormat(typeof(DateTime), dateFormat);
+            exporter.UseFormat(typeof(DateTime?), dateFormat);
 
             // Issue #5, if the first data row has null value, then next rows will not be formated
             // So here we make the first date row has a null value for DateTime? property.
