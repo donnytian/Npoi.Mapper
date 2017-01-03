@@ -53,7 +53,7 @@ namespace Npoi.Mapper.Attributes
         }
 
         /// <summary>
-        /// Get underlying type if property is nullable value type.
+        /// Get underlying type if property is nullable value type, otherwise return null.
         /// </summary>
         public Type PropertyUnderlyingType { get; private set; }
 

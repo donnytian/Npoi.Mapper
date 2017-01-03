@@ -409,15 +409,31 @@ namespace Npoi.Mapper
 
         #endregion
 
-        internal static void EnsureDefaultFormats(Dictionary<Type, string> defaultFormats)
+        internal static void EnsureDefaultFormats(IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
         {
             //
             // For now, only take care DateTime.
             //
-
             if (!defaultFormats.ContainsKey(DateTimeType))
             {
                 defaultFormats[DateTimeType] = CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern;
+            }
+
+            foreach (var column in columns)
+            {
+                var attributes = column.Attribute;
+                if (column.DataFormat == null &&
+                    attributes.Property != null &&
+                    attributes.BuiltinFormat == 0 &&
+                    attributes.CustomFormat == null)
+                {
+                    var type = attributes.PropertyUnderlyingType ?? attributes.Property.PropertyType;
+
+                    if (defaultFormats.ContainsKey(type))
+                    {
+                        attributes.CustomFormat = defaultFormats[type];
+                    }
+                }
             }
         }
 

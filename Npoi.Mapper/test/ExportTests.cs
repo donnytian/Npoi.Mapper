@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
 using NPOI.HSSF.UserModel;
+using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using test.Sample;
 
@@ -65,10 +66,12 @@ namespace test
 
             // Act
             exporter.Save(FileName, new[] { dummyObj }, sheetName);
+            var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(1).GetCell(1);
 
             // Assert
             Assert.IsNotNull(exporter.Workbook);
             Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
             Assert.AreEqual(dummyObj.String, exporter.Take<DummyClass>(sheetName).First().Value.String);
             Assert.AreEqual(dummyObj.Double, exporter.Take<DummyClass>(sheetName).First().Value.Double);
         }
@@ -88,9 +91,11 @@ namespace test
             exporter.UseFormat(typeof(double), doubleFormat);
             exporter.Save(FileName, new[] { dummyObj }, sheetName);
             var items = exporter.Take<DummyClass>(sheetName).ToList();
+            var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(1).GetCell(1);
 
             // Assert
             Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
             Assert.AreEqual(dummyObj.DateTime.ToLongDateString(), items.First().Value.DateTime.ToLongDateString());
             Assert.AreEqual(dummyObj.Double, items.First().Value.Double);
             Assert.AreEqual(dummyObj.DateTime2.ToLongDateString(), items.First().Value.DateTime2.ToLongDateString());
@@ -104,20 +109,27 @@ namespace test
             var sheetName = "newSheet";
             var dateFormat = "yyyy.MM.dd hh.mm.ss";
             var doubleFormat = "0%";
-            var obj1 = new NullableClass {NullableDateTime = DateTime.Now};
-            var obj2 = new NullableClass {NullableDateTime = null, DummyString = "dummy"};
+            var obj1 = new NullableClass {NullableDateTime = null, DummyString = "dummy"};
+            var obj2 = new NullableClass {NullableDateTime = DateTime.Now};
             if (File.Exists(FileName)) File.Delete(FileName);
 
             // Act
             exporter.UseFormat(typeof(DateTime), dateFormat);
+
+            // Issue #5, if the first data row has null value, then next rows will not be formated
+            // So here we make the first date row has a null value for DateTime? property.
             exporter.Save(FileName, new[] { obj1, obj2 }, sheetName);
+
             var items = exporter.Take<NullableClass>(sheetName).ToList();
+            var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(2).GetCell(0);
 
             // Assert
             Assert.AreEqual(3, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-            Assert.AreEqual(obj1.NullableDateTime.Value.ToLongDateString(), items.First().Value.NullableDateTime.Value.ToLongDateString());
-            Assert.AreEqual(obj2.DummyString, items.Skip(1).First().Value.DummyString);
-            Assert.IsFalse(exporter.Take<NullableClass>(sheetName).Skip(1).First().Value.NullableDateTime.HasValue);
+            Assert.AreEqual(obj1.DummyString, items.First().Value.DummyString);
+            Assert.AreEqual(obj2.NullableDateTime.Value.ToLongDateString(), items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString());
+            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
+            Assert.AreEqual(obj2.NullableDateTime.Value.ToLongDateString(), items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString());
+            Assert.IsFalse(exporter.Take<NullableClass>(sheetName).First().Value.NullableDateTime.HasValue);
         }
 
         [TestMethod]

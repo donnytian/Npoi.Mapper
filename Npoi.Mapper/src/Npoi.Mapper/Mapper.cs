@@ -799,7 +799,7 @@ namespace Npoi.Mapper
                 ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
                 : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
 
-            MapHelper.EnsureDefaultFormats(TypeFormats);
+            MapHelper.EnsureDefaultFormats(columns, TypeFormats);
 
             foreach (var o in objects)
             {
