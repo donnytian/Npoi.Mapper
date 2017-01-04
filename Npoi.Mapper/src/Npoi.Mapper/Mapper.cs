@@ -146,56 +146,22 @@ namespace Npoi.Mapper
         #region Public Methods
 
         /// <summary>
-        /// Map property to a column by specified column name.
+        /// Map property to a column by specified column name and <see cref="PropertyInfo"/>.
         /// </summary>
-        /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnName">The column name.</param>
-        /// <param name="propertyName">Property name.</param>
+        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
         /// <param name="resolverType">
         /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
         /// </param>
         /// <returns>The mapper object.</returns>
-        public Mapper Map<T>(string columnName, string propertyName, Type resolverType = null)
+        public Mapper Map(string columnName, PropertyInfo propertyInfo, Type resolverType = null)
         {
             if (columnName == null) throw new ArgumentNullException(nameof(columnName));
-            if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-
-            var pi = typeof(T).GetProperty(propertyName, MapHelper.BindingFlag);
-
-            if (pi == null) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
 
             new ColumnAttribute
             {
-                Property = pi,
-                Name = columnName,
-                ResolverType = resolverType,
-                Ignored = false
-            }.MergeTo(Attributes);
-
-            return this;
-        }
-
-        /// <summary>
-        /// Map property to a column by specified column name.
-        /// </summary>
-        /// <typeparam name="T">The target object type.</typeparam>
-        /// <param name="columnName">The column name.</param>
-        /// <param name="propertySelector">Property selector.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
-        /// <returns>The mapper object.</returns>
-        public Mapper Map<T>(string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
-        {
-            if (columnName == null)
-                throw new ArgumentNullException(nameof(columnName));
-
-            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
-            if (pi == null) return this;
-
-            new ColumnAttribute
-            {
-                Property = pi,
+                Property = propertyInfo,
                 Name = columnName,
                 ResolverType = resolverType,
                 Ignored = false
@@ -207,21 +173,19 @@ namespace Npoi.Mapper
         /// <summary>
         /// Map property to a column by specified column index(zero-based).
         /// </summary>
-        /// <typeparam name="T">The target object type.</typeparam>
         /// <param name="columnIndex">The column index.</param>
-        /// <param name="propertySelector">Property selector.</param>
+        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
         /// <param name="resolverType">
         /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
         /// </param>
         /// <returns>The mapper object.</returns>
-        public Mapper Map<T>(ushort columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
+        public Mapper Map(ushort columnIndex, PropertyInfo propertyInfo, Type resolverType = null)
         {
-            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
-            if (pi == null) return this;
+            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
 
             new ColumnAttribute
             {
-                Property = pi,
+                Property = propertyInfo,
                 Index = columnIndex,
                 ResolverType = resolverType,
                 Ignored = false
