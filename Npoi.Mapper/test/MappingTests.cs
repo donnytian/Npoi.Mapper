@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
 using test.Sample;
@@ -68,11 +69,81 @@ namespace test
         }
 
         [TestMethod]
+        public void ColumnName_MapPropertyByString()
+        {
+            // Prepare
+            const string str = "aBC";
+            const string name = "targetColumn";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(11);
+
+            sheet.GetRow(0).CreateCell(11).SetCellValue(name);
+            sheet.GetRow(11).CreateCell(11).SetCellValue(str);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<SampleClass>(name, "GeneralProperty");
+            var objs = importer.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(1, objs.Count);
+
+            var obj = objs[0];
+            Assert.AreEqual(str, obj.Value.GeneralProperty);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void ColumnName_MapPropertyByString_NotFound()
+        {
+            // Prepare
+            const string str = "aBC";
+            const string name = "targetColumn";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(11);
+
+            sheet.GetRow(0).CreateCell(11).SetCellValue(name);
+            sheet.GetRow(11).CreateCell(11).SetCellValue(str);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<SampleClass>(name, "NotExistProperty");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(AmbiguousMatchException))]
+        public void ColumnName_MapPropertyByString_AmbiguousMatchException()
+        {
+            // Prepare
+            const string str = "aBC";
+            const string name = "targetColumn";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(11);
+
+            sheet.GetRow(0).CreateCell(11).SetCellValue(name);
+            sheet.GetRow(11).CreateCell(11).SetCellValue(str);
+
+            var importer = new Mapper(workbook);
+
+            // Act
+            importer.Map<TestClass>(name, "myString");
+        }
+
+        [TestMethod]
         public void ColumnsWithSameNameTest()
         {
             // Prepare
             const string str1 = "aBC";
-            const string str2 = "aBC";
+            const string str2 = "aBCd";
             const string name = "targetColumn";
             var workbook = GetBlankWorkbook();
             var sheet = workbook.GetSheetAt(0);
@@ -322,6 +393,12 @@ namespace test
             // Assert
             Assert.IsNotNull(objs);
             Assert.AreEqual(str4, objs[0].Value.ColumnIndexAttributeProperty);
+        }
+
+        private class TestClass
+        {
+            public string MyString { get; set; }
+            public string MYString { get; set; }
         }
     }
 }

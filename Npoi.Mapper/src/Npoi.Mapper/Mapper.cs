@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -17,8 +16,6 @@ namespace Npoi.Mapper
     /// <summary>
     /// Map object properties with Excel columns for importing from and exporting to file.
     /// </summary>
-    [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class Mapper
     {
         #region Fields
@@ -147,6 +144,36 @@ namespace Npoi.Mapper
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Map property to a column by specified column name.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="columnName">The column name.</param>
+        /// <param name="propertyName">Property name.</param>
+        /// <param name="resolverType">
+        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
+        /// </param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Map<T>(string columnName, string propertyName, Type resolverType = null)
+        {
+            if (columnName == null) throw new ArgumentNullException(nameof(columnName));
+            if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
+
+            var pi = typeof(T).GetProperty(propertyName, MapHelper.BindingFlag);
+
+            if (pi == null) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+
+            new ColumnAttribute
+            {
+                Property = pi,
+                Name = columnName,
+                ResolverType = resolverType,
+                Ignored = false
+            }.MergeTo(Attributes);
+
+            return this;
+        }
 
         /// <summary>
         /// Map property to a column by specified column name.
