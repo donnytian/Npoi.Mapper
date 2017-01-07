@@ -38,7 +38,7 @@ var objectsDict = mapper.Objects; // Also you can directly access objects in a s
 mapper.Save("test.xlsx",  "sheet2");
 ```
 
-### 3. Put different types of objects into memory workbook and export together.
+### 3. Put different types of objects into memory workbook then export together.
 Set **`overwrite`** parameter to true, existing data rows will be overwritten, otherwise new rows will be appended.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
@@ -220,11 +220,15 @@ Implement **`IColumnResolver`** to handle complex scenarios. Such as data conver
 
 ## Change log
 
+### v2.1.1
+* Fixed issue #5: **`UseFormat`** does not support for nullable types when data in first row is null.
+* Fixed issue #6: Added a overload method for **`Map`** to map a property by a string.
+
 ### v2.1
 * Enhancement for #4: Added **`UseFormat`** method to use a default format for all properties that have a same type.
 * Support Nullable properties.
 * Builtin format will be obsolete in v3.0.
-
+ 
 ### v2.0.7
 * Fixed issue #3: **`Put`** method does not work when using a custom column resolver.
 
