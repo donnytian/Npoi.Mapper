@@ -9,8 +9,7 @@ namespace Npoi.Mapper
     /// <summary>
     /// Information required for one column when mapping between object and file rows.
     /// </summary>
-    /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
-    public class ColumnInfo<TTarget> : IColumnInfo
+    public class ColumnInfo : IColumnInfo
     {
         #region Fields
 
@@ -27,13 +26,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// Value for the column header.
         /// </summary>
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public object HeaderValue { get; private set; }
-
-        /// <summary>
-        /// The column resolver.
-        /// </summary>
-        public IColumnResolver<TTarget> Resolver { get; set; }
+        public object HeaderValue { get; set; }
 
         /// <summary>
         /// The mapped property information.
@@ -41,9 +34,14 @@ namespace Npoi.Mapper
         public ColumnAttribute Attribute { get; set; }
 
         /// <summary>
-        /// The last non-blank value.
+        /// The last non-blank cell value.
         /// </summary>
         public object LastNonBlankValue { get; set; }
+
+        /// <summary>
+        /// The current cell value, might be used for custom resolving.
+        /// </summary>
+        public object CurrentValue { get; set; }
 
         /// <summary>
         /// Get or set the header cell format.
@@ -60,7 +58,7 @@ namespace Npoi.Mapper
         #region Constructors
 
         /// <summary>
-        /// Initialize a new instance of <see cref="ColumnInfo{TTarget}"/> class.
+        /// Initialize a new instance of <see cref="ColumnInfo"/> class.
         /// </summary>
         /// <param name="headerValue">The header value</param>
         /// <param name="columnName">The column name.</param>
@@ -76,7 +74,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="ColumnInfo{TTarget}"/> class.
+        /// Initialize a new instance of <see cref="ColumnInfo"/> class.
         /// </summary>
         /// <param name="headerValue">The header value</param>
         /// <param name="columnIndex">The column index.</param>
@@ -92,7 +90,7 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Initialize a new instance of <see cref="ColumnInfo{TTarget}"/> class.
+        /// Initialize a new instance of <see cref="ColumnInfo"/> class.
         /// </summary>
         /// <param name="headerValue">The header value</param>
         /// <param name="attribute">Mapped <c>PropertyMeta</c> object.</param>
@@ -110,7 +108,7 @@ namespace Npoi.Mapper
         #region Public Methods
 
         /// <summary>
-        /// Refresh LastNonBlankValue property and get value according UseLastNonBlankValue property.
+        /// Refresh LastNonBlankValue and CurrentValue property then return value according UseLastNonBlankValue property.
         /// </summary>
         /// <param name="value">The current cell value.</param>
         /// <returns>
@@ -119,6 +117,8 @@ namespace Npoi.Mapper
         /// </returns>
         public object RefreshAndGetValue(object value)
         {
+            CurrentValue = value;
+
             // Specially check for string.
             if (string.IsNullOrWhiteSpace(value as string))
             {
@@ -144,7 +144,7 @@ namespace Npoi.Mapper
 
             if (isHeader && !_headerStyleCached)
             {
-                _headerStyle = MapHelper.GetCellStyle(cell, null, HeaderFormat ?? 0, HeaderFormat);
+                _headerStyle = MapHelper.GetCellStyle(cell, null, HeaderFormat);
 
                 if (_headerStyle == null && HeaderValue != null)
                 {
@@ -155,7 +155,7 @@ namespace Npoi.Mapper
             }
             else if (!isHeader && !_dataStyleCached)
             {
-                _dataStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, Attribute.BuiltinFormat, DataFormat);
+                _dataStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, DataFormat);
 
                 if (_dataStyle == null && value != null)
                 {

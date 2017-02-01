@@ -78,17 +78,17 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="ExportTests.cs" />
-    <Compile Include="ImportTests.cs" />
+    <Compile Include="ExportCustomResolverTests.cs" />
+    <Compile Include="ExportGeneralTests.cs" />
+    <Compile Include="CustomResolverTests.cs" />
+    <Compile Include="ImportDynamicTests.cs" />
+    <Compile Include="ImportGeneralTests.cs" />
     <Compile Include="MappingTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AttributeTests.cs" />
     <Compile Include="Sample\BaseClass.cs" />
-    <Compile Include="Sample\DefaultColumnResolver.cs" />
-    <Compile Include="Sample\MultiColumnContainerResolver.cs" />
     <Compile Include="Sample\SampleClass.cs" />
     <Compile Include="Sample\SampleEnum.cs" />
-    <Compile Include="Sample\SingleColumnResolver.cs" />
     <Compile Include="TestBase.cs" />
   </ItemGroup>
   <ItemGroup>

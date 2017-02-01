@@ -1,10 +1,10 @@
 ﻿{
-  "version": "2.1.1",
-  "description": "Convention based mapper between strong typed object and Excel data via NPOI.",
+  "version": "3.0",
+  "description": "Convention-based mapper between strong typed object and Excel data via NPOI.",
   "authors": [ "Donny Tian" ],
   "packOptions": {
     "owners": [ "Donny Tian" ],
-    "tags": [ "Excel", "XLS", "XLSX", "NPOI", "Object mapping" ],
+    "tags": [ "Excel", "XLS", "XLSX", "NPOI", "Object mapping", "dynamic" ],
     "licenseUrl": "",
     "projectUrl": "https://github.com/donnytian/Npoi.Mapper"
   },

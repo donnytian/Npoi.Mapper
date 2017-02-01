@@ -1,4 +1,5 @@
-﻿using Npoi.Mapper.Attributes;
+﻿using System;
+using Npoi.Mapper.Attributes;
 
 namespace Npoi.Mapper
 {
@@ -10,8 +11,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// Value for the column header.
         /// </summary>
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        object HeaderValue { get; }
+        object HeaderValue { get; set; }
 
         /// <summary>
         /// The mapped property information.
@@ -19,9 +19,14 @@ namespace Npoi.Mapper
         ColumnAttribute Attribute { get; }
 
         /// <summary>
-        /// The last non-blank value.
+        /// The last non-blank cell value.
         /// </summary>
         object LastNonBlankValue { get; set; }
+
+        /// <summary>
+        /// The current cell value, might be used for custom resolving.
+        /// </summary>
+        object CurrentValue { get; set; }
 
         /// <summary>
         /// Get the header cell format.

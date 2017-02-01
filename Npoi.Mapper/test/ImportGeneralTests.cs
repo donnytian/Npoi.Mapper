@@ -11,7 +11,7 @@ using test.Sample;
 namespace test
 {
     [TestClass]
-    public class ImportTests : TestBase
+    public class ImportGeneralTests : TestBase
     {
         [TestInitialize]
         public void InitializeTest()
@@ -112,8 +112,6 @@ namespace test
             Stream nullStream = null;
 
             // Act
-            // ReSharper disable once ExpressionIsAlwaysNull
-            // ReSharper disable once UnusedVariable
             var importer = new Mapper(nullStream);
 
 
@@ -128,8 +126,6 @@ namespace test
             IWorkbook nullWorkbook = null;
 
             // Act
-            // ReSharper disable once ExpressionIsAlwaysNull
-            // ReSharper disable once UnusedVariable
             var importer = new Mapper(nullWorkbook);
 
             // Assert

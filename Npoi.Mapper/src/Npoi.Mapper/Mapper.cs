@@ -23,6 +23,10 @@ namespace Npoi.Mapper
         // Current working workbook.
         private IWorkbook _workbook;
 
+        private Func<IColumnInfo, bool> _columnFilter;
+        private Func<IColumnInfo, object, bool> _defaultTakeResolver;
+        private Func<IColumnInfo, object, bool> _defaultPutResolver;
+
         #endregion
 
         #region Properties
@@ -33,8 +37,12 @@ namespace Npoi.Mapper
         // PropertyInfo map to ColumnAttribute
         private Dictionary<PropertyInfo, ColumnAttribute> Attributes { get; } = new Dictionary<PropertyInfo, ColumnAttribute>();
 
+        // Property name map to ColumnAttribute
+        private Dictionary<string, ColumnAttribute> DynamicAttributes { get; } = new Dictionary<string, ColumnAttribute>();
+
+
         /// <summary>
-        /// Cache the tracked <see cref="ColumnInfo{TTarget}"/> objects by sheet name and target type.
+        /// Cache the tracked <see cref="ColumnInfo"/> objects by sheet name and target type.
         /// </summary>
         private Dictionary<string, Dictionary<Type, List<object>>> TrackedColumns { get; } =
             new Dictionary<string, Dictionary<Type, List<object>>>();
@@ -43,11 +51,6 @@ namespace Npoi.Mapper
         /// Sheet name map to tracked objects in dictionary with row number as key.
         /// </summary>
         public Dictionary<string, Dictionary<int, object>> Objects { get; } = new Dictionary<string, Dictionary<int, object>>();
-
-        /// <summary>
-        /// Type of class that implemented <see cref="IColumnResolver{TTarget}"/> to handle unrecognized/ unmapped columns.
-        /// </summary>
-        public Type DefaultResolverType { get; set; }
 
         /// <summary>
         /// The Excel workbook.
@@ -146,15 +149,32 @@ namespace Npoi.Mapper
         #region Public Methods
 
         /// <summary>
+        /// Use this to include and map columns for custom complex resolution.
+        /// </summary>
+        /// <param name="columnFilter">The function to determine whether or not to resolve an unmapped column.</param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Map(Func<IColumnInfo, bool> columnFilter, Func<IColumnInfo, object, bool> tryTake = null, Func<IColumnInfo, object, bool> tryPut = null)
+        {
+            _columnFilter = columnFilter;
+            _defaultPutResolver = tryPut;
+            _defaultTakeResolver = tryTake;
+
+            return this;
+        }
+
+        /// <summary>
         /// Map property to a column by specified column name and <see cref="PropertyInfo"/>.
         /// </summary>
         /// <param name="columnName">The column name.</param>
         /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public Mapper Map(string columnName, PropertyInfo propertyInfo, Type resolverType = null)
+        public Mapper Map(string columnName, PropertyInfo propertyInfo,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (columnName == null) throw new ArgumentNullException(nameof(columnName));
             if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
@@ -163,7 +183,8 @@ namespace Npoi.Mapper
             {
                 Property = propertyInfo,
                 Name = columnName,
-                ResolverType = resolverType,
+                TryPut = tryPut,
+                TryTake = tryTake,
                 Ignored = false
             }.MergeTo(Attributes);
 
@@ -175,11 +196,12 @@ namespace Npoi.Mapper
         /// </summary>
         /// <param name="columnIndex">The column index.</param>
         /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public Mapper Map(ushort columnIndex, PropertyInfo propertyInfo, Type resolverType = null)
+        public Mapper Map(ushort columnIndex, PropertyInfo propertyInfo,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
 
@@ -187,9 +209,35 @@ namespace Npoi.Mapper
             {
                 Property = propertyInfo,
                 Index = columnIndex,
-                ResolverType = resolverType,
+                TryPut = tryPut,
+                TryTake = tryTake,
                 Ignored = false
             }.MergeTo(Attributes);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Map by a <see cref="ColumnAttribute"/> object.
+        /// </summary>
+        /// <param name="attribute">The <see cref="ColumnAttribute"/> object.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper Map(ColumnAttribute attribute)
+        {
+            if (attribute == null) throw new ArgumentNullException(nameof(attribute));
+
+            if (attribute.Property != null)
+            {
+                attribute.MergeTo(Attributes);
+            }
+            else if (attribute.PropertyName != null)
+            {
+                DynamicAttributes[attribute.PropertyName] = attribute;
+            }
+            else
+            {
+                throw new InvalidOperationException("Either PropertyName or Property should be specified for a valid mapping!");
+            }
 
             return this;
         }
@@ -225,6 +273,9 @@ namespace Npoi.Mapper
             return this;
         }
 
+        /* 
+         * Removed this method in v3 since this is rarely used but just increased internal complexity.
+         * 
         /// <summary>
         /// Specify the built-in format.
         /// </summary>
@@ -232,7 +283,7 @@ namespace Npoi.Mapper
         /// <param name="builtinFormat">The built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.</param>
         /// <param name="propertySelector">Property selector.</param>
         /// <returns>The mapper object.</returns>
-        [Obsolete("Builtin format will not be supported in next major release!")]// TODO: remove this method in next release.
+        [Obsolete("Builtin format will not be supported in next major release!")]
         public Mapper Format<T>(short builtinFormat, Expression<Func<T, object>> propertySelector)
         {
             var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
@@ -241,6 +292,7 @@ namespace Npoi.Mapper
 
             return this;
         }
+        */
 
         /// <summary>
         /// Specify the custom format.
@@ -266,7 +318,7 @@ namespace Npoi.Mapper
         /// <param name="maxErrorRows">The maximum error rows before stop reading; default is 10.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null)
+        public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
             return Take(sheet, maxErrorRows, objectInitializer);
@@ -280,7 +332,7 @@ namespace Npoi.Mapper
         /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null)
+        public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheet(sheetName);
             return Take(sheet, maxErrorRows, objectInitializer);
@@ -475,7 +527,7 @@ namespace Npoi.Mapper
 
         #region Import
 
-        private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
+        private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null) where T : class
         {
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
@@ -485,14 +537,21 @@ namespace Npoi.Mapper
             var firstRowIndex = sheet.FirstRowNum;
             var firstRow = sheet.GetRow(firstRowIndex);
 
+            var targetType = typeof(T);
+            if (targetType == typeof(object)) // Dynamic type.
+            {
+                targetType = GetDynamicType(sheet);
+                MapHelper.LoadDynamicAttributes(Attributes, DynamicAttributes, targetType);
+            }
+
             // Scan object attributes.
-            MapHelper.LoadAttributes<T>(Attributes);
+            MapHelper.LoadAttributes(Attributes, targetType);
 
             // Read the first row to get column information.
-            var columns = GetColumns<T>(firstRow);
+            var columns = GetColumns(firstRow, targetType);
 
-            // Set column format based on the first data row, which is assumed the next row of the header.
-            MapHelper.LoadDataFormats(sheet.GetRow(firstRowIndex + 1), columns, TypeFormats);
+            // Detect column format based on the first non-null cell.
+            MapHelper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
@@ -503,31 +562,81 @@ namespace Npoi.Mapper
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (HasHeader && row.RowNum == firstRowIndex) continue;
 
-                var data = GetRowData(columns, row, objectInitializer);
+                var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
+                var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
+                LoadRowData(columns, row, obj, rowInfo);
 
-                if (data.ErrorColumnIndex >= 0) errorCount++;
-                if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = data.Value;
+                if (rowInfo.ErrorColumnIndex >= 0)
+                {
+                    errorCount++;
+                    rowInfo.Value = default(T);
+                }
+                if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
 
-                yield return data;
+                yield return rowInfo;
             }
         }
 
-        private List<ColumnInfo<T>> GetColumns<T>(IRow headerRow)
+        private Type GetDynamicType(ISheet sheet)
+        {
+            var firstRowIndex = sheet.FirstRowNum;
+            var firstRow = sheet.GetRow(firstRowIndex);
+
+            var names = new Dictionary<string, Type>();
+
+            foreach (var header in firstRow)
+            {
+                var column = GetColumnInfoByDynamicAttribute(header);
+                var type = MapHelper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
+
+                if (column != null)
+                {
+                    names[column.Attribute.PropertyName] = type ?? typeof(string);
+                }
+                else
+                {
+                    var headerValue = GetHeaderValue(header);
+                    var tempColumn = new ColumnInfo(headerValue, header.ColumnIndex, null);
+                    if (_columnFilter != null && !_columnFilter(tempColumn))
+                    {
+                        continue;
+                    }
+
+                    string propertyName;
+                    if (HasHeader && MapHelper.GetCellType(header) == CellType.String)
+                    {
+                        propertyName = MapHelper.GetVariableName(header.StringCellValue, IgnoredNameChars,
+                            TruncateNameFrom, header.ColumnIndex);
+                    }
+                    else
+                    {
+                        propertyName = MapHelper.GetVariableName(null, null, null, header.ColumnIndex);
+                    }
+
+                    names[propertyName] = type ?? typeof(string);
+                    DynamicAttributes[propertyName] = new ColumnAttribute((ushort)header.ColumnIndex) { PropertyName = propertyName };
+                }
+            }
+
+            return AnonymousTypeFactory.CreateType(names, true);
+        }
+
+        private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
         {
             //
             // Column mapping priority:
-            // Map<T> > ColumnAttribute > naming convention > DefaultResolverType.
+            // Map<T> > ColumnAttribute > naming convention > column filter.
             //
 
             var sheetName = headerRow.Sheet.SheetName;
-            var columns = new List<ColumnInfo<T>>();
+            var columns = new List<ColumnInfo>();
             var columnsCache = new List<object>(); // Cached for export usage.
 
             // Prepare a list of ColumnInfo by the first row.
             foreach (ICell header in headerRow)
             {
                 // Custom mappings via attributes.
-                var column = GetColumnInfoByAttribute<T>(header);
+                var column = GetColumnInfoByAttribute(header, type);
 
                 // Naming convention.
                 if (column == null && HasHeader && MapHelper.GetCellType(header) == CellType.String)
@@ -536,14 +645,20 @@ namespace Npoi.Mapper
 
                     if (!string.IsNullOrWhiteSpace(s))
                     {
-                        column = GetColumnInfoByName<T>(s.Trim(), header.ColumnIndex);
+                        column = GetColumnInfoByName(s.Trim(), header.ColumnIndex, type);
                     }
                 }
 
-                // DefaultResolverType
+                // Column filter.
                 if (column == null)
                 {
-                    column = GetColumnInfoByResolverType<T>(header, DefaultResolverType);
+                    column = GetColumnInfoByFilter(header, _columnFilter);
+
+                    if (column != null) // Set default resolvers since the column is not mapped explicitly.
+                    {
+                        column.Attribute.TryPut = _defaultPutResolver;
+                        column.Attribute.TryTake = _defaultTakeResolver;
+                    }
                 }
 
                 if (column == null) continue; // No property was mapped to this column.
@@ -557,24 +672,23 @@ namespace Npoi.Mapper
                 ? TrackedColumns[sheetName]
                 : TrackedColumns[sheetName] = new Dictionary<Type, List<object>>();
 
-            typeDict[typeof(T)] = columnsCache;
+            typeDict[type] = columnsCache;
 
             return columns;
         }
 
-        private ColumnInfo<T> GetColumnInfoByAttribute<T>(ICell header)
+        private ColumnInfo GetColumnInfoByDynamicAttribute(ICell header)
         {
-            var type = typeof(T);
             var cellType = MapHelper.GetCellType(header);
             var index = header.ColumnIndex;
 
-            foreach (var pair in Attributes)
+            foreach (var pair in DynamicAttributes)
             {
                 var attribute = pair.Value;
 
-                if (pair.Key.ReflectedType != type || attribute.Ignored == true) continue;
+                if (attribute.Ignored == true) continue;
 
-                // If no header, cannot get a ColumnInfo by resolving header via custom resolver.
+                // If no header, cannot get a ColumnInfo by resolving header string.
                 if (!HasHeader && attribute.Index < 0) continue;
 
                 var headerValue = HasHeader ? GetHeaderValue(header) : null;
@@ -587,44 +701,46 @@ namespace Npoi.Mapper
                     // Use a clone so no pollution to original attribute,
                     // The origin might be used later again for multi-column/DefaultResolverType purpose.
                     attribute = attribute.Clone(index);
-
-                    var resolver = attribute.ResolverType == null ?
-                        null :
-                        Activator.CreateInstance(attribute.ResolverType) as IColumnResolver<T>;
-                    resolver?.IsColumnMapped(ref headerValue, index); // Ignore return value since it's already mapped to column.
-
-                    return new ColumnInfo<T>(headerValue, attribute)
-                    {
-                        Resolver = resolver
-                    };
-                }
-
-                // If goes this far, try map column by custom resolver.
-                if (attribute.Index < 0 && attribute.Name == null && attribute.ResolverType != null)
-                {
-                    var resolver = Activator.CreateInstance(attribute.ResolverType) as IColumnResolver<T>;
-
-                    if (resolver == null) continue;
-
-                    // Check if this column is desired by resolver.
-                    if (!resolver.IsColumnMapped(ref headerValue, index)) continue;
-
-                    attribute = attribute.Clone(index);
-
-                    return new ColumnInfo<T>(headerValue, attribute)
-                    {
-                        Resolver = resolver
-                    };
+                    return new ColumnInfo(headerValue, attribute);
                 }
             }
 
             return null;
         }
 
-        private ColumnInfo<T> GetColumnInfoByName<T>(string name, int index)
+        private ColumnInfo GetColumnInfoByAttribute(ICell header, Type type)
         {
-            var type = typeof(T);
+            var cellType = MapHelper.GetCellType(header);
+            var index = header.ColumnIndex;
 
+            foreach (var pair in Attributes)
+            {
+                var attribute = pair.Value;
+
+                if (pair.Key.ReflectedType != type || attribute.Ignored == true) continue;
+
+                // If no header, cannot get a ColumnInfo by resolving header string.
+                if (!HasHeader && attribute.Index < 0) continue;
+
+                var headerValue = HasHeader ? GetHeaderValue(header) : null;
+                var indexMatch = attribute.Index == index;
+                var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
+
+                // Index takes precedence over Name.
+                if (indexMatch || (attribute.Index < 0 && nameMatch))
+                {
+                    // Use a clone so no pollution to original attribute,
+                    // The origin might be used later again for multi-column/DefaultResolverType purpose.
+                    attribute = attribute.Clone(index);
+                    return new ColumnInfo(headerValue, attribute);
+                }
+            }
+
+            return null;
+        }
+
+        private ColumnInfo GetColumnInfoByName(string name, int index, Type type)
+        {
             // First attempt: search by string (ignore case).
             var pi = type.GetProperty(name, MapHelper.BindingFlag);
 
@@ -635,7 +751,7 @@ namespace Npoi.Mapper
                 {
                     var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
 
-                    if (atts.Any(att => string.Equals(@att.Name, @name, StringComparison.CurrentCultureIgnoreCase)))
+                    if (atts.Any(att => string.Equals(att.Name, name, StringComparison.CurrentCultureIgnoreCase)))
                     {
                         pi = propertyInfo;
                         break;
@@ -659,33 +775,21 @@ namespace Npoi.Mapper
                 if (attribute.Ignored == true) return null;
             }
 
-            return attribute == null ? new ColumnInfo<T>(name, index, pi) : new ColumnInfo<T>(name, attribute);
+            return attribute == null ? new ColumnInfo(name, index, pi) : new ColumnInfo(name, attribute);
         }
 
-        private static ColumnInfo<T> GetColumnInfoByResolverType<T>(ICell header, Type resolverType)
+        private static ColumnInfo GetColumnInfoByFilter(ICell header, Func<IColumnInfo, bool> columnFilter)
         {
-            if (resolverType == null) return null;
-
-            var resolver = Activator.CreateInstance(resolverType) as IColumnResolver<T>;
-
-            if (resolver == null)
-            {
-                throw new InvalidOperationException($"The resolver type '{resolverType}' does not implement '{typeof(IColumnResolver<T>)}'.");
-            }
+            if (columnFilter == null) return null;
 
             var headerValue = GetHeaderValue(header);
+            var column = new ColumnInfo(headerValue, header.ColumnIndex, null);
 
-            if (!resolver.IsColumnMapped(ref headerValue, header.ColumnIndex)) return null;
-
-            return new ColumnInfo<T>(headerValue, header.ColumnIndex, null)
-            {
-                Resolver = resolver
-            };
+            return !columnFilter(column) ? null : column;
         }
 
-        private static RowInfo<T> GetRowData<T>(IEnumerable<ColumnInfo<T>> columns, IRow row, Func<T> objectInitializer)
+        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
-            var obj = objectInitializer == null ? Activator.CreateInstance<T>() : objectInitializer();
             var errorIndex = -1;
             var errorMessage = string.Empty;
 
@@ -709,9 +813,9 @@ namespace Npoi.Mapper
 
                     valueObj = column.RefreshAndGetValue(valueObj);
 
-                    if (column.Resolver != null)
+                    if (column.Attribute.TryTake != null)
                     {
-                        if (!column.Resolver.TryTakeCell(column, valueObj, obj))
+                        if (!column.Attribute.TryTake(column, target))
                         {
                             errorIndex = index;
                             errorMessage = "Returned failure by custom cell resolver!";
@@ -723,7 +827,7 @@ namespace Npoi.Mapper
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         var value = MapHelper.ConvertType(valueObj, column);
                         //var value = Convert.ChangeType(valueObj, column.Attribute.PropertyUnderlyingType ?? propertyType);
-                        column.Attribute.Property.SetValue(obj, value);
+                        column.Attribute.Property.SetValue(target, value);
                     }
                 }
                 catch (Exception e)
@@ -734,9 +838,8 @@ namespace Npoi.Mapper
                 }
             }
 
-            if (errorIndex >= 0) obj = default(T);
-
-            return new RowInfo<T>(row.RowNum, obj, errorIndex, errorMessage);
+            rowInfo.ErrorColumnIndex = errorIndex;
+            rowInfo.ErrorMessage = errorMessage;
         }
 
         private static object GetHeaderValue(ICell header)
@@ -780,11 +883,12 @@ namespace Npoi.Mapper
         {
             var sheetName = sheet.SheetName;
             var firstRow = sheet.GetRow(sheet.FirstRowNum);
+            var objectArray = objects as T[] ?? objects.ToArray();
+            var type = MapHelper.GetConcreteType(objectArray);
 
-            List<ColumnInfo<T>> columns = null;
-            if (!overwrite) columns = GetTrackedColumns<T>(sheetName);
-            if (columns == null) columns = GetColumns<T>(firstRow ?? PopulateFirstRow<T>(sheet));
-            if (firstRow == null) PopulateFirstRow(sheet, columns);
+            var columns = GetTrackedColumns(sheetName, type) ??
+                           GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
+            if (firstRow == null) PopulateFirstRow(sheet, columns, type);
 
             var rowIndex = overwrite
                 ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
@@ -792,7 +896,7 @@ namespace Npoi.Mapper
 
             MapHelper.EnsureDefaultFormats(columns, TypeFormats);
 
-            foreach (var o in objects)
+            foreach (var o in objectArray)
             {
                 var row = sheet.GetRow(rowIndex);
 
@@ -810,9 +914,10 @@ namespace Npoi.Mapper
                     var value = pi?.GetValue(o);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
-                    if (column.Resolver == null || column.Resolver.TryPutCell(column, out value, o))
+                    column.CurrentValue = value;
+                    if (column.Attribute.TryPut == null || column.Attribute.TryPut(column, o))
                     {
-                        SetCell(cell, value, column, setStyle: overwrite);
+                        SetCell(cell, column.CurrentValue, column, setStyle: overwrite);
                     }
                 }
 
@@ -843,7 +948,7 @@ namespace Npoi.Mapper
             Workbook.Write(stream);
         }
 
-        private IRow PopulateFirstRow<T>(ISheet sheet, List<ColumnInfo<T>> columns = null)
+        private IRow PopulateFirstRow(ISheet sheet, List<ColumnInfo> columns, Type type)
         {
             var row = sheet.CreateRow(sheet.FirstRowNum);
 
@@ -865,9 +970,7 @@ namespace Npoi.Mapper
 
             // If no column cached, populate the first row with attributes and object properties.
 
-            var type = typeof(T);
-
-            MapHelper.LoadAttributes<T>(Attributes);
+            MapHelper.LoadAttributes(Attributes, type);
 
             var attributes = Attributes.Where(p => p.Value.Property != null && p.Value.Property.ReflectedType == type);
             var properties = new List<PropertyInfo>(type.GetProperties(MapHelper.BindingFlag));
@@ -908,26 +1011,25 @@ namespace Npoi.Mapper
             return row;
         }
 
-        private List<ColumnInfo<T>> GetTrackedColumns<T>(string sheetName)
+        private List<ColumnInfo> GetTrackedColumns(string sheetName, Type type)
         {
             if (!TrackedColumns.ContainsKey(sheetName)) return null;
 
-            IEnumerable<ColumnInfo<T>> columns = null;
+            IEnumerable<ColumnInfo> columns = null;
 
             var cols = TrackedColumns[sheetName];
-            var type = typeof(T);
             if (cols.ContainsKey(type))
             {
-                columns = cols[type].OfType<ColumnInfo<T>>();
+                columns = cols[type].OfType<ColumnInfo>();
             }
 
             return columns?.ToList();
         }
 
-        private void SetCell<T>(
+        private void SetCell(
             ICell cell,
             object value,
-            ColumnInfo<T> column,
+            ColumnInfo column,
             bool isHeader = false,
             bool setStyle = true)
         {

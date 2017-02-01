@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -17,6 +16,14 @@ namespace Npoi.Mapper
     public static class MapHelper
     {
         #region Fields
+
+        // Pattern of a valid variable name. Limited in 100 characters.
+        //private static readonly string VariableNamePattern = @"^[_a-zA-Z]\w+{0,99}$";
+
+        // Column chars that will be used for Excel columns.
+        // e.g. Column A is the first column, Column AA is the 27th column.
+        private static readonly char[] ColumnChars =
+        {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
 
         // Default chars that will be removed when mapping by column header name.
         private static readonly char[] DefaultIgnoredChars =
@@ -42,37 +49,47 @@ namespace Npoi.Mapper
         };
 
         /// <summary>
-        /// Store cached built-in styles to avoid create new ICellStyle for each cell.
+        /// Stores cached built-in styles to avoid create new ICellStyle for each cell.
         /// </summary>
         private static readonly Dictionary<short, ICellStyle> BuiltinStyles = new Dictionary<short, ICellStyle>();
 
         /// <summary>
-        /// Store cached custom styles to avoid create new ICellStyle for each customized cell.
+        /// Stores cached custom styles to avoid create new ICellStyle for each customized cell.
         /// </summary>
         private static readonly Dictionary<string, ICellStyle> CustomStyles = new Dictionary<string, ICellStyle>();
 
         /// <summary>
-        /// Cache for type of string during parsing.
+        /// Caches for type of string during parsing.
         /// </summary>
-        private static readonly Type StringType = typeof(string);
+        public static readonly Type StringType = typeof(string);
 
         /// <summary>
-        /// Cache for type of DateTime during parsing.
+        /// Caches for type of DateTime during parsing.
         /// </summary>
-        private static readonly Type DateTimeType = typeof(DateTime);
+        public static readonly Type DateTimeType = typeof(DateTime);
+
+        /// <summary>
+        /// Caches for type of object.
+        /// </summary>
+        public static readonly Type ObjectType = typeof(object);
+
+        /// <summary>
+        /// The maximum row number during the detection for column type and style.
+        /// </summary>
+        public static int MaxLookupRowNum { get; set; } = 20;
 
         #endregion
 
         #region Public Methods
 
         /// <summary>
-        /// Load attributes to a dictionary.
+        /// Loads attributes to a dictionary.
         /// </summary>
-        /// <typeparam name="T">The target type.</typeparam>
         /// <param name="attributes">Container to hold loaded attributes.</param>
-        public static void LoadAttributes<T>(Dictionary<PropertyInfo, ColumnAttribute> attributes)
+        /// <param name="type">The type object.</param>
+        public static void LoadAttributes(Dictionary<PropertyInfo, ColumnAttribute> attributes, Type type)
         {
-            var type = typeof(T);
+            if (type == null) return;
 
             foreach (var pi in type.GetProperties(BindingFlag))
             {
@@ -92,6 +109,26 @@ namespace Npoi.Mapper
 
                 // Note that attribute from Map method takes precedence over Attribute meta data.
                 columnMeta.MergeTo(attributes, false);
+            }
+        }
+
+        /// <summary>
+        /// Loads dynamic attributes to a dictionary.
+        /// </summary>
+        /// <param name="attributes">Container to hold loaded attributes.</param>
+        /// <param name="dynamicAttributes">Container for dynamic attributes to be loaded.</param>
+        /// <param name="dynamicType">The type object created by runtime.</param>
+        public static void LoadDynamicAttributes(Dictionary<PropertyInfo, ColumnAttribute> attributes, Dictionary<string, ColumnAttribute> dynamicAttributes, Type dynamicType)
+        {
+            foreach (var pair in dynamicAttributes)
+            {
+                var pi = dynamicType.GetProperty(pair.Key);
+
+                if (pi != null)
+                {
+                    pair.Value.Property = pi;
+                    pair.Value.MergeTo(attributes);
+                }
             }
         }
 
@@ -133,11 +170,13 @@ namespace Npoi.Mapper
         /// <summary>
         /// Load cell data format by a specified row.
         /// </summary>
-        /// <param name="dataRow">The row to load format from.</param>
+        /// <param name="sheet">The sheet to load format from.</param>
+        /// <param name="firstDataRowIndex">The index for the first row to detect.</param>
         /// <param name="columns">The column collection to load formats into.</param>
         /// <param name="defaultFormats">The default formats specified for certain types.</param>
-        public static void LoadDataFormats(IRow dataRow, IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
+        public static void LoadDataFormats(ISheet sheet, int firstDataRowIndex, IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
         {
+            if (sheet == null) return;
             if (columns == null) return;
 
             foreach (var column in columns)
@@ -158,11 +197,16 @@ namespace Npoi.Mapper
                     }
                 }
 
-                var cell = dataRow?.GetCell(column.Attribute.Index);
-
-                if (cell != null)
+                var rowIndex = firstDataRowIndex >= 0 ? firstDataRowIndex : sheet.FirstRowNum + 1;
+                while (rowIndex <= sheet.LastRowNum && rowIndex <= MaxLookupRowNum)
                 {
+                    var dataRow = sheet.GetRow(rowIndex);
+                    var cell = dataRow?.GetCell(column.Attribute.Index);
+
+                    rowIndex++;
+                    if (cell?.CellStyle == null) continue;
                     column.DataFormat = cell.CellStyle.DataFormat;
+                    break;
                 }
             }
         }
@@ -172,10 +216,9 @@ namespace Npoi.Mapper
         /// </summary>
         /// <param name="cell">The cell.</param>
         /// <param name="customFormat">The custom format string.</param>
-        /// <param name="builtinFormat">The built-in format number.</param>
         /// <param name="columnFormat">The default column format number.</param>
-        /// <returns><c>ICellStyle</c> object for the given cell.</returns>
-        public static ICellStyle GetCellStyle(ICell cell, string customFormat, short builtinFormat, short? columnFormat)
+        /// <returns><c>ICellStyle</c> object for the given cell; null if not format specified.</returns>
+        public static ICellStyle GetCellStyle(ICell cell, string customFormat, short? columnFormat)
         {
             ICellStyle style = null;
             var workbook = cell?.Row.Sheet.Workbook;
@@ -194,7 +237,7 @@ namespace Npoi.Mapper
             }
             else if (workbook != null)
             {
-                var format = builtinFormat != 0 ? builtinFormat : columnFormat ?? 0; /*default to 0*/
+                var format = columnFormat ?? 0; /*default to 0*/
 
                 if (format == 0)
                 {
@@ -407,6 +450,104 @@ namespace Npoi.Mapper
             return name;
         }
 
+        /// <summary>
+        /// Get a valid variable name by removing specified chars and truncating by specified chars.
+        /// </summary>
+        /// <param name="rawName">The name to be revised as a valid variable name.</param>
+        /// <param name="ignoringChars">Chars will be removed from the name string.</param>
+        /// <param name="truncatingChars">Chars used truncate the name string.</param>
+        /// <param name="columnIndex">The column index.</param>
+        /// <returns>A valid variable name based on the rawName.</returns>
+        public static string GetVariableName(string rawName, char[] ignoringChars, char[] truncatingChars, int columnIndex)
+        {
+            if (rawName != null)
+            {
+                rawName = Regex.Replace(rawName, @"\s", "");
+                var ignoredChars = ignoringChars ?? DefaultIgnoredChars;
+                var truncateChars = truncatingChars ?? DefaultTruncateChars;
+
+                rawName = ignoredChars.Aggregate(rawName, (current, c) => current.Replace(c, '\0'));
+
+                var index = rawName.IndexOfAny(truncateChars);
+                if (index >= 0) rawName = rawName.Remove(index);
+            }
+
+            if (string.IsNullOrEmpty(rawName))
+            {
+                rawName = GetExcelColumnName(columnIndex);
+            }
+
+            return rawName;
+        }
+
+        /// <summary>
+        /// Get column name in Excel, like A, B, AC.
+        /// </summary>
+        /// <param name="columnIndex">The column index.</param>
+        /// <returns>The column name that represent the order in Excel.</returns>
+        public static string GetExcelColumnName(int columnIndex)
+        {
+            if (columnIndex < 0 || columnIndex > 16383) throw new ArgumentOutOfRangeException(nameof(columnIndex));
+
+            var columnName = string.Empty;
+            var result = columnIndex;
+            do
+            {
+                var reminder = result % ColumnChars.Length;
+                columnName = ColumnChars[reminder] + columnName;
+                result = result / ColumnChars.Length - 1;
+            } while (result != -1);
+
+            return columnName;
+        }
+
+        /// <summary>
+        /// Determines the data type for the specified column according the first non-blank data cell.
+        /// </summary>
+        /// <param name="sheet">The sheet contains data.</param>
+        /// <param name="headerRowIndex">The row index for the header, pass -1 if no header.</param>
+        /// <param name="columnIndex">The index for the column.</param>
+        /// <returns>The type object.</returns>
+        public static Type InferColumnDataType(ISheet sheet, int headerRowIndex, int columnIndex)
+        {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));
+
+            Type type = null;
+            var rowIndex = headerRowIndex >= 0 ? headerRowIndex + 1 : 0;
+            var typeDetected = false;
+
+            while (!typeDetected && rowIndex <= sheet.LastRowNum && rowIndex <= MaxLookupRowNum)
+            {
+                var row = sheet.GetRow(rowIndex);
+
+                var cell = row?.GetCell(columnIndex);
+                if (cell != null)
+                {
+                    var cellType = GetCellType(cell);
+                    typeDetected = true;
+                    switch (cellType)
+                    {
+                        case CellType.Boolean:
+                            type = typeof(bool);
+                            break;
+                        case CellType.Numeric:
+                            type = DateUtil.IsCellDateFormatted(cell) ? DateTimeType : typeof(double);
+                            break;
+                        case CellType.String:
+                            type = StringType;
+                            break;
+                        default:
+                            typeDetected = false;
+                            break;
+                    }
+                }
+                rowIndex++;
+            }
+
+            return type;
+        }
+
         #endregion
 
         internal static void EnsureDefaultFormats(IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
@@ -424,7 +565,6 @@ namespace Npoi.Mapper
                 var attributes = column.Attribute;
                 if (column.DataFormat == null &&
                     attributes.Property != null &&
-                    attributes.BuiltinFormat == 0 &&
                     attributes.CustomFormat == null)
                 {
                     var type = attributes.Property.PropertyType;
@@ -481,6 +621,25 @@ namespace Npoi.Mapper
             }
 
             return Convert.ChangeType(value, targeType);
+        }
+
+        // Gets the concrete type instead of the type of object.
+        internal static Type GetConcreteType<T>(T[] objects)
+        {
+            var type = typeof(T);
+            if (type != ObjectType) return type;
+
+            foreach (var o in objects)
+            {
+                if (o == null) continue;
+                type = o.GetType();
+                if (type != ObjectType)
+                {
+                    break;
+                }
+            }
+
+            return type;
         }
     }
 }

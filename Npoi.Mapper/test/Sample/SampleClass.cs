@@ -38,10 +38,8 @@ namespace test.Sample
 
         public object ObjectProperty { get; set; }
 
-        [Column(ResolverType = typeof(MultiColumnContainerResolver))]
         public ICollection<string> CollectionGenericProperty { get; set; }
 
-        [Column(51, ResolverType = typeof(SingleColumnResolver))]
         public string SingleColumnResolverProperty { get; set; }
 
         [Column("By Name")]
@@ -64,9 +62,6 @@ namespace test.Sample
         public string GeneralProperty { get; set; }
 
         public ICollection<string> GeneralCollectionProperty { get; set; }
-
-        [Column(BuiltinFormat = 0xf)]
-        public DateTime BuiltinFormatProperty { get; set; }
 
         [Column(CustomFormat = "0%")]
         public double CustomFormatProperty { get; set; }

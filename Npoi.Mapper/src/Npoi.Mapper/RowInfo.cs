@@ -7,29 +7,29 @@ namespace Npoi.Mapper
     /// </summary>
     /// <typeparam name="TTarget">The target mapping type for a row.</typeparam>
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    public class RowInfo<TTarget>
+    public class RowInfo<TTarget> : IRowInfo
     {
         #region Properties
 
         /// <summary>
         /// Row number.
         /// </summary>
-        public int RowNumber { get; private set; }
+        public int RowNumber { get; set; }
 
         /// <summary>
         /// Constructed value object from the row.
         /// </summary>
-        public TTarget Value { get; private set; }
+        public TTarget Value { get;  set; }
 
         /// <summary>
         /// Column index of the first error.
         /// </summary>
-        public int ErrorColumnIndex { get; private set; }
+        public int ErrorColumnIndex { get; set; }
 
         /// <summary>
         /// Error message for the first error.
         /// </summary>
-        public string ErrorMessage { get; private set; }
+        public string ErrorMessage { get; set; }
 
         #endregion
 

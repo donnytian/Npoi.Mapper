@@ -27,6 +27,11 @@ namespace Npoi.Mapper.Attributes
         /// </summary>
         public string Name { get; internal set; }
 
+        /// <summary>
+        /// Property name, this is only used for dynamic type.
+        /// </summary>
+        public string PropertyName { get; set; }
+
         private PropertyInfo _property;
         /// <summary>
         /// Mapped property for this column.
@@ -63,11 +68,6 @@ namespace Npoi.Mapper.Attributes
         public TypeConverter PropertyUnderlyingConverter { get; private set; }
 
         /// <summary>
-        /// The type of class that is implemented <see cref="IColumnResolver{TTarget}"/> interface.
-        /// </summary>
-        public Type ResolverType { get; set; }
-
-        /// <summary>
         /// Indicate whether to use the last non-blank value.
         /// Typically handle the blank error in merged cells.
         /// </summary>
@@ -79,14 +79,19 @@ namespace Npoi.Mapper.Attributes
         internal bool? Ignored { get; set; }
 
         /// <summary>
-        /// Gets or sets the built-in format, see https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html for possible values.
-        /// </summary>
-        public short BuiltinFormat { get; set; }
-
-        /// <summary>
         /// Gets or sets the custom format, see https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
         /// </summary>
         public string CustomFormat { get; set; }
+
+        /// <summary>
+        /// Try take cell value for the given column when import data from file.
+        /// </summary>
+        internal Func<IColumnInfo, object, bool> TryTake { get; set; }
+
+        /// <summary>
+        /// Try set value to cell for the given column when export object to file.
+        /// </summary>
+        internal Func<IColumnInfo, object, bool> TryPut { get; set; }
 
         #endregion
 
@@ -164,12 +169,13 @@ namespace Npoi.Mapper.Attributes
             }
 
             if (source.Property != null && (overwrite || Property == null)) Property = source.Property;
-            if (source.ResolverType != null && (overwrite || ResolverType == null)) ResolverType = source.ResolverType;
             if (source.UseLastNonBlankValue != null && (overwrite || UseLastNonBlankValue == null)) UseLastNonBlankValue = source.UseLastNonBlankValue;
             if (source.Ignored != null && (overwrite || Ignored == null)) Ignored = source.Ignored;
-            if (source.BuiltinFormat != 0 && (overwrite || BuiltinFormat == 0)) BuiltinFormat = source.BuiltinFormat;
             if (source.CustomFormat != null && (overwrite || CustomFormat == null)) CustomFormat = source.CustomFormat;
             // TODO: fix for Mapper.Format(0) and Mapper.Format(null);
+
+            if (overwrite || TryPut == null) TryPut = source.TryPut;
+            if (overwrite || TryTake == null) TryTake = source.TryTake;
         }
 
         /// <summary>

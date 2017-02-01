@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using Npoi.Mapper.Attributes;
 
 namespace Npoi.Mapper
 {
@@ -33,21 +34,33 @@ namespace Npoi.Mapper
         /// <param name="mapper">The <see cref="Mapper"/> object.</param>
         /// <param name="columnName">The column name.</param>
         /// <param name="propertyName">The property name.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public static Mapper Map<T>(this Mapper mapper, string columnName, string propertyName, Type resolverType = null)
+        public static Mapper Map<T>(this Mapper mapper, string columnName, string propertyName,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (mapper == null) throw new ArgumentNullException(nameof(mapper));
             if (columnName == null) throw new ArgumentNullException(nameof(columnName));
             if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
 
-            var pi = typeof(T).GetProperty(propertyName, MapHelper.BindingFlag);
+            var type = typeof(T);
+            var pi = type.GetProperty(propertyName, MapHelper.BindingFlag);
 
-            if (pi == null) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+            if (pi == null && type != typeof(object)) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
 
-            return mapper.Map(columnName, pi, resolverType);
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = pi,
+                PropertyName = propertyName,
+                Name = columnName,
+                TryPut = tryPut,
+                TryTake = tryTake,
+                Ignored = false
+            };
+
+            return mapper.Map(columnAttribute);
         }
 
         /// <summary>
@@ -57,11 +70,12 @@ namespace Npoi.Mapper
         /// <param name="mapper">The <see cref="Mapper"/> object.</param>
         /// <param name="columnName">The column name.</param>
         /// <param name="propertySelector">Property selector.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public static Mapper Map<T>(this Mapper mapper, string columnName, Expression<Func<T, object>> propertySelector, Type resolverType = null)
+        public static Mapper Map<T>(this Mapper mapper, string columnName, Expression<Func<T, object>> propertySelector,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (mapper == null) throw new ArgumentNullException(nameof(mapper));
             if (columnName == null) throw new ArgumentNullException(nameof(columnName));
@@ -70,7 +84,7 @@ namespace Npoi.Mapper
 
             if (pi == null) throw new InvalidOperationException($"Cannot find the property specified by the selector.");
 
-            return mapper.Map(columnName, pi, resolverType);
+            return mapper.Map(columnName, pi, tryTake, tryPut);
         }
 
         /// <summary>
@@ -80,20 +94,32 @@ namespace Npoi.Mapper
         /// <param name="mapper">The <see cref="Mapper"/> object.</param>
         /// <param name="columnIndex">The column index.</param>
         /// <param name="propertyName">The property name.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public static Mapper Map<T>(this Mapper mapper, ushort columnIndex, string propertyName, Type resolverType = null)
+        public static Mapper Map<T>(this Mapper mapper, ushort columnIndex, string propertyName,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (mapper == null) throw new ArgumentNullException(nameof(mapper));
             if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
 
-            var pi = typeof(T).GetProperty(propertyName, MapHelper.BindingFlag);
+            var type = typeof(T);
+            var pi = type.GetProperty(propertyName, MapHelper.BindingFlag);
 
-            if (pi == null) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+            if (pi == null && type != typeof(object)) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
 
-            return mapper.Map(columnIndex, pi, resolverType);
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = pi,
+                PropertyName = propertyName,
+                Index = columnIndex,
+                TryPut = tryPut,
+                TryTake = tryTake,
+                Ignored = false
+            };
+
+            return mapper.Map(columnAttribute);
         }
 
         /// <summary>
@@ -103,17 +129,18 @@ namespace Npoi.Mapper
         /// <param name="mapper">The <see cref="Mapper"/> object.</param>
         /// <param name="columnIndex">The column index.</param>
         /// <param name="propertySelector">Property selector.</param>
-        /// <param name="resolverType">
-        /// The type of custom header and cell resolver that derived from <see cref="IColumnResolver{TTarget}"/>.
-        /// </param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
         /// <returns>The mapper object.</returns>
-        public static Mapper Map<T>(this Mapper mapper, ushort columnIndex, Expression<Func<T, object>> propertySelector, Type resolverType = null)
+        public static Mapper Map<T>(this Mapper mapper, ushort columnIndex, Expression<Func<T, object>> propertySelector,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
             if (mapper == null) throw new ArgumentNullException(nameof(mapper));
             var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
             if (pi == null) throw new InvalidOperationException($"Cannot find the property specified by the selector.");
 
-            return mapper.Map(columnIndex, pi, resolverType);
+            return mapper.Map(columnIndex, pi, tryTake, tryPut);
         }
     }
 }

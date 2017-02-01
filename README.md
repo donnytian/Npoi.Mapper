@@ -1,13 +1,14 @@
 # Npoi.Mapper
-Convention based mapper between strong typed object and Excel data via NPOI.  
+Convention-based mapper between strong typed object and Excel data via NPOI.  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
+<font color=brown>v3 now support to import and export as **`dynamic`** type.</font>
 ## Install from NuGet
 In the Package Manager Console:
 
 `PM> Install-Package Npoi.Mapper`
 
-## Get objects from Excel (XLS or XLSX)
+## Get strong-typed objects from Excel (XLS or XLSX)
 
 ```C#
 var mapper = new Mapper("Book1.xlsx");
@@ -15,6 +16,14 @@ var objs1 = mapper.Take<SampleClass>("sheet2");
 
 // You can take objects from the same sheet with different type.
 var objs2 = mapper.Take<AnotherClass>("sheet2");
+
+// Even you can use dynamic type.
+// DateTime, double and string will be auto-detected for object properties.
+// You will get a DateTime property only if the cell in Excel was formatted as a date, otherwise it will be a double.
+var objs3 = mapper.Take<dynamic>("sheet1").ToList();
+DateTime date = obj3[0].DateColumn;
+double number = obj3[0].NumberColumn;
+string text = obj3[0].AC; // If the column doesn't have a header name, Excel display name like "AC" will be populated.
 ```
 More use cases please check out source in "test" project.
 
@@ -57,14 +66,13 @@ mapper.Save("Book1.xlsx");
 6. Support custom object factory injection
 7. Support custom header and cell resolver
 8. Support custom logic to handle multiple columns for collection property
-9. Support Excel built-in format and custom format for exporting (see Column format section)
+9. Support custom format for exporting (see Column format section)
 
 ## Column mapping order
 
 1. Fluent method `Map<T>`
 2. `ColumnAttribute`
 3. Default naming convention (see below section)
-4. `Mapper.DefaultResolverType` property
 
 ## Default naming convention for column header mapping
 
@@ -101,14 +109,8 @@ Or by Attributes tagged on object properties:
         [Column("ColumnABC")]
         public string Property2 { get; set; }
         
-        [Column(BuiltinFormat = 0xf)]
-        public DateTime BuiltinFormatProperty { get; set; }
-        
         [Column(CustomFormat = "0%")]
         public double CustomFormatProperty { get; set; }
-        
-        [Column(ResolverType = typeof(MultiColumnContainerResolver))]
-        public ICollection<string> CollectionGenericProperty { get; set; }
         
         [UseLastNonBlankValue]
         public string UseLastNonBlankValueAttributeProperty { get; set; }
@@ -136,8 +138,8 @@ Or by `ColumnAttribute`:
 ```C#
     public class SampleClass
     {
-        [Column(BuiltinFormat = 0xf)]
-        public DateTime BuiltinFormatProperty { get; set; }
+        [Column(CustomFormat = "yyyy-MM-dd")]
+        public DateTime DateTimeFormatProperty { get; set; }
         
         [Column(CustomFormat = "0%")]
         public double CustomFormatProperty { get; set; }
@@ -149,76 +151,70 @@ Or if you want to set format for all properties in a same type:
 ```C#
     mapper.UseFormat(typeof(DateTime), "yyyy.MM.dd hh.mm.ss");
 ```
-You can use both **[builtin formats](https://poi.apache.org/apidocs/org/apache/poi/ss/usermodel/BuiltinFormats.html)** and **[custom formats](https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
-
-*Note*: **builtin formats will be obsolete** in next major release since it is rarely used but just increase internal complexity.
+You can find format details at **[custom formats](https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4)**.
 
 ## Custom column resolver
-Implement **`IColumnResolver`** to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
+Use overload of **`Map`** method to handle complex scenarios. Such as data conversion or retrieve values cross columns for a collection property.
 
 ```C#
-    public class MultiColumnContainerResolver : IColumnResolver<SampleClass>
-    {
-        public bool IsColumnMapped(ref object headerValue, int index)
-        {
-            try
-            {
-                // Custom logic to determine whether or not to map and include this column.
-                // Header value is either in string or double. Try convert by needs.
-                if (index > 30 && index <= 40 && headerValue is double)
+    mapper.Map(
+                column => // column filter : Custom logic to determine whether or not to map and include an unmapped column.
                 {
-                    // Assign back header value and use it from TryResolveCell method.
-                    headerValue = DateTime.FromOADate((double)headerValue);
+                    // Header value is either in string or double. Try convert by needs.
+
+                    var index = column.Attribute.Index;
+
+                    if ((index == 31 || index == 33) && column.HeaderValue is double)
+                    {
+                        // Assign back header value and use it from TryTake method.
+                        column.HeaderValue = DateTime.FromOADate((double)column.HeaderValue);
+
+                        return true;
+                    }
+
+                    return false;
+                },
+                (column, target) => // tryTake resolver : Custom logic to take cell value into target object.
+                {
+                    // Note: return false to indicate a failure; and that will increase error count.
+                    if (column.HeaderValue == null || column.CurrentValue == null) return false;
+                    if (!(column.HeaderValue is DateTime)) return false;
+
+                    ((SampleClass)target).CollectionGenericProperty.Add(((DateTime)column.HeaderValue).ToLongDateString() + column.CurrentValue);
+
+                    return true;
+                },
+                (column, source) => // tryPut resolver : Custom logic to put property value into cell.
+                {
+                    if (column.HeaderValue is double)
+                    {
+                        column.HeaderValue = DateTime.FromOADate((double)column.HeaderValue);
+                    }
+
+                    var s = ((DateTime)column.HeaderValue).ToLongDateString();
+
+                    // Custom logic to set the cell value.
+                    var sample = (SampleClass) source;
+                    if (column.Attribute.Index == 31 && sample.CollectionGenericProperty.Count > 0)
+                    {
+                        column.CurrentValue = sample.CollectionGenericProperty?.ToList()[0].Remove(0, s.Length);
+                    }
+                    else if (column.Attribute.Index == 33 && sample.CollectionGenericProperty.Count > 1)
+                    {
+                        column.CurrentValue = sample.CollectionGenericProperty?.ToList()[1].Remove(0, s.Length);
+                    }
 
                     return true;
                 }
-            }
-            catch
-            {
-                // Does nothing here and return false eventually.
-            }
-
-            return false;
-        }
-
-        public bool TryTakeCell(ColumnInfo<SampleClass> columnInfo, object cellValue, SampleClass target)
-        {
-            // Note: return false to indicate a failure; and that will increase error count.
-            if (columnInfo?.HeaderValue == null || cellValue == null) return false;
-
-            if (!(columnInfo.HeaderValue is DateTime)) return false;
-
-            // Custom logic to handle the cell value.
-            target.CollectionGenericProperty.Add(((DateTime)columnInfo.HeaderValue).ToLongDateString() + cellValue);
-
-            return true;
-        }
-
-        public bool TryPutCell(ColumnInfo<SampleClass> columnInfo, out object cellValue, SampleClass source)
-        {
-            cellValue = null;
-
-            // Note: return false to indicate a failure; and that will increase error count.
-            if (!(columnInfo?.HeaderValue is DateTime)) return false;
-
-            var s = ((DateTime)columnInfo.HeaderValue).ToLongDateString();
-
-            // Custom logic to set the cell value.
-            if (source.CollectionGenericProperty.Count > 0 && columnInfo.Attribute.Index == 31)
-            {
-                cellValue = source.CollectionGenericProperty.ToList()[0].Remove(0, s.Length);
-            }
-            else if (source.CollectionGenericProperty.Count > 1 && columnInfo.Attribute.Index == 33)
-            {
-                cellValue = source.CollectionGenericProperty.ToList()[1].Remove(0, s.Length);
-            }
-
-            return true;
-        }
-    }
+                );
 ```
 
 ## Change log
+
+### v3.0
+* New feature: Use **`Take<dynamic>`** so you don't even need a predefined type to import data, mapper will do it for you.
+* Breaking change: Removed support for **`BuiltinFormat`**, please use **`CustomFormat`** only.
+* Breaking change: Removed support for **`IColumnResolver`**, instead use overloads of **`Map`** method to specify custom resolvers.
 
 ### v2.1.1
 * Fixed issue #5: **`UseFormat`** does not support for nullable types when data in first row is null.

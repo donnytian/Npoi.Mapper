@@ -14,11 +14,10 @@ using test.Sample;
 namespace test
 {
     [TestClass]
-    public class ExportTests : TestBase
+    public class ExportGeneralTests : TestBase
     {
         SampleClass sampleObj = new SampleClass
         {
-            BuiltinFormatProperty = DateTime.Today,
             ColumnIndexAttributeProperty = "Column Index",
             CustomFormatProperty = 0.87,
             DateProperty = DateTime.Now,
@@ -108,7 +107,6 @@ namespace test
             var exporter = new Mapper();
             var sheetName = "newSheet";
             var dateFormat = "yyyy.MM.dd hh.mm.ss";
-            var doubleFormat = "0%";
             var obj1 = new NullableClass {NullableDateTime = null, DummyString = "dummy"};
             var obj2 = new NullableClass {NullableDateTime = DateTime.Now};
             if (File.Exists(FileName)) File.Delete(FileName);
@@ -191,19 +189,15 @@ namespace test
             var exporter = new Mapper(workbook);
             if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
-            objs[0].Value.BuiltinFormatProperty = DateTime.Now;
             objs[0].Value.CustomFormatProperty = 100.234;
 
             // Act
-            exporter.Map<SampleClass>(11, o => o.BuiltinFormatProperty);
             exporter.Map<SampleClass>(12, o => o.CustomFormatProperty);
             exporter.Save(FileName, objs.Select(info => info.Value), "newSheet");
 
             // Assert
-            var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
             var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
             Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
         }
 
@@ -215,21 +209,17 @@ namespace test
             var exporter = new Mapper(workbook);
             if (File.Exists(FileName)) File.Delete(FileName);
             var objs = exporter.Take<SampleClass>(1).ToList();
-            objs[0].Value.DateProperty = DateTime.Now;
             objs[0].Value.DoubleProperty = 100.234;
 
             // Act
             exporter.Map<SampleClass>(11, o => o.DateProperty);
             exporter.Map<SampleClass>(12, o => o.DoubleProperty);
-            exporter.Format<SampleClass>(0xf, o => o.DateProperty);
             exporter.Format<SampleClass>("0%", o => o.DoubleProperty);
             exporter.Save(FileName, objs.Select(info => info.Value), "newSheet");
 
             // Assert
-            var dateStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(11).CellStyle;
             var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
             Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(0xf, dateStyle.DataFormat);
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
         }
 
@@ -356,17 +346,17 @@ namespace test
         public void SaveWorkbookToFileTest()
         {
             // Prepare
-            const string existingFile = "Book2.xlsx";
-            const string sheetName = "Allocations";
-            if (File.Exists(existingFile)) File.Delete(existingFile);
+            const string fileName = "temp4.xlsx";
+            if (File.Exists(fileName)) File.Delete(fileName);
             
             var exporter = new Mapper("Book1.xlsx");
 
             // Act
-            exporter.Save(existingFile);
+            exporter.Save(fileName);
 
             // Assert
-            Assert.IsTrue(File.Exists(existingFile));
+            Assert.IsTrue(File.Exists(fileName));
+            File.Delete(fileName);
         }
     }
 }
