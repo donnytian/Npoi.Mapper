@@ -115,5 +115,26 @@ namespace test
             Assert.AreEqual(date2.ToLongDateString(), objs[0].Value.ColumnDate.ToLongDateString());
             Assert.AreEqual(165, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
         }
+
+        [TestMethod]
+        public void TakeDynamic_IgnoredChars_Issue7()
+        {
+            // Arrange
+            var str = "dummy";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            var header = sheet.CreateRow(0);
+            header.CreateCell(5).SetCellValue("N.I?F@");
+            var row = sheet.CreateRow(5);
+            var dateCell = row.CreateCell(5);
+            dateCell.SetCellValue(str);
+
+            // Act
+            var mapper = new Mapper(workbook);
+            var objs = mapper.Take<dynamic>().ToList();
+
+            // Assert
+            Assert.AreEqual(str, objs[0].Value.NIF);
+        }
     }
 }

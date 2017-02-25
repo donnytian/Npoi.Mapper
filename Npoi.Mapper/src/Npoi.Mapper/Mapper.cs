@@ -40,7 +40,6 @@ namespace Npoi.Mapper
         // Property name map to ColumnAttribute
         private Dictionary<string, ColumnAttribute> DynamicAttributes { get; } = new Dictionary<string, ColumnAttribute>();
 
-
         /// <summary>
         /// Cache the tracked <see cref="ColumnInfo"/> objects by sheet name and target type.
         /// </summary>

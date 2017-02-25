@@ -438,11 +438,11 @@ namespace Npoi.Mapper
         {
             if (name == null) return null;
 
-            name = Regex.Replace(name, @"\s", "");
+            name = Regex.Replace(name, @"\s", string.Empty);
             var ignoredChars = ignoringChars ?? DefaultIgnoredChars;
             var truncateChars = truncatingChars ?? DefaultTruncateChars;
 
-            name = ignoredChars.Aggregate(name, (current, c) => current.Replace(c, '\0'));
+            name = ignoredChars.Aggregate(name, (current, c) => current.Replace(c.ToString(), string.Empty));
 
             var index = name.IndexOfAny(truncateChars);
             if (index >= 0) name = name.Remove(index);
@@ -460,17 +460,7 @@ namespace Npoi.Mapper
         /// <returns>A valid variable name based on the rawName.</returns>
         public static string GetVariableName(string rawName, char[] ignoringChars, char[] truncatingChars, int columnIndex)
         {
-            if (rawName != null)
-            {
-                rawName = Regex.Replace(rawName, @"\s", "");
-                var ignoredChars = ignoringChars ?? DefaultIgnoredChars;
-                var truncateChars = truncatingChars ?? DefaultTruncateChars;
-
-                rawName = ignoredChars.Aggregate(rawName, (current, c) => current.Replace(c, '\0'));
-
-                var index = rawName.IndexOfAny(truncateChars);
-                if (index >= 0) rawName = rawName.Remove(index);
-            }
+            rawName = GetRefinedName(rawName, ignoringChars, truncatingChars);
 
             if (string.IsNullOrEmpty(rawName))
             {
