@@ -211,6 +211,9 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.0.1
+* Fixed issue #7: **`IgnoredNameChars`** not working properly.
+
 ### v3.0
 * New feature: Use **`Take<dynamic>`** so you don't even need a predefined type to import data, mapper will do it for you.
 * Breaking change: Removed support for **`BuiltinFormat`**, please use **`CustomFormat`** only.
