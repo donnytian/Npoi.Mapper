@@ -164,59 +164,6 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Map property to a column by specified column name and <see cref="PropertyInfo"/>.
-        /// </summary>
-        /// <param name="columnName">The column name.</param>
-        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
-        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
-        /// <param name="tryPut">The function try to export source object to the cell.</param>
-        /// <returns>The mapper object.</returns>
-        public Mapper Map(string columnName, PropertyInfo propertyInfo,
-            Func<IColumnInfo, object, bool> tryTake = null,
-            Func<IColumnInfo, object, bool> tryPut = null)
-        {
-            if (columnName == null) throw new ArgumentNullException(nameof(columnName));
-            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
-
-            new ColumnAttribute
-            {
-                Property = propertyInfo,
-                Name = columnName,
-                TryPut = tryPut,
-                TryTake = tryTake,
-                Ignored = false
-            }.MergeTo(Attributes);
-
-            return this;
-        }
-
-        /// <summary>
-        /// Map property to a column by specified column index(zero-based).
-        /// </summary>
-        /// <param name="columnIndex">The column index.</param>
-        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
-        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
-        /// <param name="tryPut">The function try to export source object to the cell.</param>
-        /// <returns>The mapper object.</returns>
-        public Mapper Map(ushort columnIndex, PropertyInfo propertyInfo,
-            Func<IColumnInfo, object, bool> tryTake = null,
-            Func<IColumnInfo, object, bool> tryPut = null)
-        {
-            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
-
-            new ColumnAttribute
-            {
-                Property = propertyInfo,
-                Index = columnIndex,
-                TryPut = tryPut,
-                TryTake = tryTake,
-                Ignored = false
-            }.MergeTo(Attributes);
-
-            return this;
-        }
-
-        /// <summary>
         /// Map by a <see cref="ColumnAttribute"/> object.
         /// </summary>
         /// <param name="attribute">The <see cref="ColumnAttribute"/> object.</param>
@@ -790,7 +737,15 @@ namespace Npoi.Mapper
         private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
-            var errorMessage = string.Empty;
+            string errorMessage = null;
+
+            void ColumnFailed(IColumnInfo column, string message)
+            {
+                if (errorIndex >= 0) return; // Ensures the first error will not be overwritten.
+                if (column.Attribute.IgnoreErrors == true) return;
+                errorIndex = column.Attribute.Index;
+                errorMessage = message;
+            }
 
             foreach (var column in columns)
             {
@@ -801,13 +756,11 @@ namespace Npoi.Mapper
                 {
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
-                    object valueObj;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, out valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, out object valueObj))
                     {
-                        errorIndex = index;
-                        errorMessage = "CellType is not supported yet!";
-                        break;
+                        ColumnFailed(column, "CellType is not supported yet!");
+                        continue;
                     }
 
                     valueObj = column.RefreshAndGetValue(valueObj);
@@ -816,24 +769,26 @@ namespace Npoi.Mapper
                     {
                         if (!column.Attribute.TryTake(column, target))
                         {
-                            errorIndex = index;
-                            errorMessage = "Returned failure by custom cell resolver!";
-                            break;
+                            ColumnFailed(column, "Returned failure by custom cell resolver!");
                         }
                     }
-                    else if (propertyType != null && valueObj != null)
+                    else if (propertyType != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        var value = MapHelper.ConvertType(valueObj, column);
+                        if (MapHelper.TryConvertType(valueObj, column, out object result))
+                        {
+                            column.Attribute.Property.SetValue(target, result);
+                        }
+                        else
+                        {
+                            ColumnFailed(column, "Cannot convert value to the property type!");
+                        }
                         //var value = Convert.ChangeType(valueObj, column.Attribute.PropertyUnderlyingType ?? propertyType);
-                        column.Attribute.Property.SetValue(target, value);
                     }
                 }
                 catch (Exception e)
                 {
-                    errorIndex = index;
-                    errorMessage = e.Message;
-                    break;
+                    ColumnFailed(column, e.Message);
                 }
             }
 

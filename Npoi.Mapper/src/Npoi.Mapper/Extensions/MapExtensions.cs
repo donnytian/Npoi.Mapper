@@ -1,30 +1,68 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Reflection;
 using Npoi.Mapper.Attributes;
 
 namespace Npoi.Mapper
 {
     /// <summary>
-    /// Extension methods for <see cref="Mapper"/>.
+    /// Extension methods for mapping.
     /// </summary>
-    public static class MapperExtensions
+    public static class MapExtensions
     {
         /// <summary>
-        /// Uses a custom format for all properties that have the same type.
+        /// Map property to a column by specified column name and <see cref="PropertyInfo"/>.
         /// </summary>
         /// <param name="mapper">The <see cref="Mapper"/> object.</param>
-        /// <param name="propertyType">The type of property to format.</param>
-        /// <param name="customFormat">The custom format for the specified type.</param>
-        /// <returns>The <see cref="Mapper"/> itself.</returns>
-        public static Mapper UseFormat(this Mapper mapper, Type propertyType, string customFormat)
+        /// <param name="columnName">The column name.</param>
+        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
+        /// <returns>The mapper object.</returns>
+        public static Mapper Map(this Mapper mapper, string columnName, PropertyInfo propertyInfo,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
         {
-            if (mapper == null) throw new ArgumentNullException(nameof(mapper));
-            if (propertyType == null) throw new ArgumentNullException(nameof(propertyType));
-            if (string.IsNullOrWhiteSpace(customFormat)) throw new ArgumentException($"Parameter '{nameof(customFormat)}' cannot be null or white space.");
+            if (columnName == null) throw new ArgumentNullException(nameof(columnName));
+            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
 
-            mapper.TypeFormats[propertyType] = customFormat;
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = propertyInfo,
+                Name = columnName,
+                TryPut = tryPut,
+                TryTake = tryTake,
+                Ignored = false
+            };
 
-            return mapper;
+            return mapper.Map(columnAttribute);
+        }
+
+        /// <summary>
+        /// Map property to a column by specified column index(zero-based).
+        /// </summary>
+        /// <param name="mapper">The <see cref="Mapper"/> object.</param>
+        /// <param name="columnIndex">The column index.</param>
+        /// <param name="propertyInfo">The <see cref="PropertyInfo"/> object.</param>
+        /// <param name="tryTake">The function try to import from cell value to the target object.</param>
+        /// <param name="tryPut">The function try to export source object to the cell.</param>
+        /// <returns>The mapper object.</returns>
+        public static Mapper Map(this Mapper mapper, ushort columnIndex, PropertyInfo propertyInfo,
+            Func<IColumnInfo, object, bool> tryTake = null,
+            Func<IColumnInfo, object, bool> tryPut = null)
+        {
+            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
+
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = propertyInfo,
+                Index = columnIndex,
+                TryPut = tryPut,
+                TryTake = tryTake,
+                Ignored = false
+            };
+
+            return mapper.Map(columnAttribute);
         }
 
         /// <summary>
@@ -141,6 +179,50 @@ namespace Npoi.Mapper
             if (pi == null) throw new InvalidOperationException($"Cannot find the property specified by the selector.");
 
             return mapper.Map(columnIndex, pi, tryTake, tryPut);
+        }
+
+        /// <summary>
+        /// Ignores all errors for the specified property.
+        /// </summary>
+        /// <param name="mapper">The <see cref="Mapper"/> object.</param>
+        /// <param name="propertyName">The property name.</param>
+        /// <returns>The mapper object.</returns>
+        public static Mapper IgnoreErrorsFor<T>(this Mapper mapper, string propertyName)
+        {
+            if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
+
+            var type = typeof(T);
+            var pi = type.GetProperty(propertyName, MapHelper.BindingFlag);
+
+            if (pi == null && type != typeof(object)) throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = pi,
+                IgnoreErrors = true
+            };
+
+            return mapper.Map(columnAttribute);
+        }
+
+        /// <summary>
+        /// Ignores all errors for the specified property.
+        /// </summary>
+        /// <param name="mapper">The <see cref="Mapper"/> object.</param>
+        /// <param name="propertySelector">Property selector.</param>
+        /// <returns>The mapper object.</returns>
+        public static Mapper IgnoreErrorsFor<T>(this Mapper mapper, Expression<Func<T, object>> propertySelector)
+        {
+            var pi = MapHelper.GetPropertyInfoByExpression(propertySelector);
+            if (pi == null) throw new InvalidOperationException($"Cannot find the property specified by the selector.");
+
+            var columnAttribute = new ColumnAttribute
+            {
+                Property = pi,
+                IgnoreErrors = true
+            };
+
+            return mapper.Map(columnAttribute);
         }
     }
 }

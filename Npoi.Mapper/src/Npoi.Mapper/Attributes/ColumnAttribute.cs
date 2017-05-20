@@ -38,7 +38,7 @@ namespace Npoi.Mapper.Attributes
         /// </summary>
         public PropertyInfo Property
         {
-            get { return _property; }
+            get => _property;
 
             internal set
             {
@@ -82,6 +82,11 @@ namespace Npoi.Mapper.Attributes
         /// Gets or sets the custom format, see https://support.office.com/en-us/article/Create-or-delete-a-custom-number-format-78f2a361-936b-4c03-8772-09fab54be7f4 for the syntax.
         /// </summary>
         public string CustomFormat { get; set; }
+
+        /// <summary>
+        /// Indicates whether or not to ignore all errors for the column.
+        /// </summary>
+        public bool? IgnoreErrors { get; set; }
 
         /// <summary>
         /// Try take cell value for the given column when import data from file.
@@ -172,6 +177,7 @@ namespace Npoi.Mapper.Attributes
             if (source.UseLastNonBlankValue != null && (overwrite || UseLastNonBlankValue == null)) UseLastNonBlankValue = source.UseLastNonBlankValue;
             if (source.Ignored != null && (overwrite || Ignored == null)) Ignored = source.Ignored;
             if (source.CustomFormat != null && (overwrite || CustomFormat == null)) CustomFormat = source.CustomFormat;
+            if (source.IgnoreErrors != null && (overwrite || IgnoreErrors == null)) IgnoreErrors = source.IgnoreErrors;
             // TODO: fix for Mapper.Format(0) and Mapper.Format(null);
 
             if (overwrite || TryPut == null) TryPut = source.TryPut;

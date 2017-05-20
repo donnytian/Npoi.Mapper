@@ -33,12 +33,13 @@ namespace test
         private class NullableClass
         {
             public DateTime? NullableDateTime { get; set; }
+            public string NormalString { get; set; }
         }
 
         [TestMethod]
         public void ImporterWithoutAnyMapping()
         {
-            // Prepare
+            // Arrange
             var stream = new FileStream("Book1.xlsx", FileMode.Open);
 
             // Act
@@ -56,7 +57,7 @@ namespace test
         [TestMethod]
         public void ImporterWithFormat()
         {
-            // Prepare
+            // Arrange
             var stream = new FileStream("Book1.xlsx", FileMode.Open);
 
             // Act
@@ -73,13 +74,12 @@ namespace test
         }
 
         [TestMethod]
-        public void ImportToNullable()
+        public void Import_ParseStringToNullableDateTime_Success()
         {
-            // Prepare
-            var stream = new FileStream("Book1.xlsx", FileMode.Open);
+            // Arrange
+            var importer = new Mapper("Book1.xlsx");
 
             // Act
-            var importer = new Mapper(stream);
             importer.UseFormat(typeof(DateTime), "MM^dd^yyyy");
             var items = importer.Take<NullableClass>("NullableClass").ToList();
 
@@ -87,13 +87,42 @@ namespace test
             Assert.IsTrue(items[0].Value.NullableDateTime.Value.Year == 2017);
             Assert.IsTrue(items[1].Value.NullableDateTime.Value.Year == 2017);
             Assert.IsTrue(items[2].Value.NullableDateTime.Value.Year == 2017);
-            Assert.IsFalse(items[3].Value.NullableDateTime.HasValue);
+        }
+
+        [TestMethod]
+        public void Import_ErrorOnNullable_GetNullObject()
+        {
+            // Arrange
+            var importer = new Mapper("Book1.xlsx");
+
+            // Act
+            var items = importer.Take<NullableClass>("NullableClass").ToList();
+
+            // Assert
+            Assert.IsNull(items[3].Value);
+        }
+
+        [TestMethod]
+        public void Import_IgnoreErrorOnNullable_GetNullProperty()
+        {
+            // Arrange
+            var importer = new Mapper("Book1.xlsx");
+
+            // Act
+            importer.IgnoreErrorsFor<NullableClass>(o => o.NullableDateTime);
+            var items = importer.Take<NullableClass>("NullableClass").ToList();
+
+            // Assert
+            Assert.IsNull(items[2].Value.NullableDateTime);
+            Assert.IsNotNull(items[2].Value.NormalString);
+            Assert.IsNull(items[3].Value.NullableDateTime);
+            Assert.IsNotNull(items[3].Value.NormalString);
         }
 
         [TestMethod]
         public void ImporterConstructorWorkbookTest()
         {
-            // Prepare
+            // Arrange
             var workbook = GetSimpleWorkbook(DateTime.MaxValue, "dummy");
 
             // Act
@@ -108,7 +137,7 @@ namespace test
         [ExpectedException(typeof(ArgumentNullException))]
         public void ImporterConstructorNullStreamTest()
         {
-            // Prepare
+            // Arrange
             Stream nullStream = null;
 
             // Act
@@ -122,7 +151,7 @@ namespace test
         [ExpectedException(typeof(ArgumentNullException))]
         public void ImporterConstructorNullWorkbookTest()
         {
-            // Prepare
+            // Arrange
             IWorkbook nullWorkbook = null;
 
             // Act
@@ -134,7 +163,7 @@ namespace test
         [TestMethod]
         public void ImporterConstructorFilePathTest()
         {
-            // Prepare
+            // Arrange
 
             // Act
             var importer = new Mapper("Book1.xlsx");
@@ -149,7 +178,7 @@ namespace test
         [ExpectedException(typeof(FileNotFoundException))]
         public void ImporterConstructorFilePathNotExistTest()
         {
-            // Prepare
+            // Arrange
 
             // Act
             var importer = new Mapper("dummy.txt");
@@ -160,7 +189,7 @@ namespace test
         [TestMethod]
         public void ImporterNoElementTest()
         {
-            // Prepare
+            // Arrange
             var workbook = new XSSFWorkbook();
             var header = workbook.CreateSheet("sheet1").CreateRow(0);
             header.CreateCell(0).SetCellValue("StringProperty");
@@ -178,7 +207,7 @@ namespace test
         [TestMethod]
         public void ImporterEmptySheetTest()
         {
-            // Prepare
+            // Arrange
             var workbook = new XSSFWorkbook();
             workbook.CreateSheet("sheet1");
             var importer = new Mapper(workbook);
@@ -194,7 +223,7 @@ namespace test
         [TestMethod]
         public void TakeByHeaderIndexTest()
         {
-            // Prepare
+            // Arrange
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
@@ -218,7 +247,7 @@ namespace test
         [ExpectedException(typeof(ArgumentException))]
         public void TakeByHeaderIndexOutOfRangeTest()
         {
-            // Prepare
+            // Arrange
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
@@ -234,7 +263,7 @@ namespace test
         [TestMethod]
         public void TakeByHeaderNameTest()
         {
-            // Prepare
+            // Arrange
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
@@ -257,7 +286,7 @@ namespace test
         [TestMethod]
         public void TakeByHeaderNameNotExistTest()
         {
-            // Prepare
+            // Arrange
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
@@ -269,6 +298,87 @@ namespace test
             // Assert
             Assert.IsNotNull(objs);
             Assert.AreEqual(0, objs.Count);
+        }
+
+        [TestMethod]
+        public void Import_ConvertValueError_GetNullObject()
+        {
+            // Arrange
+            const double dou1 = 1.833;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            sheet.CreateRow(2);
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue("DoubleProperty");
+            sheet.GetRow(0).CreateCell(1).SetCellValue("Int32Property");
+            sheet.GetRow(0).CreateCell(2).SetCellValue("StringProperty");
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(dou1);
+            sheet.GetRow(1).CreateCell(1).SetCellValue((string)null);
+            sheet.GetRow(1).CreateCell(2).SetCellValue(str1);
+
+            // Row #2
+            sheet.GetRow(2).CreateCell(0).SetCellValue(dou1);
+            sheet.GetRow(2).CreateCell(1).SetCellValue("dummy");
+            sheet.GetRow(2).CreateCell(2).SetCellValue(str2);
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(default(int), items[0].Value.Int32Property);
+            Assert.IsNull(items[1].Value);
+        }
+
+        [TestMethod]
+        public void Import_IgnoreValueTypeParseError_GetDefaultProperty()
+        {
+            // Arrange
+            const double dou1 = 1.833;
+            const int int1 = 22;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            sheet.CreateRow(2);
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue("DoubleProperty");
+            sheet.GetRow(0).CreateCell(1).SetCellValue("Int32Property");
+            sheet.GetRow(0).CreateCell(2).SetCellValue("StringProperty");
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(int1.ToString());
+            sheet.GetRow(1).CreateCell(1).SetCellValue(dou1.ToString("f3"));
+            sheet.GetRow(1).CreateCell(2).SetCellValue(str1);
+
+            // Row #2
+            sheet.GetRow(2).CreateCell(0).SetCellValue("dummy");
+            sheet.GetRow(2).CreateCell(1).SetCellValue("dummy");
+            sheet.GetRow(2).CreateCell(2).SetCellValue(str2);
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.IgnoreErrorsFor<SampleClass>(o => o.DoubleProperty);
+            mapper.IgnoreErrorsFor<SampleClass>(o => o.Int32Property);
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(int1, items[0].Value.DoubleProperty);
+            Assert.AreEqual(Math.Round(dou1), items[0].Value.Int32Property);
+            Assert.AreEqual(str1, items[0].Value.StringProperty);
+            Assert.AreEqual(default(double), items[1].Value.DoubleProperty);
+            Assert.AreEqual(default(int), items[1].Value.Int32Property);
+            Assert.AreEqual(str2, items[1].Value.StringProperty);
         }
     }
 }

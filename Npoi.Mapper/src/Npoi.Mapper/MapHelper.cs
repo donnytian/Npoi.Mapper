@@ -567,10 +567,12 @@ namespace Npoi.Mapper
             }
         }
 
-        // Convert the input object as the target type.
-        internal static object ConvertType(object value, IColumnInfo column)
+        // Try to convert the input object as the target type.
+        internal static bool TryConvertType(object value, IColumnInfo column, out object result)
         {
-            if (value == null || column == null || column.Attribute.Property == null) return null;
+            result = null;
+            if (column == null || column.Attribute.Property == null) return false;
+            if (value == null) return true;
 
             var stringValue = value as string;
             var targeType = column.Attribute.Property.PropertyType;
@@ -581,36 +583,53 @@ namespace Npoi.Mapper
             {
                 if (targeType == StringType)
                 {
-                    return stringValue;
+                    result = stringValue;
+                    return true;
                 }
 
                 if (targeType == DateTimeType)
                 {
-                    DateTime dateTime;
-                    if (DateTime.TryParseExact(
-                        stringValue,
-                        column.Attribute.CustomFormat,
-                        CultureInfo.CurrentCulture,
-                        DateTimeStyles.AllowWhiteSpaces,
-                        out dateTime)
+                    if (DateTime.TryParseExact(stringValue, column.Attribute.CustomFormat, CultureInfo.CurrentCulture,
+                        DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime)
                     )
                     {
-                        return dateTime;
+                        result = dateTime;
+                        return true;
                     }
+                }
+
+                if (targeType.IsNumeric() && double.TryParse(stringValue, NumberStyles.Any, null, out double doubleResult))
+                {
+                    result = Convert.ChangeType(doubleResult, targeType);
+                    return true;
                 }
 
                 // Ensure we are not throwing exception and just read a null for nullable property.
                 if (underlyingType != null)
                 {
+                    if (string.IsNullOrWhiteSpace(stringValue))
+                    {
+                        return true;
+                    }
+
                     var converter = column.Attribute.PropertyUnderlyingConverter;
                     if (!converter.IsValid(value))
                     {
-                        return null;
+                        return false;
                     }
                 }
             }
 
-            return Convert.ChangeType(value, targeType);
+            try
+            {
+                result = Convert.ChangeType(value, targeType);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
 
         // Gets the concrete type instead of the type of object.
