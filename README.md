@@ -213,6 +213,9 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.0.2
+* Support .NET Framework 4.5.
+
 ### v3.0.1
 * Fixed issue #7: **`IgnoredNameChars`** not working properly.
 
