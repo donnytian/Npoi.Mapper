@@ -19,7 +19,11 @@ namespace Npoi.Mapper
         static AnonymousTypeFactory()
         {
             var assemblyName = new AssemblyName { Name = "MyAnonymousTypes" };
+#if DNXCORE50
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+#else
             var assemblyBuilder = System.Threading.Thread.GetDomain().DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+#endif
             ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
         }
 
@@ -302,7 +306,11 @@ namespace Npoi.Mapper
             ).ToArray();
             DefineToStringMethod(typeBuilder, fieldPairs);
 
+#if DNXCORE50
+            return typeBuilder.CreateTypeInfo();
+#else
             return typeBuilder.CreateType();
+#endif
         }
 
         private static void DefineDefaultConstructor(TypeBuilder typeBuilder, ConstructorInfo baseConstructor = null)
