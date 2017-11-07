@@ -7,7 +7,6 @@
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <AssemblyName>Npoi.Mapper</AssemblyName>
     <PackageId>Npoi.Mapper</PackageId>
-    <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netstandard2.0' ">$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <PackageTags>Excel;XLS;XLSX;NPOI;Object mapping;dynamic</PackageTags>
     <PackageProjectUrl>http://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
