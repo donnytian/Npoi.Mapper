@@ -18,7 +18,7 @@ namespace test
 
         protected static IWorkbook GetSimpleWorkbook(DateTime dateValue, string stringValue)
         {
-            var workbook = new XSSFWorkbook();
+            var workbook = GetEmptyWorkbook();
             workbook.CreateSheet("sheet1");
             var sheet = workbook.CreateSheet("sheet2");
             var header = sheet.CreateRow(0);
@@ -33,8 +33,15 @@ namespace test
 
         protected static IWorkbook GetBlankWorkbook()
         {
-            var workbook = new XSSFWorkbook();
+            var workbook = GetEmptyWorkbook();
             workbook.CreateSheet("sheet1");
+
+            return workbook;
+        }
+
+        protected static IWorkbook GetEmptyWorkbook()
+        {
+            var workbook = new XSSFWorkbook();
 
             return workbook;
         }

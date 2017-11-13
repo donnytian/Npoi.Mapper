@@ -308,7 +308,7 @@ namespace Npoi.Mapper
         public void Put<T>(IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true)
         {
             if (Workbook == null) Workbook = new XSSFWorkbook();
-            var sheet = Workbook.GetSheetAt(sheetIndex);
+            var sheet = Workbook.NumberOfSheets > sheetIndex ? Workbook.GetSheetAt(sheetIndex) : Workbook.CreateSheet();
             Put(sheet, objects, overwrite);
         }
 

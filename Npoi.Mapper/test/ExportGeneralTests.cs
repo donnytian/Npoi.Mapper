@@ -358,5 +358,36 @@ namespace test
             Assert.IsTrue(File.Exists(fileName));
             File.Delete(fileName);
         }
+
+        // https://github.com/donnytian/Npoi.Mapper/issues/16
+        [TestMethod]
+        public void PutWithNotExistedSheetIndex_ShouldAutoPopulateSheets()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Put(new[]{new object(), }, 100);
+
+            // Assert
+            Assert.IsTrue(workbook.NumberOfSheets > 0);
+        }
+
+        [TestMethod]
+        public void PutWithNotExistedSheetName_ShouldAutoPopulateSheets()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Put(new[]{new object(), }, "sheet100");
+
+            // Assert
+            Assert.IsTrue(workbook.NumberOfSheets > 0);
+        }
     }
 }
