@@ -13,12 +13,19 @@ namespace Npoi.Mapper
     /// <summary>
     /// Provide static supportive functionalities for <see cref="Mapper"/> class.
     /// </summary>
-    public static class MapHelper
+    public class MapHelper
     {
         #region Fields
 
-        // Pattern of a valid variable name. Limited in 100 characters.
-        //private static readonly string VariableNamePattern = @"^[_a-zA-Z]\w+{0,99}$";
+        /// <summary>
+        /// Stores cached built-in styles to avoid create new ICellStyle for each cell.
+        /// </summary>
+        private readonly Dictionary<short, ICellStyle> _builtinStyles = new Dictionary<short, ICellStyle>();
+
+        /// <summary>
+        /// Stores cached custom styles to avoid create new ICellStyle for each customized cell.
+        /// </summary>
+        private readonly Dictionary<string, ICellStyle> _customStyles = new Dictionary<string, ICellStyle>();
 
         // Column chars that will be used for Excel columns.
         // e.g. Column A is the first column, Column AA is the 27th column.
@@ -35,28 +42,6 @@ namespace Npoi.Mapper
         // Binding flags to lookup object properties.
         public const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
-        /// <summary>
-        /// Collection of numeric types.
-        /// </summary>
-        private static readonly List<Type> NumericTypes = new List<Type>
-        {
-            typeof(decimal),
-            typeof(byte), typeof(sbyte),
-            typeof(short), typeof(ushort),
-            typeof(int), typeof(uint),
-            typeof(long), typeof(ulong),
-            typeof(float), typeof(double)
-        };
-
-        /// <summary>
-        /// Stores cached built-in styles to avoid create new ICellStyle for each cell.
-        /// </summary>
-        private static readonly Dictionary<short, ICellStyle> BuiltinStyles = new Dictionary<short, ICellStyle>();
-
-        /// <summary>
-        /// Stores cached custom styles to avoid create new ICellStyle for each customized cell.
-        /// </summary>
-        private static readonly Dictionary<string, ICellStyle> CustomStyles = new Dictionary<string, ICellStyle>();
 
         /// <summary>
         /// Caches for type of string during parsing.
@@ -76,7 +61,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// The maximum row number during the detection for column type and style.
         /// </summary>
-        public static int MaxLookupRowNum { get; set; } = 20;
+        public int MaxLookupRowNum { get; set; } = 20;
 
         #endregion
 
@@ -133,38 +118,12 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
-        /// Extension for <see cref="IEnumerable{T}"/> object to handle each item.
-        /// </summary>
-        /// <typeparam name="T">The item type.</typeparam>
-        /// <param name="sequence">The enumerable sequence.</param>
-        /// <param name="action">Action to apply to each item.</param>
-        public static void ForEach<T>(this IEnumerable<T> sequence, Action<T> action)
-        {
-            if (sequence == null) return;
-
-            foreach (var item in sequence)
-            {
-                action(item);
-            }
-        }
-
-        /// <summary>
         /// Clear cached data for cell styles and tracked column info.
         /// </summary>
-        public static void ClearCache()
+        public void ClearCache()
         {
-            BuiltinStyles.Clear();
-            CustomStyles.Clear();
-        }
-
-        /// <summary>
-        /// Check if the given type is a numeric type.
-        /// </summary>
-        /// <param name="type">The type to be checked.</param>
-        /// <returns><c>true</c> if it's numeric; otherwise <c>false</c>.</returns>
-        public static bool IsNumeric(this Type type)
-        {
-            return NumericTypes.Contains(type);
+            _builtinStyles.Clear();
+            _customStyles.Clear();
         }
 
         /// <summary>
@@ -174,7 +133,7 @@ namespace Npoi.Mapper
         /// <param name="firstDataRowIndex">The index for the first row to detect.</param>
         /// <param name="columns">The column collection to load formats into.</param>
         /// <param name="defaultFormats">The default formats specified for certain types.</param>
-        public static void LoadDataFormats(ISheet sheet, int firstDataRowIndex, IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
+        public void LoadDataFormats(ISheet sheet, int firstDataRowIndex, IEnumerable<IColumnInfo> columns, Dictionary<Type, string> defaultFormats)
         {
             if (sheet == null) return;
             if (columns == null) return;
@@ -218,21 +177,21 @@ namespace Npoi.Mapper
         /// <param name="customFormat">The custom format string.</param>
         /// <param name="columnFormat">The default column format number.</param>
         /// <returns><c>ICellStyle</c> object for the given cell; null if not format specified.</returns>
-        public static ICellStyle GetCellStyle(ICell cell, string customFormat, short? columnFormat)
+        public ICellStyle GetCellStyle(ICell cell, string customFormat, short? columnFormat)
         {
             ICellStyle style = null;
             var workbook = cell?.Row.Sheet.Workbook;
 
             if (!string.IsNullOrWhiteSpace(customFormat))
             {
-                if (CustomStyles.ContainsKey(customFormat))
+                if (_customStyles.ContainsKey(customFormat))
                 {
-                    style = CustomStyles[customFormat];
+                    style = _customStyles[customFormat];
                 }
                 else if (workbook != null)
                 {
                     style = CreateCellStyle(workbook, customFormat);
-                    CustomStyles[customFormat] = style;
+                    _customStyles[customFormat] = style;
                 }
             }
             else if (workbook != null)
@@ -244,14 +203,14 @@ namespace Npoi.Mapper
                     return null;
                 }
 
-                if (BuiltinStyles.ContainsKey(format))
+                if (_builtinStyles.ContainsKey(format))
                 {
-                    style = BuiltinStyles[format];
+                    style = _builtinStyles[format];
                 }
                 else
                 {
                     style = CreateCellStyle(workbook, format);
-                    BuiltinStyles[format] = style;
+                    _builtinStyles[format] = style;
                 }
             }
 
@@ -299,7 +258,7 @@ namespace Npoi.Mapper
         /// <param name="value">The value object.</param>
         /// <param name="defaultFormats">Default format dictionary.</param>
         /// <returns>The <see cref="ICellStyle"/> object.</returns>
-        public static ICellStyle GetDefaultStyle(IWorkbook workbook, object value, Dictionary<Type, string> defaultFormats)
+        public ICellStyle GetDefaultStyle(IWorkbook workbook, object value, Dictionary<Type, string> defaultFormats)
         {
             if (value == null || workbook == null || defaultFormats == null) return null;
 
@@ -315,14 +274,14 @@ namespace Npoi.Mapper
                 return null;
             }
 
-            if (!CustomStyles.ContainsKey(format))
+            if (!_customStyles.ContainsKey(format))
             {
                 style = CreateCellStyle(workbook, format);
-                CustomStyles[format] = style;
+                _customStyles[format] = style;
             }
             else
             {
-                style = CustomStyles[format];
+                style = _customStyles[format];
             }
 
             return style;
@@ -498,7 +457,7 @@ namespace Npoi.Mapper
         /// <param name="headerRowIndex">The row index for the header, pass -1 if no header.</param>
         /// <param name="columnIndex">The index for the column.</param>
         /// <returns>The type object.</returns>
-        public static Type InferColumnDataType(ISheet sheet, int headerRowIndex, int columnIndex)
+        public Type InferColumnDataType(ISheet sheet, int headerRowIndex, int columnIndex)
         {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));

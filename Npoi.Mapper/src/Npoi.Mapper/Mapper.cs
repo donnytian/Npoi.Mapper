@@ -31,6 +31,9 @@ namespace Npoi.Mapper
 
         #region Properties
 
+        // Instance of helper class.
+        private MapHelper Helper = new MapHelper();
+
         // Stores formats for type rather than specific property.
         internal readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>();
 
@@ -64,7 +67,7 @@ namespace Npoi.Mapper
                 {
                     Objects.Clear();
                     TrackedColumns.Clear();
-                    MapHelper.ClearCache();
+                    Helper.ClearCache();
                 }
                 _workbook = value;
             }
@@ -497,7 +500,7 @@ namespace Npoi.Mapper
             var columns = GetColumns(firstRow, targetType);
 
             // Detect column format based on the first non-null cell.
-            MapHelper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
+            Helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
@@ -533,7 +536,7 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = MapHelper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
+                var type = Helper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
@@ -1008,7 +1011,7 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            if (setStyle) column.SetCellStyle(cell, value, isHeader, TypeFormats);
+            if (setStyle) column.SetCellStyle(cell, value, isHeader, TypeFormats, Helper);
         }
 
         #endregion Export
