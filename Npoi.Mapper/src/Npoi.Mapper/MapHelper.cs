@@ -196,7 +196,7 @@ namespace Npoi.Mapper
             }
             else if (workbook != null)
             {
-                var format = columnFormat ?? 0; /*default to 0*/
+                var format = columnFormat ?? 0; // Defaults to 0.
 
                 if (format == 0)
                 {

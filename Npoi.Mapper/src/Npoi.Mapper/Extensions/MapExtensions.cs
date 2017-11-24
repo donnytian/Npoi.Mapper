@@ -199,6 +199,7 @@ namespace Npoi.Mapper
             var columnAttribute = new ColumnAttribute
             {
                 Property = pi,
+                PropertyName = propertyName,
                 IgnoreErrors = true
             };
 
@@ -223,6 +224,38 @@ namespace Npoi.Mapper
             };
 
             return mapper.Map(columnAttribute);
+        }
+
+        /// <summary>
+        /// Ignore property by names. Ignored properties will not be mapped for import and export.
+        /// </summary>
+        /// <typeparam name="T">The target object type.</typeparam>
+        /// <param name="mapper">The <see cref="Mapper"/> object.</param>
+        /// <param name="propertyNames">Property names.</param>
+        /// <returns>The mapper object.</returns>
+        public static Mapper Ignore<T>(this Mapper mapper, params string[] propertyNames)
+        {
+            var type = typeof(T);
+
+            foreach (var propertyName in propertyNames)
+            {
+                var pi = type.GetProperty(propertyName, MapHelper.BindingFlag);
+
+                if (pi == null && type != typeof(object)) // Does not throw for dynamic type.
+                {
+                    throw new InvalidOperationException($"Cannot find a public property in name of '{propertyName}'.");
+                }
+
+                var columnAttribute = new ColumnAttribute
+                {
+                    Property = pi,
+                    PropertyName = propertyName,
+                    Ignored = true
+                };
+                mapper.Map(columnAttribute);
+            }
+
+            return mapper;
         }
     }
 }
