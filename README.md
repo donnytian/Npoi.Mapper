@@ -213,6 +213,12 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.1
+* Added overload to ignore properties by string
+* Added method 'ForHeader' to allow set header's cell style when exporting.
+* A few bug fixes for Ignore and Put
+
+
 ### v3.0.2
 * Support .NET Framework 4.5.
 
