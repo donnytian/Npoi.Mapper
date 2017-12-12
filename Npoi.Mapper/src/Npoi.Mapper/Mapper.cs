@@ -868,11 +868,7 @@ namespace Npoi.Mapper
 
             var columns = GetTrackedColumns(sheetName, type) ??
                            GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
-
-            if (firstRow == null)
-            {
-                PopulateFirstRow(sheet, columns, type);
-            }
+            firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow(sheet, columns, type);
 
             // Injects custom action for headers.
             if (overwrite && HasHeader && _headerAction != null)
