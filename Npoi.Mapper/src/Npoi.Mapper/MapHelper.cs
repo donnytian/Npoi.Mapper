@@ -315,14 +315,7 @@ namespace Npoi.Mapper
             {
                 case CellType.String:
 
-                    if (targetType?.IsEnum == true) // Enum type.
-                    {
-                        value = Enum.Parse(targetType, cell.StringCellValue, true);
-                    }
-                    else // String type.
-                    {
-                        value = cell.StringCellValue;
-                    }
+                    value = cell.StringCellValue;
 
                     break;
 
@@ -331,10 +324,6 @@ namespace Npoi.Mapper
                     if (DateUtil.IsCellDateFormatted(cell) || targetType == typeof(DateTime)) // DateTime type.
                     {
                         value = cell.DateCellValue;
-                    }
-                    else if (targetType?.IsEnum == true) // Enum type.
-                    {
-                        value = Enum.Parse(targetType, cell.NumericCellValue.ToString(CultureInfo.InvariantCulture));
                     }
                     else // Number type
                     {
@@ -534,19 +523,19 @@ namespace Npoi.Mapper
             if (value == null) return true;
 
             var stringValue = value as string;
-            var targeType = column.Attribute.Property.PropertyType;
+            var targetType = column.Attribute.Property.PropertyType;
             var underlyingType = column.Attribute.PropertyUnderlyingType;
-            targeType = underlyingType ?? targeType;
+            targetType = underlyingType ?? targetType;
 
             if (stringValue != null)
             {
-                if (targeType == StringType)
+                if (targetType == StringType)
                 {
                     result = stringValue;
                     return true;
                 }
 
-                if (targeType == DateTimeType)
+                if (targetType == DateTimeType)
                 {
                     if (DateTime.TryParseExact(stringValue, column.Attribute.CustomFormat, CultureInfo.CurrentCulture,
                         DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime)
@@ -557,9 +546,15 @@ namespace Npoi.Mapper
                     }
                 }
 
-                if (targeType.IsNumeric() && double.TryParse(stringValue, NumberStyles.Any, null, out double doubleResult))
+                if (targetType.IsNumeric() && double.TryParse(stringValue, NumberStyles.Any, null, out double doubleResult))
                 {
-                    result = Convert.ChangeType(doubleResult, targeType);
+                    result = Convert.ChangeType(doubleResult, targetType);
+                    return true;
+                }
+
+                if (targetType.IsEnum)
+                {
+                    result = Enum.Parse(targetType, stringValue, true);
                     return true;
                 }
 
@@ -581,7 +576,7 @@ namespace Npoi.Mapper
 
             try
             {
-                result = Convert.ChangeType(value, targeType);
+                result = Convert.ChangeType(value, targetType);
             }
             catch
             {

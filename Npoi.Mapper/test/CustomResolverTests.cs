@@ -172,5 +172,35 @@ namespace test
             Assert.AreEqual(str3, sheet.GetRow(1).GetCell(31).StringCellValue);
             Assert.AreEqual(str3, sheet.GetRow(1).GetCell(33).StringCellValue);
         }
+
+        //https://github.com/donnytian/Npoi.Mapper/issues/23
+        [TestMethod]
+        public void WithInvalidEnum_TryTake_ShouldBeCalled()
+        {
+            // Arrange
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue("EnumProperty");
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(11); // Invalid enum value.
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(0, o => o.EnumProperty, (column, obj) =>
+            {
+                ((SampleClass) obj).EnumProperty = SampleEnum.Value3;
+                return true;
+            }, null);
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(SampleEnum.Value3, items[0].Value.EnumProperty);
+        }
     }
 }
