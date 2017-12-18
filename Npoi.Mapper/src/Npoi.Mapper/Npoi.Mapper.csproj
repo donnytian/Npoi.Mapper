@@ -10,7 +10,7 @@
     <PackageTags>Excel;XLS;XLSX;NPOI;Object mapping;dynamic</PackageTags>
     <PackageProjectUrl>http://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>3.1</Version>
+    <Version>3.1.1</Version>
     <PackageReleaseNotes>support .NET 4.5</PackageReleaseNotes>
   </PropertyGroup>
 

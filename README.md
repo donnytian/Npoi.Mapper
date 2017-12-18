@@ -213,6 +213,11 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.1.1
+* Fixed issue #22: ForHeader method will not executed in certain case
+* Fixed issue #23: Cannot apply TryTake if there is error when parsing Enum
+
+
 ### v3.1
 * Added overload to ignore properties by string
 * Added method 'ForHeader' to allow set header's cell style when exporting.

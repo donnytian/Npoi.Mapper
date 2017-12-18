@@ -1,0 +1,20 @@
+version: 3.1.{build}
+image: Visual Studio 2017
+environment:
+  push_to_nuget: true
+nuget:
+  project_feed: true
+before_build:
+- cmd: nuget restore Npoi.Mapper\Npoi.Mapper.sln
+build:
+  verbosity: minimal
+deploy:
+  provider: NuGet
+  server:                  # remove to push to NuGet.org
+  api_key:
+    secure: XdYQJ8lrlNPh1kg2NsGMVJMKaNojTQ6/ckBLy1/CiL2y9Ku1a3b8kr/XgLg86MKu
+  skip_symbols: false
+  symbol_server:           # remove to push symbols to SymbolSource.org
+  artifact: /.*\.nupkg/
+  on:
+    push_to_nuget: true
