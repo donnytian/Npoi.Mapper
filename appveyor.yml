@@ -15,6 +15,6 @@ deploy:
     secure: XdYQJ8lrlNPh1kg2NsGMVJMKaNojTQ6/ckBLy1/CiL2y9Ku1a3b8kr/XgLg86MKu
   skip_symbols: false
   symbol_server:           # remove to push symbols to SymbolSource.org
-  artifact: /.*\.nupkg/
+  artifact: '**\*.nupkg'
   on:
     push_to_nuget: true
