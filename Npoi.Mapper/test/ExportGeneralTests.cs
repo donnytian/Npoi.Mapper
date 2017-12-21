@@ -389,5 +389,30 @@ namespace test
             // Assert
             Assert.IsTrue(workbook.NumberOfSheets > 0);
         }
+
+        [TestMethod]
+        public void Map_WithIndexAndName_ShouldExportCustomColumnName()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            const string nameString = "string";
+            const string nameInt = "int";
+            const string nameBool = "bool";
+            var sheet = workbook.CreateSheet();
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(0, o => o.StringProperty, nameString);
+            mapper.Map<SampleClass>(1, o => o.Int32Property, nameInt);
+            mapper.Map<SampleClass>(2, o => o.BoolProperty, nameBool);
+            mapper.Put(new[]{new SampleClass(), }, 0);
+
+            // Assert
+            var row = sheet.GetRow(0);
+            Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
+            Assert.AreEqual(nameInt, row.GetCell(1).StringCellValue);
+            Assert.AreEqual(nameBool, row.GetCell(2).StringCellValue);
+        }
     }
 }

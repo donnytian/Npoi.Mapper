@@ -414,5 +414,34 @@ namespace test
             Assert.AreEqual(SampleEnum.Value2, items[1].Value.EnumProperty);
             Assert.AreEqual(SampleEnum.Value3, items[2].Value.EnumProperty);
         }
+
+        [TestMethod]
+        public void Map_WithIndexAndName_ShouldImportByIndex()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            const string nameString = "StringProperty";
+            const string nameGeneral = "GeneralProperty";
+            var sheet = workbook.CreateSheet();
+
+            var headerRow = sheet.CreateRow(0);
+            headerRow.CreateCell(0).SetCellValue(nameGeneral);
+            headerRow.CreateCell(1).SetCellValue(nameString);
+
+            var row1 = sheet.CreateRow(1);
+            row1.CreateCell(0).SetCellValue("a");
+            row1.CreateCell(1).SetCellValue("b");
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(0, "StringProperty", nameString);
+            mapper.Map<SampleClass>(1, "GeneralProperty", nameGeneral);
+            var obj = mapper.Take<SampleClass>().Select(o=>o.Value).ToArray()[0];
+
+            // Assert
+            Assert.AreEqual("a", obj.StringProperty);
+            Assert.AreEqual("b", obj.GeneralProperty);
+        }
     }
 }

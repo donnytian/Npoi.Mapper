@@ -870,12 +870,6 @@ namespace Npoi.Mapper
                            GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
             firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow(sheet, columns, type);
 
-            // Injects custom action for headers.
-            if (overwrite && HasHeader && _headerAction != null)
-            {
-                firstRow?.Cells.ForEach(c => _headerAction(c));
-            }
-
             var rowIndex = overwrite
                 ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
                 : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
@@ -916,6 +910,12 @@ namespace Npoi.Mapper
                 var row = sheet.GetRow(rowIndex);
                 if (row != null) sheet.RemoveRow(row);
                 rowIndex++;
+            }
+
+            // Injects custom action for headers.
+            if (overwrite && HasHeader && _headerAction != null)
+            {
+                firstRow?.Cells.ForEach(c => _headerAction(c));
             }
         }
 

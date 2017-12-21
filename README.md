@@ -213,6 +213,10 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.2
+* Fixed issue #24: Added a Map overload for export to specify both column index and name
+* Fixed issue #25: ForHeader action now will be executed after data export, so Sheet.AutoSizeColumn should work properly
+
 ### v3.1.1
 * Fixed issue #22: ForHeader method will not executed in certain case
 * Fixed issue #23: Cannot apply TryTake if there is error when parsing Enum
