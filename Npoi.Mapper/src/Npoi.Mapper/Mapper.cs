@@ -99,7 +99,7 @@ namespace Npoi.Mapper
         /// <summary>
         /// Set a zero-based row index for header. It will be auto-detected if not set.
         /// </summary>
-        public int HeaderRowIndex { get; set; } = -1; // TODO: enable this...
+        public int HeaderRowIndex { get; set; } = 0; // TODO: enable this...
 
         #endregion
 
@@ -150,6 +150,20 @@ namespace Npoi.Mapper
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// set to skip certain number of lines from beginning
+        /// </summary>
+        /// <param name="SkipRows"></param>
+        /// <returns></returns>
+        public Mapper SkipRows(int SkipRows)
+        {
+            if (SkipRows>0)
+            {
+                HeaderRowIndex = SkipRows;
+            }
+            return this;
+        }
 
         /// <summary>
         /// Use this to include and map columns for custom complex resolution.
@@ -508,7 +522,7 @@ namespace Npoi.Mapper
                 yield break;
             }
 
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = sheet.FirstRowNum+ HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var targetType = typeof(T);
@@ -535,6 +549,7 @@ namespace Npoi.Mapper
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (HasHeader && row.RowNum == firstRowIndex) continue;
+                if ( row.RowNum < firstRowIndex) continue;
 
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
@@ -553,7 +568,7 @@ namespace Npoi.Mapper
 
         private Type GetDynamicType(ISheet sheet)
         {
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = sheet.FirstRowNum+ HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var names = new Dictionary<string, Type>();
@@ -561,7 +576,7 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = Helper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
+                var type = Helper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum + HeaderRowIndex : -1 + HeaderRowIndex, header.ColumnIndex);
 
                 if (column != null)
                 {

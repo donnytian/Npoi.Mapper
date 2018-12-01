@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -136,5 +137,25 @@ namespace test
             // Assert
             Assert.AreEqual(str, objs[0].Value.NIF);
         }
+
+        [TestMethod]
+        public void ImporterWithoutAnyMapping()
+        {
+            // Arrange
+            var stream = new FileStream("Book1.xlsx", FileMode.Open);
+
+            // Act
+            var importer = new Mapper(stream);
+            var items = importer.SkipRows(1).Take<dynamic>("Skip").ToList();
+
+            Assert.AreEqual(858.37,items[0].Value.b); 
+            // Assert
+            //Assert.IsNotNull(importer);
+            //Assert.IsNotNull(importer.Workbook);
+            //Assert.AreEqual(3, items.Count);
+            //Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
+            //Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
     }
 }
