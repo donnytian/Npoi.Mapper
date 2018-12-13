@@ -22,7 +22,7 @@ namespace Npoi.Mapper
 
             //var assemblyBuilder = System.Threading.Thread.GetDomain().DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             //ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
-#if NET451
+#if NET45
             var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
 #else
