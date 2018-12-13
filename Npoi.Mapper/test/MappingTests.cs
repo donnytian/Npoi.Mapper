@@ -356,6 +356,117 @@ namespace test
             Assert.AreEqual(str4, objs[0].Value.ColumnIndexAttributeProperty);
         }
 
+        [TestMethod]
+        public void Map_IndexAndName_ShouldWork()
+        {
+            // Arrange
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            const string str2 = "BCD";
+            var workbook = GetSimpleWorkbook(date, str1);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(12).SetCellValue("StringProperty");
+
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str1);
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(12).SetCellValue(str2);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(12, "StringProperty");
+            var objs = mapper.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(str2, objs[0].Value.StringProperty);
+        }
+
+        [TestMethod]
+        public void IgnoreErrorsFor_Name_ShouldWork()
+        {
+            // Arrange
+            var date = DateTime.Now;
+            const string str1 = "aBC";
+            var workbook = GetSimpleWorkbook(date, str1);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11);
+
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str1);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(11, "Int32Property");
+            mapper.IgnoreErrorsFor<SampleClass>("Int32Property");
+            var objs = mapper.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(0, objs[0].Value.Int32Property);
+            Assert.IsTrue(objs[0].ErrorColumnIndex < 0); // Less than 0 means no error or error ignored.
+        }
+
+        [TestMethod]
+        public void Ignore_PropertyNames_ShouldIgnored()
+        {
+            // Arrange
+            const string str1 = "aBC";
+            const string str2 = "12";
+            const string str3 = "EFG";
+            var workbook = GetBlankWorkbook();
+            var row1 = workbook.GetSheetAt(0).CreateRow(0);
+            var row2 = workbook.GetSheetAt(0).CreateRow(1);
+            row1.CreateCell(11).SetCellValue("StringProperty");
+            row1.CreateCell(12).SetCellValue("Int32Property");
+            row1.CreateCell(13).SetCellValue("GeneralProperty");
+
+            row2.CreateCell(11).SetCellValue(str1);
+            row2.CreateCell(12).SetCellValue(str2);
+            row2.CreateCell(13).SetCellValue(str3);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Ignore<SampleClass>("StringProperty", "GeneralProperty");
+            var objs = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.IsNull(objs[0].Value.StringProperty);
+            Assert.AreEqual(12, objs[0].Value.Int32Property);
+            Assert.IsNull(objs[0].Value.GeneralProperty);
+        }
+
+        [TestMethod]
+        public void Ignore_DynamicPropertyNames_ShouldIgnored()
+        {
+            // Arrange
+            const string str1 = "aBC";
+            const string str2 = "12";
+            const string str3 = "EFG";
+            var workbook = GetBlankWorkbook();
+            var row1 = workbook.GetSheetAt(0).CreateRow(0);
+            var row2 = workbook.GetSheetAt(0).CreateRow(1);
+            row1.CreateCell(11).SetCellValue("StringProperty");
+            row1.CreateCell(12).SetCellValue("Int32Property");
+            row1.CreateCell(13).SetCellValue("GeneralProperty");
+
+            row2.CreateCell(11).SetCellValue(str1);
+            row2.CreateCell(12).SetCellValue(str2);
+            row2.CreateCell(13).SetCellValue(str3);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Ignore<dynamic>(new[] { "StringProperty", "GeneralProperty" });
+            var objs = mapper.Take<dynamic>().ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.IsNull(objs[0].Value.StringProperty);
+            Assert.AreEqual(str2, objs[0].Value.Int32Property);
+            Assert.IsNull(objs[0].Value.GeneralProperty);
+        }
+
         private class TestClass
         {
             public string MyString { get; set; }

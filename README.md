@@ -1,4 +1,6 @@
 # Npoi.Mapper
+[![Build status](https://ci.appveyor.com/api/projects/status/po6jm228g9llu6md/branch/master?svg=true&passingText=master%20-%20OK&failingText=master%20-%20Failed)](https://ci.appveyor.com/project/donnytian/npoi-mapper/branch/master)
+
 Convention-based mapper between strong typed object and Excel data via NPOI.  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
@@ -210,6 +212,24 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 ```
 
 ## Change log
+
+### v3.2
+* Fixed issue #24: Added a Map overload for export to specify both column index and name
+* Fixed issue #25: ForHeader action now will be executed after data export, so Sheet.AutoSizeColumn should work properly
+
+### v3.1.1
+* Fixed issue #22: ForHeader method will not executed in certain case
+* Fixed issue #23: Cannot apply TryTake if there is error when parsing Enum
+
+
+### v3.1
+* Added overload to ignore properties by string
+* Added method 'ForHeader' to allow set header's cell style when exporting.
+* A few bug fixes for Ignore and Put
+
+
+### v3.0.2
+* Support .NET Framework 4.5.
 
 ### v3.0.1
 * Fixed issue #7: **`IgnoredNameChars`** not working properly.

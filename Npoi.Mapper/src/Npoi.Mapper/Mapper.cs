@@ -26,10 +26,14 @@ namespace Npoi.Mapper
         private Func<IColumnInfo, bool> _columnFilter;
         private Func<IColumnInfo, object, bool> _defaultTakeResolver;
         private Func<IColumnInfo, object, bool> _defaultPutResolver;
+        private Action<ICell> _headerAction;
 
         #endregion
 
         #region Properties
+
+        // Instance of helper class.
+        private MapHelper Helper = new MapHelper();
 
         // Stores formats for type rather than specific property.
         internal readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>();
@@ -64,7 +68,7 @@ namespace Npoi.Mapper
                 {
                     Objects.Clear();
                     TrackedColumns.Clear();
-                    MapHelper.ClearCache();
+                    Helper.ClearCache();
                 }
                 _workbook = value;
             }
@@ -178,7 +182,20 @@ namespace Npoi.Mapper
             }
             else if (attribute.PropertyName != null)
             {
-                DynamicAttributes[attribute.PropertyName] = attribute;
+                if (DynamicAttributes.ContainsKey(attribute.PropertyName))
+                {
+                    DynamicAttributes[attribute.PropertyName].MergeFrom(attribute);
+                }
+                else
+                {
+                    // Ensures column name for the first time mapping.
+                    if (attribute.Name == null)
+                    {
+                        attribute.Name = attribute.PropertyName;
+                    }
+
+                    DynamicAttributes[attribute.PropertyName] = attribute;
+                }
             }
             else
             {
@@ -257,6 +274,17 @@ namespace Npoi.Mapper
         }
 
         /// <summary>
+        /// Sets an action to configure header cells for export.
+        /// </summary>
+        /// <param name="headerAction">Action to configure header cell.</param>
+        /// <returns>The mapper object.</returns>
+        public Mapper ForHeader(Action<ICell> headerAction)
+        {
+            _headerAction = headerAction;
+            return this;
+        }
+
+        /// <summary>
         /// Get objects of target type by converting rows in the sheet with specified index (zero based).
         /// </summary>
         /// <typeparam name="T">Target object type</typeparam>
@@ -308,7 +336,7 @@ namespace Npoi.Mapper
         public void Put<T>(IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true)
         {
             if (Workbook == null) Workbook = new XSSFWorkbook();
-            var sheet = Workbook.GetSheetAt(sheetIndex);
+            var sheet = Workbook.NumberOfSheets > sheetIndex ? Workbook.GetSheetAt(sheetIndex) : Workbook.CreateSheet();
             Put(sheet, objects, overwrite);
         }
 
@@ -497,7 +525,7 @@ namespace Npoi.Mapper
             var columns = GetColumns(firstRow, targetType);
 
             // Detect column format based on the first non-null cell.
-            MapHelper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
+            Helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
             if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
 
@@ -533,7 +561,7 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = MapHelper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
+                var type = Helper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
@@ -631,8 +659,6 @@ namespace Npoi.Mapper
             foreach (var pair in DynamicAttributes)
             {
                 var attribute = pair.Value;
-
-                if (attribute.Ignored == true) continue;
 
                 // If no header, cannot get a ColumnInfo by resolving header string.
                 if (!HasHeader && attribute.Index < 0) continue;
@@ -842,7 +868,7 @@ namespace Npoi.Mapper
 
             var columns = GetTrackedColumns(sheetName, type) ??
                            GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
-            if (firstRow == null) PopulateFirstRow(sheet, columns, type);
+            firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow(sheet, columns, type);
 
             var rowIndex = overwrite
                 ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
@@ -884,6 +910,12 @@ namespace Npoi.Mapper
                 var row = sheet.GetRow(rowIndex);
                 if (row != null) sheet.RemoveRow(row);
                 rowIndex++;
+            }
+
+            // Injects custom action for headers.
+            if (overwrite && HasHeader && _headerAction != null)
+            {
+                firstRow?.Cells.ForEach(c => _headerAction(c));
             }
         }
 
@@ -937,7 +969,10 @@ namespace Npoi.Mapper
                 if (pair.Value.Index < 0) continue;
 
                 var cell = row.CreateCell(attribute.Index);
-                if (HasHeader) cell.SetCellValue(attribute.Name ?? pi.Name);
+                if (HasHeader)
+                {
+                    cell.SetCellValue(attribute.Name ?? pi.Name);
+                }
                 properties.Remove(pair.Key); // Remove populated property.
             }
 
@@ -980,12 +1015,7 @@ namespace Npoi.Mapper
             return columns?.ToList();
         }
 
-        private void SetCell(
-            ICell cell,
-            object value,
-            ColumnInfo column,
-            bool isHeader = false,
-            bool setStyle = true)
+        private void SetCell(ICell cell, object value, ColumnInfo column, bool isHeader = false, bool setStyle = true)
         {
             if (value == null || value is ICollection)
             {
@@ -1008,7 +1038,10 @@ namespace Npoi.Mapper
                 cell.SetCellValue(value.ToString());
             }
 
-            if (setStyle) column.SetCellStyle(cell, value, isHeader, TypeFormats);
+            if (column != null && setStyle)
+            {
+                column.SetCellStyle(cell, value, isHeader, TypeFormats, Helper);
+            }
         }
 
         #endregion Export

@@ -138,28 +138,29 @@ namespace Npoi.Mapper
         /// <param name="value">The cell value object.</param>
         /// <param name="isHeader">If <c>true</c>, use HeaderFormat; otherwise use DataFormat.</param>
         /// <param name="defaultFormats">The default formats dictionary.</param>
-        public void SetCellStyle(ICell cell, object value, bool isHeader, Dictionary<Type, string> defaultFormats)
+        /// <param name="helper">The helper object.</param>
+        public void SetCellStyle(ICell cell, object value, bool isHeader, Dictionary<Type, string> defaultFormats, MapHelper helper)
         {
             if (cell == null) throw new ArgumentNullException(nameof(cell));
 
             if (isHeader && !_headerStyleCached)
             {
-                _headerStyle = MapHelper.GetCellStyle(cell, null, HeaderFormat);
+                _headerStyle = helper.GetCellStyle(cell, null, HeaderFormat);
 
                 if (_headerStyle == null && HeaderValue != null)
                 {
-                    _headerStyle = MapHelper.GetDefaultStyle(cell.Sheet.Workbook, HeaderValue, defaultFormats);
+                    _headerStyle = helper.GetDefaultStyle(cell.Sheet.Workbook, HeaderValue, defaultFormats);
                 }
 
                 _headerStyleCached = true;
             }
             else if (!isHeader && !_dataStyleCached)
             {
-                _dataStyle = MapHelper.GetCellStyle(cell, Attribute.CustomFormat, DataFormat);
+                _dataStyle = helper.GetCellStyle(cell, Attribute.CustomFormat, DataFormat);
 
                 if (_dataStyle == null && value != null)
                 {
-                    _dataStyle = MapHelper.GetDefaultStyle(cell.Sheet.Workbook, value, defaultFormats);
+                    _dataStyle = helper.GetDefaultStyle(cell.Sheet.Workbook, value, defaultFormats);
                 }
 
                 _dataStyleCached = true;

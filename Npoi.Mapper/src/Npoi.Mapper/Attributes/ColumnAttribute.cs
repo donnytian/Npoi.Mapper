@@ -12,7 +12,6 @@ namespace Npoi.Mapper.Attributes
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
     public sealed class ColumnAttribute : Attribute
     {
         #region Properties

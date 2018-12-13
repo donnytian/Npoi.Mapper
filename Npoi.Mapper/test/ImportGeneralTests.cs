@@ -380,5 +380,68 @@ namespace test
             Assert.AreEqual(default(int), items[1].Value.Int32Property);
             Assert.AreEqual(str2, items[1].Value.StringProperty);
         }
+
+        [TestMethod]
+        public void Import_ValidEnum_ShouldWork()
+        {
+            // Arrange
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            sheet.CreateRow(2);
+            sheet.CreateRow(3);
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue("EnumProperty");
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(SampleEnum.Value1.ToString());
+
+            // Row #2
+            sheet.GetRow(2).CreateCell(0).SetCellValue(SampleEnum.Value2.ToString());
+
+            // Row #3
+            sheet.GetRow(3).CreateCell(0).SetCellValue("value3");
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(SampleEnum.Value1, items[0].Value.EnumProperty);
+            Assert.AreEqual(SampleEnum.Value2, items[1].Value.EnumProperty);
+            Assert.AreEqual(SampleEnum.Value3, items[2].Value.EnumProperty);
+        }
+
+        [TestMethod]
+        public void Map_WithIndexAndName_ShouldImportByIndex()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            const string nameString = "StringProperty";
+            const string nameGeneral = "GeneralProperty";
+            var sheet = workbook.CreateSheet();
+
+            var headerRow = sheet.CreateRow(0);
+            headerRow.CreateCell(0).SetCellValue(nameGeneral);
+            headerRow.CreateCell(1).SetCellValue(nameString);
+
+            var row1 = sheet.CreateRow(1);
+            row1.CreateCell(0).SetCellValue("a");
+            row1.CreateCell(1).SetCellValue("b");
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(0, "StringProperty", nameString);
+            mapper.Map<SampleClass>(1, "GeneralProperty", nameGeneral);
+            var obj = mapper.Take<SampleClass>().Select(o=>o.Value).ToArray()[0];
+
+            // Assert
+            Assert.AreEqual("a", obj.StringProperty);
+            Assert.AreEqual("b", obj.GeneralProperty);
+        }
     }
 }

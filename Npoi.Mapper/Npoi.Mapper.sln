@@ -1,18 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CB3C280B-3314-473F-BEE5-9BC0C2ABCF6C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BC90AB2B-1D74-4E52-BAA2-3D73FDC3BEED}"
 	ProjectSection(SolutionItems) = preProject
+		..\_config.yml = ..\_config.yml
+		..\appveyor.yml = ..\appveyor.yml
+		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{5A4C63EC-A575-49BD-822C-1F4124902E1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "test\test.csproj", "{E6D11BDB-426B-4C9B-B380-FF8F2B1DE527}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test", "test\test.csproj", "{E6D11BDB-426B-4C9B-B380-FF8F2B1DE527}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Npoi.Mapper", "src\Npoi.Mapper\Npoi.Mapper.csproj", "{D3ACB160-2EB9-4307-B31A-FF9693E433DC}"
 EndProject
@@ -37,5 +40,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{E6D11BDB-426B-4C9B-B380-FF8F2B1DE527} = {5A4C63EC-A575-49BD-822C-1F4124902E1B}
 		{D3ACB160-2EB9-4307-B31A-FF9693E433DC} = {CB3C280B-3314-473F-BEE5-9BC0C2ABCF6C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE113E84-B006-43D8-AE97-D210EA8C587B}
 	EndGlobalSection
 EndGlobal
