@@ -213,6 +213,10 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.3
+* Upgrade dependency of NPOI to 2.4.1
+* Support .NETStandard 2.0
+
 ### v3.2
 * Fixed issue #24: Added a Map overload for export to specify both column index and name
 * Fixed issue #25: ForHeader action now will be executed after data export, so Sheet.AutoSizeColumn should work properly
