@@ -19,8 +19,15 @@ namespace Npoi.Mapper
         static AnonymousTypeFactory()
         {
             var assemblyName = new AssemblyName { Name = "MyAnonymousTypes" };
-            var assemblyBuilder = System.Threading.Thread.GetDomain().DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+
+#if NET45
+            var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+#else
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+#endif
+
         }
 
         // This version of the static constructor can be used temporarily to save the dynamic DLL to get a copy of the generated IL.
@@ -302,7 +309,7 @@ namespace Npoi.Mapper
             ).ToArray();
             DefineToStringMethod(typeBuilder, fieldPairs);
 
-            return typeBuilder.CreateType();
+            return typeBuilder.CreateTypeInfo();
         }
 
         private static void DefineDefaultConstructor(TypeBuilder typeBuilder, ConstructorInfo baseConstructor = null)
