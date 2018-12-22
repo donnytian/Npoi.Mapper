@@ -1,4 +1,4 @@
-version: 3.2.{build}
+version: 3.3.0.{build}
 image: Visual Studio 2017
 environment:
   push_to_nuget: true
@@ -11,13 +11,25 @@ build:
 artifacts:
 - path: '**\*.nupkg'
   name: MyNupkg
-deploy:
-  provider: NuGet
-  server:                  # remove to push to NuGet.org
-  api_key:
-    secure: XdYQJ8lrlNPh1kg2NsGMVJMKaNojTQ6/ckBLy1/CiL2y9Ku1a3b8kr/XgLg86MKu
-  skip_symbols: false
-  symbol_server:           # remove to push symbols to SymbolSource.org
-  artifact: MyNupkg
-  on:
-    push_to_nuget: true
+configuration: Debug
+
+# here we are going to override common configuration
+for:
+
+# configuration for "master" branch
+# build in Release mode and deploy to NuGet
+-
+  branches:
+    only:
+      - master
+  configuration: Release
+  deploy:
+    provider: NuGet
+    server:                  # remove to push to NuGet.org
+    api_key:
+      secure: XdYQJ8lrlNPh1kg2NsGMVJMKaNojTQ6/ckBLy1/CiL2y9Ku1a3b8kr/XgLg86MKu
+    skip_symbols: false
+    symbol_server:           # remove to push symbols to SymbolSource.org
+    artifact: MyNupkg
+    on:
+      push_to_nuget: true
