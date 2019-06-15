@@ -862,16 +862,17 @@ namespace Npoi.Mapper
         private void Put<T>(ISheet sheet, IEnumerable<T> objects, bool overwrite)
         {
             var sheetName = sheet.SheetName;
-            var firstRow = sheet.GetRow(sheet.FirstRowNum);
+            int firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
+            var firstRow = sheet.GetRow(firstRowIndex);
             var objectArray = objects as T[] ?? objects.ToArray();
             var type = MapHelper.GetConcreteType(objectArray);
 
             var columns = GetTrackedColumns(sheetName, type) ??
                            GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
-            firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow(sheet, columns, type);
+            firstRow = sheet.GetRow(firstRowIndex) ?? PopulateFirstRow(sheet, columns, type);
 
             var rowIndex = overwrite
-                ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
+                ? HasHeader ? firstRowIndex + 1 : firstRowIndex
                 : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
 
             MapHelper.EnsureDefaultFormats(columns, TypeFormats);
@@ -936,7 +937,8 @@ namespace Npoi.Mapper
 
         private IRow PopulateFirstRow(ISheet sheet, List<ColumnInfo> columns, Type type)
         {
-            var row = sheet.CreateRow(sheet.FirstRowNum);
+            int firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
+            var row = sheet.CreateRow(firstRowIndex);
 
             // Use existing column populate the first row.
 

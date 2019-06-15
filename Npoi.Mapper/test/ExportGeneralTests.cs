@@ -414,5 +414,102 @@ namespace test
             Assert.AreEqual(nameInt, row.GetCell(1).StringCellValue);
             Assert.AreEqual(nameBool, row.GetCell(2).StringCellValue);
         }
+
+        [TestMethod]
+        public void SaveSheetWithoutAnyMappingFromGivenIndex()
+        {
+            // Arrange
+            var exporter = new Mapper();
+            const string sheetName = "newSheet";
+            if (File.Exists(FileName)) File.Delete(FileName);
+            const int headerRowIndex = 5;
+            exporter.HeaderRowIndex = headerRowIndex;
+
+            // Act
+            exporter.Save(FileName, new[] { dummyObj }, sheetName);
+            
+            var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(exporter.HeaderRowIndex + 1).GetCell(1);
+
+            // Assert
+            Assert.IsNotNull(exporter.Workbook);
+            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
+            Assert.AreEqual(dummyObj.String, exporter.Take<DummyClass>(sheetName).First().Value.String);
+            Assert.AreEqual(dummyObj.Double, exporter.Take<DummyClass>(sheetName).First().Value.Double);
+        }
+
+        [TestMethod]
+        public void PutAppendRowTestFromGivenHeaderIndex()
+        {
+            // Prepare
+            const string existingFile = "Book4.xlsx";
+            const string sheetName = "Allocations";
+            const int headerRowIndex = 5;
+
+            if (File.Exists(existingFile)) File.Delete(existingFile);
+
+            CreateShiftedRowsWorkbook("Book1.xlsx", existingFile, "Allocations", headerRowIndex);
+
+            var exporter = new Mapper(existingFile) {HeaderRowIndex = headerRowIndex};
+
+            exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
+            exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+
+            // Act
+            exporter.Put(new[] { sampleObj, }, sheetName, false);
+            var workbook = WriteAndReadBack(exporter.Workbook, existingFile);
+
+            // Assert
+            var sheet = workbook.GetSheet(sheetName);
+            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4+headerRowIndex).GetCell(1).StringCellValue);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4+headerRowIndex).GetCell(2).DateCellValue.Date);
+        }
+
+        [TestMethod]
+        public void PutOverwriteRowTestFromGivenHeaderIndex()
+        {
+            // Prepare
+            const string existingFile = "Book5.xlsx";
+            const string sheetName = "Allocations";
+            const int headerRowIndex = 5;
+
+            if (File.Exists(existingFile)) File.Delete(existingFile);
+            CreateShiftedRowsWorkbook("Book1.xlsx", existingFile, "Allocations", headerRowIndex);
+
+            var exporter = new Mapper(existingFile) {HeaderRowIndex = headerRowIndex};
+            exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
+            exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
+            exporter.Map<SampleClass>("Name", o => o.StringProperty);
+            exporter.Map<SampleClass>("email", o => o.BoolProperty);
+            
+
+            // Act
+            exporter.Put(new[] { sampleObj, }, sheetName, true);
+            exporter.Put(new[] { sampleObj }, "Resources");
+            var workbook = WriteAndReadBack(exporter.Workbook, existingFile);
+
+            // Assert
+            var sheet = workbook.GetSheet(sheetName);
+            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(1 + headerRowIndex).GetCell(1).StringCellValue);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1 + headerRowIndex).GetCell(2).DateCellValue.Date);
+        }
+
+        private static void CreateShiftedRowsWorkbook(string fromFile, string toFile, string sheetName, int shiftRows)
+        {
+            IWorkbook book;
+            using (var stream = new FileStream(fromFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                book = new XSSFWorkbook(stream);
+            }
+
+            book.GetSheet(sheetName).ShiftRows(0, shiftRows, shiftRows);
+            book.GetSheet(sheetName).CreateRow(0).CreateCell(0).SetCellValue("Ignored");
+            using (var fileStream = new FileStream(toFile, FileMode.Create))
+            {
+                        book.Write(fileStream);
+            }
+            
+            book.Close();
+        }
     }
 }
