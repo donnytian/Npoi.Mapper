@@ -137,5 +137,29 @@ namespace test
             // Assert
             Assert.IsNull(objs[0].Value.IgnoredAttributeProperty);
         }
+
+        [TestMethod]
+        public void ColumnAttributeIndexTestFromGivenIndexHeader()
+        {
+            // Prepare
+            var date = DateTime.Now;
+            const string str = "aBC";
+            var workbook = GetSimpleWorkbook(date, str);
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(11).SetCellValue("targetColumn");
+            workbook.GetSheetAt(1).GetRow(1).CreateCell(11).SetCellValue(str);
+            workbook.GetSheetAt(1).ShiftRows(0, 7, 7);
+            workbook.GetSheetAt(1).CreateRow(0).CreateCell(0).SetCellValue("Ignored");
+            var importer = new Mapper(workbook);
+            importer.HeaderRowIndex = 7;
+            // Act
+            var objs = importer.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(1, objs.Count);
+
+            var obj = objs[0];
+            Assert.AreEqual(str, obj.Value.ColumnIndexAttributeProperty);
+        }
     }
 }

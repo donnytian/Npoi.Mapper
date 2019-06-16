@@ -56,6 +56,23 @@ namespace test
             return WorkbookFactory.Create(fileName);
         }
 
+        protected static void CreateShiftedRowsWorkbook(string fromFile, string toFile, string sheetName, int shiftRows)
+        {
+            IWorkbook book;
+            using (var stream = new FileStream(fromFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                book = new XSSFWorkbook(stream);
+            }
+
+            book.GetSheet(sheetName).ShiftRows(0, shiftRows, shiftRows);
+            book.GetSheet(sheetName).CreateRow(0).CreateCell(0).SetCellValue("Ignored");
+            using (var fileStream = new FileStream(toFile, FileMode.Create))
+            {
+                book.Write(fileStream);
+            }
+
+            book.Close();
+        }
         #endregion
     }
 }

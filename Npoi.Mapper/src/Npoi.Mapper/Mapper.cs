@@ -503,12 +503,13 @@ namespace Npoi.Mapper
 
         private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null) where T : class
         {
+
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
                 yield break;
             }
 
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var targetType = typeof(T);
@@ -533,6 +534,8 @@ namespace Npoi.Mapper
             var errorCount = 0;
             foreach (IRow row in sheet)
             {
+                if (row.RowNum < firstRowIndex) continue;
+                
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (HasHeader && row.RowNum == firstRowIndex) continue;
 

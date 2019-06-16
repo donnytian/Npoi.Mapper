@@ -443,5 +443,46 @@ namespace test
             Assert.AreEqual("a", obj.StringProperty);
             Assert.AreEqual("b", obj.GeneralProperty);
         }
+
+        [TestMethod]
+        public void ImporterWithoutAnyMappingFromGivenHeaderIndex()
+        {
+            // Arrange
+            CreateShiftedRowsWorkbook("Book1.xlsx", "Book6.xlsx", "TestClass", 4);
+            var stream = new FileStream("Book6.xlsx", FileMode.Open);
+
+
+            // Act
+            var importer = new Mapper(stream) {HeaderRowIndex =  4};
+            var items = importer.Take<TestClass>("TestClass").ToList();
+
+            // Assert
+            Assert.IsNotNull(importer);
+            Assert.IsNotNull(importer.Workbook);
+            Assert.AreEqual(3, items.Count);
+            Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
+            Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
+        [TestMethod]
+        public void ImporterNoElementTestFromGivenHeaderIndex()
+        {
+            // Arrange
+            var workbook = new XSSFWorkbook();
+            var header = workbook.CreateSheet("sheet1").CreateRow(0);
+            header.CreateCell(0).SetCellValue("StringProperty");
+            header.CreateCell(1).SetCellValue("Int32Property");
+            const int importerHeaderRowIndex = 9;
+            workbook.GetSheet("sheet1").ShiftRows(0, importerHeaderRowIndex, importerHeaderRowIndex);
+            var importer = new Mapper(workbook);
+            importer.HeaderRowIndex = importerHeaderRowIndex;
+
+            // Act
+            var objs = importer.Take<SampleClass>(0);
+
+            // Assert
+            Assert.IsNotNull(objs);
+            Assert.AreEqual(0, objs.Count());
+        }
     }
 }
