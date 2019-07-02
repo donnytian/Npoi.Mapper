@@ -555,7 +555,7 @@ namespace Npoi.Mapper
 
         private Type GetDynamicType(ISheet sheet)
         {
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = HeaderRowIndex < 0 ? sheet.FirstRowNum : HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var names = new Dictionary<string, Type>();
