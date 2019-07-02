@@ -71,7 +71,6 @@ namespace test
             var row2 = workbook.GetSheetAt(0).GetRow(1 + mapper.HeaderRowIndex);
             Assert.AreEqual(120, row1.GetCell(11).CellStyle.LeftBorderColor);
             Assert.AreEqual(str1, row2.GetCell(11).StringCellValue);
-
         }
     }
 }

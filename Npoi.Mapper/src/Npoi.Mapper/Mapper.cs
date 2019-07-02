@@ -503,13 +503,12 @@ namespace Npoi.Mapper
 
         private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null) where T : class
         {
-
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
                 yield break;
             }
 
-            var firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
+            var firstRowIndex = HeaderRowIndex < 0 ? sheet.FirstRowNum : HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var targetType = typeof(T);
@@ -865,7 +864,7 @@ namespace Npoi.Mapper
         private void Put<T>(ISheet sheet, IEnumerable<T> objects, bool overwrite)
         {
             var sheetName = sheet.SheetName;
-            int firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
+            int firstRowIndex = HeaderRowIndex < 0 ? sheet.FirstRowNum : HeaderRowIndex;
             var firstRow = sheet.GetRow(firstRowIndex);
             var objectArray = objects as T[] ?? objects.ToArray();
             var type = MapHelper.GetConcreteType(objectArray);
@@ -940,7 +939,7 @@ namespace Npoi.Mapper
 
         private IRow PopulateFirstRow(ISheet sheet, List<ColumnInfo> columns, Type type)
         {
-            int firstRowIndex = HeaderRowIndex == -1 ? sheet.FirstRowNum : HeaderRowIndex;
+            int firstRowIndex = HeaderRowIndex < 0 ? sheet.FirstRowNum : HeaderRowIndex;
             var row = sheet.CreateRow(firstRowIndex);
 
             // Use existing column populate the first row.

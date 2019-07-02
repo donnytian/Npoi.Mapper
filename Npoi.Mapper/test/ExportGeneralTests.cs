@@ -450,7 +450,7 @@ namespace test
 
             CreateShiftedRowsWorkbook("Book1.xlsx", existingFile, "Allocations", headerRowIndex);
 
-            var exporter = new Mapper(existingFile) {HeaderRowIndex = headerRowIndex};
+            var exporter = new Mapper(existingFile) { HeaderRowIndex = headerRowIndex };
 
             exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
             exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
@@ -476,12 +476,11 @@ namespace test
             if (File.Exists(existingFile)) File.Delete(existingFile);
             CreateShiftedRowsWorkbook("Book1.xlsx", existingFile, "Allocations", headerRowIndex);
 
-            var exporter = new Mapper(existingFile) {HeaderRowIndex = headerRowIndex};
+            var exporter = new Mapper(existingFile) { HeaderRowIndex = headerRowIndex };
             exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
             exporter.Map<SampleClass>("Allocation Month", o => o.DateProperty);
             exporter.Map<SampleClass>("Name", o => o.StringProperty);
             exporter.Map<SampleClass>("email", o => o.BoolProperty);
-            
 
             // Act
             exporter.Put(new[] { sampleObj, }, sheetName, true);
@@ -493,7 +492,5 @@ namespace test
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(1 + headerRowIndex).GetCell(1).StringCellValue);
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1 + headerRowIndex).GetCell(2).DateCellValue.Date);
         }
-
-        
     }
 }

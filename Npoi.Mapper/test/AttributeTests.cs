@@ -141,7 +141,7 @@ namespace test
         [TestMethod]
         public void ColumnAttributeIndexTestFromGivenIndexHeader()
         {
-            // Prepare
+            // Arrange
             var date = DateTime.Now;
             const string str = "aBC";
             var workbook = GetSimpleWorkbook(date, str);
