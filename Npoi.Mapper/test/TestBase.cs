@@ -16,6 +16,11 @@ namespace test
 
         #region Protected Methods
 
+        /// <summary>
+        /// Gets a workbook with 2 sheets("sheet1" and "sheet2") and with 2 rows in "sheet2":
+        /// <para>DateProperty StringProperty</para>
+        /// <para>dataValue    stringValue</para>
+        /// </summary>
         protected static IWorkbook GetSimpleWorkbook(DateTime dateValue, string stringValue)
         {
             var workbook = GetEmptyWorkbook();
@@ -31,6 +36,10 @@ namespace test
             return workbook;
         }
 
+        /// <summary>
+        /// Gets a workbook with a empty sheet named "sheet1".
+        /// </summary>
+        /// <returns></returns>
         protected static IWorkbook GetBlankWorkbook()
         {
             var workbook = GetEmptyWorkbook();
@@ -39,6 +48,10 @@ namespace test
             return workbook;
         }
 
+        /// <summary>
+        /// Gets a workbook without any sheets and rows.
+        /// </summary>
+        /// <returns></returns>
         protected static IWorkbook GetEmptyWorkbook()
         {
             var workbook = new XSSFWorkbook();

@@ -213,6 +213,9 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.4
+* Removed ~~`HeaderRowIndex`~~ property. Replaced it by `FirstRowIndex`.
+
 ### v3.3
 * Upgrade dependency of NPOI to 2.4.1
 * Support .NETStandard 2.0

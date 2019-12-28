@@ -97,9 +97,10 @@ namespace Npoi.Mapper
         public bool HasHeader { get; set; } = true;
 
         /// <summary>
-        /// Set a zero-based row index for header. It will be auto-detected if not set.
+        /// Gets or sets a zero-based index for the first row. It will be auto-detected if not set.
+        /// If <see cref="HasHeader"/> is true (by default), this represents the header row index.
         /// </summary>
-        public int HeaderRowIndex { get; set; } = -1; // TODO: enable this...
+        public int FirstRowIndex { get; set; } = -1;
 
         #endregion
 
@@ -508,7 +509,7 @@ namespace Npoi.Mapper
                 yield break;
             }
 
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = GetFirstRowIndex(sheet);
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var targetType = typeof(T);
@@ -531,10 +532,11 @@ namespace Npoi.Mapper
 
             // Loop rows in file. Generate one target object for each row.
             var errorCount = 0;
+            var firstDataRowIndex = HasHeader ? firstRowIndex + 1 : firstRowIndex;
             foreach (IRow row in sheet)
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
-                if (HasHeader && row.RowNum == firstRowIndex) continue;
+                if (row.RowNum < firstDataRowIndex) continue;
 
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
@@ -553,7 +555,7 @@ namespace Npoi.Mapper
 
         private Type GetDynamicType(ISheet sheet)
         {
-            var firstRowIndex = sheet.FirstRowNum;
+            var firstRowIndex = GetFirstRowIndex(sheet);
             var firstRow = sheet.GetRow(firstRowIndex);
 
             var names = new Dictionary<string, Type>();
@@ -561,7 +563,7 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = Helper.InferColumnDataType(sheet, HasHeader ? sheet.FirstRowNum : -1, header.ColumnIndex);
+                var type = Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
@@ -862,16 +864,17 @@ namespace Npoi.Mapper
         private void Put<T>(ISheet sheet, IEnumerable<T> objects, bool overwrite)
         {
             var sheetName = sheet.SheetName;
-            var firstRow = sheet.GetRow(sheet.FirstRowNum);
+            var firstRowIndex = GetFirstRowIndex(sheet);
+            var firstRow = sheet.GetRow(firstRowIndex);
             var objectArray = objects as T[] ?? objects.ToArray();
             var type = MapHelper.GetConcreteType(objectArray);
 
             var columns = GetTrackedColumns(sheetName, type) ??
                            GetColumns(firstRow ?? PopulateFirstRow(sheet, null, type), type);
-            firstRow = sheet.GetRow(sheet.FirstRowNum) ?? PopulateFirstRow(sheet, columns, type);
+            firstRow = sheet.GetRow(firstRowIndex) ?? PopulateFirstRow(sheet, columns, type);
 
             var rowIndex = overwrite
-                ? HasHeader ? sheet.FirstRowNum + 1 : sheet.FirstRowNum
+                ? HasHeader ? firstRowIndex + 1 : firstRowIndex
                 : sheet.GetRow(sheet.LastRowNum) != null ? sheet.LastRowNum + 1 : sheet.LastRowNum;
 
             MapHelper.EnsureDefaultFormats(columns, TypeFormats);
@@ -936,7 +939,7 @@ namespace Npoi.Mapper
 
         private IRow PopulateFirstRow(ISheet sheet, List<ColumnInfo> columns, Type type)
         {
-            var row = sheet.CreateRow(sheet.FirstRowNum);
+            var row = sheet.CreateRow(GetFirstRowIndex(sheet));
 
             // Use existing column populate the first row.
 
@@ -1045,6 +1048,8 @@ namespace Npoi.Mapper
         }
 
         #endregion Export
+
+        private int GetFirstRowIndex(ISheet sheet) => FirstRowIndex >= 0 ? FirstRowIndex : sheet.FirstRowNum;
 
         #endregion
     }
