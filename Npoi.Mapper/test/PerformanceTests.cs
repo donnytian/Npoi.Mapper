@@ -16,6 +16,7 @@ namespace test
         [DataRow(100)]           // 37 ms
         [DataRow(10_000)]       // 71 ms
         [DataRow(1_000_000)]    // 7284 ms
+        [Ignore("Do not run this long-running test unless you really understand what you are going to do.")]
         public void TakeDynamic_Performance_Tests(int count)
         {
             // Arrange

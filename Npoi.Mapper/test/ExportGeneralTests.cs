@@ -107,8 +107,8 @@ namespace test
             var exporter = new Mapper();
             var sheetName = "newSheet";
             var dateFormat = "yyyy.MM.dd hh.mm.ss";
-            var obj1 = new NullableClass {NullableDateTime = null, DummyString = "dummy"};
-            var obj2 = new NullableClass {NullableDateTime = DateTime.Now};
+            var obj1 = new NullableClass { NullableDateTime = null, DummyString = "dummy" };
+            var obj2 = new NullableClass { NullableDateTime = DateTime.Now };
             if (File.Exists(FileName)) File.Delete(FileName);
 
             // Act
@@ -323,7 +323,7 @@ namespace test
             // Prepare
             const string existingFile = "Book3.xlsx";
             const string sheetName = "Allocations";
-            if(File.Exists(existingFile))File.Delete(existingFile);
+            if (File.Exists(existingFile)) File.Delete(existingFile);
             File.Copy("Book1.xlsx", existingFile);
             var exporter = new Mapper(existingFile);
             exporter.Map<SampleClass>("Project Name", o => o.GeneralProperty);
@@ -333,7 +333,7 @@ namespace test
 
             // Act
             exporter.Put(new[] { sampleObj, }, sheetName, true);
-            exporter.Put(new[] {sampleObj}, "Resources");
+            exporter.Put(new[] { sampleObj }, "Resources");
             var workbook = WriteAndReadBack(exporter.Workbook, existingFile);
 
             // Assert
@@ -348,7 +348,7 @@ namespace test
             // Prepare
             const string fileName = "temp4.xlsx";
             if (File.Exists(fileName)) File.Delete(fileName);
-            
+
             var exporter = new Mapper("Book1.xlsx");
 
             // Act
@@ -365,11 +365,11 @@ namespace test
         {
             // Arrange
             var workbook = GetEmptyWorkbook();
-            
+
             var mapper = new Mapper(workbook);
 
             // Act
-            mapper.Put(new[]{new object(), }, 100);
+            mapper.Put(new[] { new object(), }, 100);
 
             // Assert
             Assert.IsTrue(workbook.NumberOfSheets > 0);
@@ -380,11 +380,11 @@ namespace test
         {
             // Arrange
             var workbook = GetEmptyWorkbook();
-            
+
             var mapper = new Mapper(workbook);
 
             // Act
-            mapper.Put(new[]{new object(), }, "sheet100");
+            mapper.Put(new[] { new object(), }, "sheet100");
 
             // Assert
             Assert.IsTrue(workbook.NumberOfSheets > 0);
@@ -406,13 +406,38 @@ namespace test
             mapper.Map<SampleClass>(0, o => o.StringProperty, nameString);
             mapper.Map<SampleClass>(1, o => o.Int32Property, nameInt);
             mapper.Map<SampleClass>(2, o => o.BoolProperty, nameBool);
-            mapper.Put(new[]{new SampleClass(), }, 0);
+            mapper.Put(new[] { new SampleClass(), }, 0);
 
             // Assert
             var row = sheet.GetRow(0);
             Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
             Assert.AreEqual(nameInt, row.GetCell(1).StringCellValue);
             Assert.AreEqual(nameBool, row.GetCell(2).StringCellValue);
+        }
+
+        [TestMethod]
+        [DataRow(true)]
+        [DataRow(false)]
+        public void Put_WithFirstRowIndex_ShouldExportExpectedRows(bool hasHeader)
+        {
+            // Arrange
+            const int firstRowIndex = 100;
+            const string nameString = "StringProperty";
+            var workbook = GetEmptyWorkbook();
+            var sheet = workbook.CreateSheet();
+
+            var item = new SampleClass { StringProperty = nameString };
+            var mapper = new Mapper(workbook) { HasHeader = hasHeader, FirstRowIndex = firstRowIndex };
+            mapper.Map<SampleClass>(0, o => o.StringProperty, "a");
+
+            // Act
+            mapper.Put(new[] { item }, 0);
+
+            // Assert
+            var firstDataRowIndex = hasHeader ? firstRowIndex + 1 : firstRowIndex;
+            var row = sheet.GetRow(firstDataRowIndex);
+            Assert.AreEqual(1 + (hasHeader ? 1 : 0), sheet.PhysicalNumberOfRows);
+            Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
         }
     }
 }

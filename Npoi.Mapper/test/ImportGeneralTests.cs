@@ -437,11 +437,54 @@ namespace test
             // Act
             mapper.Map<SampleClass>(0, "StringProperty", nameString);
             mapper.Map<SampleClass>(1, "GeneralProperty", nameGeneral);
-            var obj = mapper.Take<SampleClass>().Select(o=>o.Value).ToArray()[0];
+            var obj = mapper.Take<SampleClass>().Select(o => o.Value).ToArray()[0];
 
             // Assert
             Assert.AreEqual("a", obj.StringProperty);
             Assert.AreEqual("b", obj.GeneralProperty);
+        }
+
+        [TestMethod]
+        [DataRow(true)]
+        [DataRow(false)]
+        public void Take_WithFirstRowIndex_ShouldImportExpectedRows(bool hasHeader)
+        {
+            // Arrange
+            const int firstRowIndex = 100;
+            const string sheetName = "sheet2";
+            var workbook = GetSimpleWorkbook(DateTime.Now, "a");
+            const string nameString = "StringProperty";
+            const string nameGeneral = "GeneralProperty";
+            var sheet = workbook.GetSheet(sheetName);
+
+            if (hasHeader)
+            {
+                var headerRow = sheet.CreateRow(firstRowIndex);
+                headerRow.CreateCell(0).SetCellValue(nameGeneral);
+                headerRow.CreateCell(1).SetCellValue(nameString);
+            }
+
+            var firstDataRowIndex = hasHeader ? firstRowIndex + 1 : firstRowIndex;
+            var row1 = sheet.CreateRow(firstDataRowIndex);
+            row1.CreateCell(0).SetCellValue("a");
+            row1.CreateCell(1).SetCellValue("b");
+            var row2 = sheet.CreateRow(firstDataRowIndex + 1);
+            row2.CreateCell(0).SetCellValue("c");
+            row2.CreateCell(1).SetCellValue("d");
+
+            var mapper = new Mapper(workbook) { HasHeader = hasHeader, FirstRowIndex = firstRowIndex };
+            mapper.Map<SampleClass>(0, o => o.GeneralProperty);
+            mapper.Map<SampleClass>(1, o => o.StringProperty);
+
+            // Act
+            var obj = mapper.Take<SampleClass>(sheetName).ToList();
+
+            // Assert
+            Assert.AreEqual(2, obj.Count);
+            Assert.AreEqual("a", obj[0].Value.GeneralProperty);
+            Assert.AreEqual("b", obj[0].Value.StringProperty);
+            Assert.AreEqual("c", obj[1].Value.GeneralProperty);
+            Assert.AreEqual("d", obj[1].Value.StringProperty);
         }
     }
 }
