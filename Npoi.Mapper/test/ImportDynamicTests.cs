@@ -113,7 +113,7 @@ namespace test
 
             // Assert
             Assert.AreEqual(date2.ToLongDateString(), objs[0].Value.ColumnDate.ToLongDateString());
-            Assert.AreEqual(165, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
+            Assert.AreEqual(164, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
         }
 
         [TestMethod]

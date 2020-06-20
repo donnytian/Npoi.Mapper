@@ -885,8 +885,9 @@ namespace Npoi.Mapper
 
                 if (overwrite && row != null)
                 {
-                    sheet.RemoveRow(row);
-                    row = sheet.CreateRow(rowIndex);
+                    //sheet.RemoveRow(row);
+                    //row = sheet.CreateRow(rowIndex);
+                    row.Cells.Clear();
                 }
 
                 row = row ?? sheet.CreateRow(rowIndex);
@@ -911,7 +912,11 @@ namespace Npoi.Mapper
             while (overwrite && rowIndex <= sheet.LastRowNum)
             {
                 var row = sheet.GetRow(rowIndex);
-                if (row != null) sheet.RemoveRow(row);
+                if (row != null)
+                {
+                    //sheet.RemoveRow(row);
+                    row.Cells.Clear();
+                }
                 rowIndex++;
             }
 
