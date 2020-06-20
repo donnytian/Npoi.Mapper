@@ -213,6 +213,9 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
 
 ## Change log
 
+### v3.4.1
+* Workaround to fix a NPOI regression for `sheet.RemoveRow()`. The issue was fixed on NPOI 2.4.1 but has returned on 2.5.1.
+
 ### v3.4
 * Removed ~~`HeaderRowIndex`~~ property. Replaced it by `FirstRowIndex`.
 

@@ -10,12 +10,12 @@
     <PackageTags>Excel;XLS;XLSX;NPOI;Object mapping;dynamic</PackageTags>
     <PackageProjectUrl>http://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>3.4</Version>
+    <Version>3.4.1</Version>
     <PackageReleaseNotes>support .NET 4.5 and .net standard 2.0</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NPOI" Version="2.4.1" />
+    <PackageReference Include="NPOI" Version="2.5.1" />
   </ItemGroup>
   
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
