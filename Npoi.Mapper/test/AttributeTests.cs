@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
-
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class AttributeTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void ColumnAttributeIndexTest()
         {
             // Prepare
@@ -32,7 +31,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.ColumnIndexAttributeProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void ColumnAttributeNameTest()
         {
             // Prepare
@@ -54,7 +53,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.ColumnNameAttributeProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void DisplayNameTest()
         {
             // Prepare
@@ -76,7 +75,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.DisplayNameProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void UseLastNonBlankValueAttributeTest()
         {
             // Prepare
@@ -117,7 +116,7 @@ namespace test
             Assert.AreEqual(str2, obj.Value.UseLastNonBlankValueAttributeProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void IgnoreAttributeTest()
         {
             // Prepare

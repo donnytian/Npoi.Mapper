@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Npoi.Mapper;
+﻿using Npoi.Mapper;
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class ExportCustomResolverTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void ForHeader_ChangeHeaderStyle_ShouldChanged()
         {
             // Arrange

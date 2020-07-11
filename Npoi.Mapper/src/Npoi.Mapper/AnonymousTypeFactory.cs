@@ -20,7 +20,7 @@ namespace Npoi.Mapper
         {
             var assemblyName = new AssemblyName { Name = "MyAnonymousTypes" };
 
-#if NET45
+#if NET45 || NET40
             var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
 #else
@@ -309,7 +309,11 @@ namespace Npoi.Mapper
             ).ToArray();
             DefineToStringMethod(typeBuilder, fieldPairs);
 
+#if NET40
+            return typeBuilder.CreateType();
+#else
             return typeBuilder.CreateTypeInfo();
+#endif
         }
 
         private static void DefineDefaultConstructor(TypeBuilder typeBuilder, ConstructorInfo baseConstructor = null)

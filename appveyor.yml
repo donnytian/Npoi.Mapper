@@ -1,5 +1,5 @@
-version: 3.4.1.{build}
-image: Visual Studio 2017
+version: 3.5.0.{build}
+image: Visual Studio 2019
 environment:
   push_to_nuget: true
 nuget:

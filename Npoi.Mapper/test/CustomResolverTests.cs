@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class CustomResolverTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void SingleColumnResolverTest()
         {
             // Arrange
@@ -73,7 +73,7 @@ namespace test
             Assert.AreEqual(str2, sheet.GetRow(1).GetCell(51).StringCellValue);
         }
 
-        [TestMethod]
+        [Test]
         public void MultiColumnContainerTest()
         {
             // Arrange
@@ -174,7 +174,7 @@ namespace test
         }
 
         //https://github.com/donnytian/Npoi.Mapper/issues/23
-        [TestMethod]
+        [Test]
         public void WithInvalidEnum_TryTake_ShouldBeCalled()
         {
             // Arrange

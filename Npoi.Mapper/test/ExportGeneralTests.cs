@@ -4,16 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class ExportGeneralTests : TestBase
     {
         SampleClass sampleObj = new SampleClass
@@ -55,7 +55,7 @@ namespace test
 
         const string FileName = "test.xlsx";
 
-        [TestMethod]
+        [Test]
         public void SaveSheetWithoutAnyMapping()
         {
             // Arrange
@@ -75,7 +75,7 @@ namespace test
             Assert.AreEqual(dummyObj.Double, exporter.Take<DummyClass>(sheetName).First().Value.Double);
         }
 
-        [TestMethod]
+        [Test]
         public void SaveSheetUseFormat()
         {
             // Arrange
@@ -100,7 +100,7 @@ namespace test
             Assert.AreEqual(dummyObj.DateTime2.ToLongDateString(), items.First().Value.DateTime2.ToLongDateString());
         }
 
-        [TestMethod]
+        [Test]
         public void SaveSheetUseFormatForNullable()
         {
             // Arrange
@@ -130,7 +130,7 @@ namespace test
             Assert.IsFalse(exporter.Take<NullableClass>(sheetName).First().Value.NullableDateTime.HasValue);
         }
 
-        [TestMethod]
+        [Test]
         public void SaveSheetTest()
         {
             // Prepare
@@ -148,7 +148,7 @@ namespace test
             Assert.IsNotNull(exporter.Workbook);
         }
 
-        [TestMethod]
+        [Test]
         public void SaveObjectsTest()
         {
             // Prepare
@@ -164,7 +164,7 @@ namespace test
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
         }
 
-        [TestMethod]
+        [Test]
         public void SaveTrackedObjectsTest()
         {
             // Prepare
@@ -181,7 +181,7 @@ namespace test
             Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
         }
 
-        [TestMethod]
+        [Test]
         public void FormatAttributeTest()
         {
             // Prepare
@@ -201,7 +201,7 @@ namespace test
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
         }
 
-        [TestMethod]
+        [Test]
         public void FormatMethodTest()
         {
             // Prepare
@@ -223,7 +223,7 @@ namespace test
             Assert.AreNotEqual(0, doubleStyle.DataFormat);
         }
 
-        [TestMethod]
+        [Test]
         public void NoHeaderTest()
         {
             // Prepare
@@ -239,7 +239,7 @@ namespace test
             Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
         }
 
-        [TestMethod]
+        [Test]
         public void ExportXlsTest()
         {
             // Prepare
@@ -257,7 +257,7 @@ namespace test
             Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
         }
 
-        [TestMethod]
+        [Test]
         public void OverwriteNewFileTest()
         {
             // Prepare
@@ -274,7 +274,7 @@ namespace test
             Assert.AreEqual(1, exporter.Workbook.NumberOfSheets);
         }
 
-        [TestMethod]
+        [Test]
         public void MergeToExistedRowsTest()
         {
             // Prepare
@@ -295,7 +295,7 @@ namespace test
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
         }
 
-        [TestMethod]
+        [Test]
         public void PutAppendRowTest()
         {
             // Prepare
@@ -317,7 +317,7 @@ namespace test
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
         }
 
-        [TestMethod]
+        [Test]
         public void PutOverwriteRowTest()
         {
             // Prepare
@@ -342,7 +342,7 @@ namespace test
             Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(1).GetCell(2).DateCellValue.Date);
         }
 
-        [TestMethod]
+        [Test]
         public void SaveWorkbookToFileTest()
         {
             // Prepare
@@ -360,7 +360,7 @@ namespace test
         }
 
         // https://github.com/donnytian/Npoi.Mapper/issues/16
-        [TestMethod]
+        [Test]
         public void PutWithNotExistedSheetIndex_ShouldAutoPopulateSheets()
         {
             // Arrange
@@ -375,7 +375,7 @@ namespace test
             Assert.IsTrue(workbook.NumberOfSheets > 0);
         }
 
-        [TestMethod]
+        [Test]
         public void PutWithNotExistedSheetName_ShouldAutoPopulateSheets()
         {
             // Arrange
@@ -390,7 +390,7 @@ namespace test
             Assert.IsTrue(workbook.NumberOfSheets > 0);
         }
 
-        [TestMethod]
+        [Test]
         public void Map_WithIndexAndName_ShouldExportCustomColumnName()
         {
             // Arrange
@@ -415,9 +415,9 @@ namespace test
             Assert.AreEqual(nameBool, row.GetCell(2).StringCellValue);
         }
 
-        [TestMethod]
-        [DataRow(true)]
-        [DataRow(false)]
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
         public void Put_WithFirstRowIndex_ShouldExportExpectedRows(bool hasHeader)
         {
             // Arrange
