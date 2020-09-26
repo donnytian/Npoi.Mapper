@@ -545,7 +545,7 @@ namespace Npoi.Mapper
                 if (rowInfo.ErrorColumnIndex >= 0)
                 {
                     errorCount++;
-                    rowInfo.Value = default(T);
+                    //rowInfo.Value = default(T);
                 }
                 if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
 
@@ -817,7 +817,7 @@ namespace Npoi.Mapper
                 }
                 catch (Exception e)
                 {
-                    ColumnFailed(column, e.Message);
+                    ColumnFailed(column, e.ToString());
                 }
             }
 

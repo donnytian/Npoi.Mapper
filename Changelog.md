@@ -1,5 +1,8 @@
 # Change log
 
+## v3.5.1
+* Include exception details in `rowInfo.ErrorMessage` for data import.
+
 ## v3.5
 * Support .NETFramework 4.0, .NETFramework 4.5 and .NETStandard 2.0 in order to align with NPOI.
 * Support Guid type

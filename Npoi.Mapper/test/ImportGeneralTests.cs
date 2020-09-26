@@ -90,7 +90,8 @@ namespace test
             var items = importer.Take<NullableClass>("NullableClass").ToList();
 
             // Assert
-            Assert.IsNull(items[3].Value);
+            Assert.AreEqual(0, items[3].ErrorColumnIndex);
+            Assert.IsNull(items[3].Value.NullableDateTime);
         }
 
         [Test]
@@ -290,7 +291,7 @@ namespace test
         }
 
         [Test]
-        public void Import_ConvertValueError_GetNullObject()
+        public void Import_ConvertValueError_GotErrorColumnIndex()
         {
             // Arrange
             const double dou1 = 1.833;
@@ -323,7 +324,7 @@ namespace test
 
             // Assert
             Assert.AreEqual(default(int), items[0].Value.Int32Property);
-            Assert.IsNull(items[1].Value);
+            Assert.AreEqual(1, items[1].ErrorColumnIndex);
         }
 
         [Test]

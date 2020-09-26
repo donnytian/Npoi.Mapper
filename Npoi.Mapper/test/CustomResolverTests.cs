@@ -202,5 +202,34 @@ namespace test
             // Assert
             Assert.AreEqual(SampleEnum.Value3, items[0].Value.EnumProperty);
         }
+
+        //https://github.com/donnytian/Npoi.Mapper/issues/64
+        [Test]
+        public void Map_TryTakeDateTimeFromDouble_ShouldGetDateTime()
+        {
+            // Arrange
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            var value = DateTime.Now;
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            var columnName = nameof(SampleClass.DateProperty);
+            const string format = "m/d/yyyy h:mm";
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue(columnName);
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(value.ToString(format));
+
+            var mapper = new Mapper(workbook);
+            mapper.UseFormat(typeof(DateTime), format);
+
+            // Act
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value.ToString(format), items[0].Value.DateProperty.ToString(format));
+        }
     }
 }
