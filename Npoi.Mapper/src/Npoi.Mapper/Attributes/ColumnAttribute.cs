@@ -27,6 +27,11 @@ namespace Npoi.Mapper.Attributes
         public string Name { get; internal set; }
 
         /// <summary>
+        /// Column width.
+        /// </summary>
+        public int Width { get; set; }=10;
+
+        /// <summary>
         /// Property name, this is only used for dynamic type.
         /// </summary>
         public string PropertyName { get; set; }
