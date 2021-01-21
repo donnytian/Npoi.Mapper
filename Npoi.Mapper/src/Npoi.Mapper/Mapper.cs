@@ -880,6 +880,12 @@ namespace Npoi.Mapper
 
             MapHelper.EnsureDefaultFormats(columns, TypeFormats);
 
+            var i = 0;
+            foreach (var column in columns)
+            {
+                sheet.SetColumnWidth(i++, column.Attribute.Width * 256);
+            }
+
             foreach (var o in objectArray)
             {
                 var row = sheet.GetRow(rowIndex);
