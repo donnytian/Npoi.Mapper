@@ -13,7 +13,7 @@
     <Version>3.5.1</Version>
     <PackageReleaseNotes>support .NET 4.0, .NET 4.5 and .net standard 2.0</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>npoi.mapper.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
