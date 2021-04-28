@@ -17,6 +17,7 @@ Extension for the original package while waiting for PR #82 and #84. Please use 
     <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
     <Product>Npoi.Mapper.Extended</Product>
     <RepositoryUrl>https://github.com/POFerro/Npoi.Mapper</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +39,13 @@ Extension for the original package while waiting for PR #82 and #84. Please use 
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
