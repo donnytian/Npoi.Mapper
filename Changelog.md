@@ -1,5 +1,9 @@
 # Change log
 
+## v3.5.2
+* Add SkipEmptyRows configuration.
+* Add strong name to assembly.
+
 ## v3.5.1
 * Include exception details in `rowInfo.ErrorMessage` for data import.
 
