@@ -35,6 +35,7 @@ namespace test
 
             // Act
             var importer = new Mapper(stream);
+
             var items = importer.Take<TestClass>("TestClass").ToList();
 
             // Assert
@@ -53,6 +54,7 @@ namespace test
 
             // Act
             var importer = new Mapper(stream);
+
             importer.UseFormat(typeof(DateTime), "MM^dd^yyyy");
             var items = importer.Take<TestClass>("TestClass").ToList();
 
