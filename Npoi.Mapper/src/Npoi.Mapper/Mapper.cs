@@ -110,6 +110,14 @@ namespace Npoi.Mapper
         /// </value>
         public bool SkipBlankRows { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to trim blanks from values in rows. Default is None.
+        /// </summary>
+        /// <value>
+        ///   <c>Start</c> to trim initial spaces; <c>End</c> to trim end spaces; <c>Both</c> to trim initial and end spaces; <c>None</c> to preverve spaces in values.
+        /// </value>
+        public TrimSpacesType TrimSpaces { get; set; } = TrimSpacesType.None;
+
         #endregion
 
         #region Constructors
@@ -783,7 +791,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
+        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -806,7 +814,7 @@ namespace Npoi.Mapper
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, out object valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
