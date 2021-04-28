@@ -1,6 +1,9 @@
 # Npoi.Mapper
 [![Build status](https://ci.appveyor.com/api/projects/status/po6jm228g9llu6md/branch/master?svg=true&passingText=master%20-%20OK&failingText=master%20-%20Failed)](https://ci.appveyor.com/project/donnytian/npoi-mapper/branch/master)
 
+This fork is an extension that exists while waiting for approval of PR's https://github.com/donnytian/Npoi.Mapper/pull/82 and https://github.com/donnytian/Npoi.Mapper/pull/84 in the original repository
+If you don't need these functionalities please use the original package
+
 Convention-based mapper between strong typed object and Excel data via NPOI (Telegram group https://t.me/npoidevs).  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
