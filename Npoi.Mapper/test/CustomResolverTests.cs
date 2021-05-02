@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class CustomResolverTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void SingleColumnResolverTest()
         {
             // Arrange
@@ -73,7 +73,7 @@ namespace test
             Assert.AreEqual(str2, sheet.GetRow(1).GetCell(51).StringCellValue);
         }
 
-        [TestMethod]
+        [Test]
         public void MultiColumnContainerTest()
         {
             // Arrange
@@ -174,7 +174,7 @@ namespace test
         }
 
         //https://github.com/donnytian/Npoi.Mapper/issues/23
-        [TestMethod]
+        [Test]
         public void WithInvalidEnum_TryTake_ShouldBeCalled()
         {
             // Arrange
@@ -201,6 +201,35 @@ namespace test
 
             // Assert
             Assert.AreEqual(SampleEnum.Value3, items[0].Value.EnumProperty);
+        }
+
+        //https://github.com/donnytian/Npoi.Mapper/issues/64
+        [Test]
+        public void Map_TryTakeDateTimeFromDouble_ShouldGetDateTime()
+        {
+            // Arrange
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            var value = DateTime.Now;
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            var columnName = nameof(SampleClass.DateProperty);
+            const string format = "m/d/yyyy h:mm";
+
+            // Header row
+            sheet.GetRow(0).CreateCell(0).SetCellValue(columnName);
+
+            // Row #1
+            sheet.GetRow(1).CreateCell(0).SetCellValue(value.ToString(format));
+
+            var mapper = new Mapper(workbook);
+            mapper.UseFormat(typeof(DateTime), format);
+
+            // Act
+            var items = mapper.Take<SampleClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value.ToString(format), items[0].Value.DateProperty.ToString(format));
         }
     }
 }

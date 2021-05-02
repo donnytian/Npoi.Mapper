@@ -4,15 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NUnit.Framework;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class ImportDynamicTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void TakeDynamic_Possitive()
         {
             // Arrange
@@ -46,7 +46,7 @@ namespace test
             Assert.IsTrue(objs[0].Value.AAB);
         }
 
-        [TestMethod]
+        [Test]
         public void TakeDynamic_LookupColumnType()
         {
             // Arrange
@@ -82,7 +82,7 @@ namespace test
             Assert.IsTrue(objs[3].Value.AAB);
         }
 
-        [TestMethod]
+        [Test]
         public void TakeDynamic_Modify_ThenExport()
         {
             // Arrange
@@ -116,7 +116,7 @@ namespace test
             Assert.AreEqual(164, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
         }
 
-        [TestMethod]
+        [Test]
         public void TakeDynamic_IgnoredChars_Issue7()
         {
             // Arrange
@@ -137,9 +137,9 @@ namespace test
             Assert.AreEqual(str, objs[0].Value.NIF);
         }
 
-        [TestMethod]
-        [DataRow(true)]
-        [DataRow(false)]
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
         public void TakeDynamic_WithFirstRowIndex_ShouldImportExpectedRows(bool hasHeader)
         {
             // Arrange

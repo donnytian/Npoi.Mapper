@@ -58,6 +58,8 @@ namespace Npoi.Mapper
         /// </summary>
         public static readonly Type ObjectType = typeof(object);
 
+        public static readonly Type GuidType = typeof(Guid);
+
         /// <summary>
         /// The maximum row number during the detection for column type and style.
         /// </summary>
@@ -78,7 +80,7 @@ namespace Npoi.Mapper
 
             foreach (var pi in type.GetProperties(BindingFlag))
             {
-                var columnMeta = pi.GetCustomAttribute<ColumnAttribute>();
+                var columnMeta = pi.GetCustomAttributes(typeof(ColumnAttribute), false).FirstOrDefault() as ColumnAttribute;
                 var ignore = Attribute.IsDefined(pi, typeof(IgnoreAttribute));
                 var useLastNonBlank = Attribute.IsDefined(pi, typeof(UseLastNonBlankValueAttribute));
 
@@ -556,6 +558,13 @@ namespace Npoi.Mapper
                 {
                     result = Enum.Parse(targetType, stringValue, true);
                     return true;
+                }
+
+                if (targetType == GuidType)
+                {
+                    var parsed = Guid.TryParse(stringValue, out var guidResult);
+                    result = guidResult;
+                    return parsed;
                 }
 
                 // Ensure we are not throwing exception and just read a null for nullable property.

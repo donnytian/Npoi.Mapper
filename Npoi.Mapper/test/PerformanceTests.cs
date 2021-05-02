@@ -1,21 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NUnit.Framework;
 
 namespace test
 {
-    [TestClass]
+    [TestFixture]
     public class PerformanceTests : TestBase
     {
-        [TestMethod]
-        [DataRow(100)]           // 37 ms
-        [DataRow(10_000)]       // 71 ms
-        [DataRow(1_000_000)]    // 7284 ms
+        [Test]
+        [TestCase(100)]           // 37 ms
+        [TestCase(10_000)]       // 71 ms
+        [TestCase(1_000_000)]    // 7284 ms
         [Ignore("Do not run this long-running test unless you really understand what you are going to do.")]
         public void TakeDynamic_Performance_Tests(int count)
         {

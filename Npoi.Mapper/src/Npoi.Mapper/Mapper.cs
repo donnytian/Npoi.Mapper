@@ -545,7 +545,7 @@ namespace Npoi.Mapper
                 if (rowInfo.ErrorColumnIndex >= 0)
                 {
                     errorCount++;
-                    rowInfo.Value = default(T);
+                    //rowInfo.Value = default(T);
                 }
                 if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
 
@@ -698,7 +698,8 @@ namespace Npoi.Mapper
 
                 var headerValue = HasHeader ? GetHeaderValue(header) : null;
                 var indexMatch = attribute.Index == index;
-                var nameMatch = cellType == CellType.String && string.Equals(attribute.Name, header.StringCellValue);
+                var nameMatch = cellType == CellType.String &&
+                                string.Equals(attribute.Name?.Trim(), header.StringCellValue?.Trim());
 
                 // Index takes precedence over Name.
                 if (indexMatch || (attribute.Index < 0 && nameMatch))
@@ -723,9 +724,9 @@ namespace Npoi.Mapper
                 // Second attempt: search display name of DisplayAttribute if any.
                 foreach (var propertyInfo in type.GetProperties(MapHelper.BindingFlag))
                 {
-                    var atts = propertyInfo.GetCustomAttributes<DisplayAttribute>();
+                    var attributes = propertyInfo.GetCustomAttributes(typeof(DisplayAttribute), false);
 
-                    if (atts.Any(att => string.Equals(att.Name, name, StringComparison.CurrentCultureIgnoreCase)))
+                    if (attributes.Any(att => string.Equals(((DisplayAttribute)att).Name, name, StringComparison.CurrentCultureIgnoreCase)))
                     {
                         pi = propertyInfo;
                         break;
@@ -805,7 +806,7 @@ namespace Npoi.Mapper
                         // Change types between IConvertible objects, such as double, float, int and etc.
                         if (MapHelper.TryConvertType(valueObj, column, out object result))
                         {
-                            column.Attribute.Property.SetValue(target, result);
+                            column.Attribute.Property.SetValue(target, result, null);
                         }
                         else
                         {
@@ -816,7 +817,7 @@ namespace Npoi.Mapper
                 }
                 catch (Exception e)
                 {
-                    ColumnFailed(column, e.Message);
+                    ColumnFailed(column, e.ToString());
                 }
             }
 
@@ -895,7 +896,7 @@ namespace Npoi.Mapper
                 foreach (var column in columns)
                 {
                     var pi = column.Attribute.Property;
-                    var value = pi?.GetValue(o);
+                    var value = pi?.GetValue(o, null);
                     var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 
                     column.CurrentValue = value;

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Npoi.Mapper;
+using NUnit.Framework;
 using test.Sample;
 
 namespace test
@@ -10,10 +10,10 @@ namespace test
     /// <summary>
     /// Column mapping tests.
     /// </summary>
-    [TestClass]
+    [TestFixture]
     public class MappingTests : TestBase
     {
-        [TestMethod]
+        [Test]
         public void ColumnIndexTest()
         {
             // Prepare
@@ -40,7 +40,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.GeneralProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void ColumnNameTest()
         {
             // Prepare
@@ -68,7 +68,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.GeneralProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void ColumnName_MapPropertyByString()
         {
             // Prepare
@@ -96,8 +96,7 @@ namespace test
             Assert.AreEqual(str, obj.Value.GeneralProperty);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void ColumnName_MapPropertyByString_NotFound()
         {
             // Prepare
@@ -114,11 +113,13 @@ namespace test
             var importer = new Mapper(workbook);
 
             // Act
-            importer.Map<SampleClass>(name, "NotExistProperty");
+            TestDelegate action = () => importer.Map<SampleClass>(name, "NotExistProperty");
+
+            // Assert
+            Assert.Throws<InvalidOperationException>(action);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(AmbiguousMatchException))]
+        [Test]
         public void ColumnName_MapPropertyByString_AmbiguousMatchException()
         {
             // Prepare
@@ -135,10 +136,13 @@ namespace test
             var importer = new Mapper(workbook);
 
             // Act
-            importer.Map<TestClass>(name, "myString");
+            TestDelegate action = () => importer.Map<TestClass>(name, "myString");
+
+            // Assert
+            Assert.Throws<AmbiguousMatchException>(action);
         }
 
-        [TestMethod]
+        [Test]
         public void ColumnsWithSameNameTest()
         {
             // Prepare
@@ -167,7 +171,7 @@ namespace test
             Assert.AreEqual(str2, obj.Value.GeneralProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void IgnoredTest()
         {
             // Prepare
@@ -195,7 +199,7 @@ namespace test
         /// <summary>
         /// Test for Issue 1: cannot ignore properties from base class.
         /// </summary>
-        [TestMethod]
+        [Test]
         public void Issue_1_Test()
         {
             // Prepare
@@ -254,7 +258,7 @@ namespace test
             Assert.IsFalse(hasBaseIgnoredProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void UseLastNonBlankValueTest()
         {
             // Prepare
@@ -293,7 +297,7 @@ namespace test
             Assert.AreEqual(str2, obj.Value.GeneralProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void MethodOverAttributeTest()
         {
             // Prepare
@@ -324,7 +328,7 @@ namespace test
             Assert.IsNull(objs[0].Value.ColumnNameAttributeProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void NameOverIndexTest()
         {
             // Prepare
@@ -356,7 +360,7 @@ namespace test
             Assert.AreEqual(str4, objs[0].Value.ColumnIndexAttributeProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void Map_IndexAndName_ShouldWork()
         {
             // Arrange
@@ -381,7 +385,7 @@ namespace test
             Assert.AreEqual(str2, objs[0].Value.StringProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void IgnoreErrorsFor_Name_ShouldWork()
         {
             // Arrange
@@ -405,7 +409,7 @@ namespace test
             Assert.IsTrue(objs[0].ErrorColumnIndex < 0); // Less than 0 means no error or error ignored.
         }
 
-        [TestMethod]
+        [Test]
         public void Ignore_PropertyNames_ShouldIgnored()
         {
             // Arrange
@@ -436,7 +440,7 @@ namespace test
             Assert.IsNull(objs[0].Value.GeneralProperty);
         }
 
-        [TestMethod]
+        [Test]
         public void Ignore_DynamicPropertyNames_ShouldIgnored()
         {
             // Arrange
