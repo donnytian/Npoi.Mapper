@@ -102,6 +102,14 @@ namespace Npoi.Mapper
         /// </summary>
         public int FirstRowIndex { get; set; } = -1;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to skip blank rows when reading from Excel files. Default is true.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if blank lines are skipped; otherwise, <c>false</c>.
+        /// </value>
+        public bool SkipBlankRows { get; set; } = true;
+
         #endregion
 
         #region Constructors
@@ -538,6 +546,8 @@ namespace Npoi.Mapper
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum < firstDataRowIndex) continue;
 
+                if (SkipBlankRows && row.Cells.All(c => IsCellBlank(c))) continue;
+
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
                 LoadRowData(columns, row, obj, rowInfo);
@@ -595,6 +605,16 @@ namespace Npoi.Mapper
             }
 
             return AnonymousTypeFactory.CreateType(names, true);
+        }
+
+        private static bool IsCellBlank(ICell cell)
+        {
+            switch (cell.CellType)
+            {
+                case CellType.String: return string.IsNullOrWhiteSpace(cell.StringCellValue);
+                case CellType.Blank: return true;
+                default: return false;
+            };
         }
 
         private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
