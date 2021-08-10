@@ -10,6 +10,14 @@ using System.Linq;
 
 namespace Npoi.Mapper
 {
+    public enum TrimSpacesType
+    {
+        None,
+        Start,
+        End,
+        Both
+    }
+
     /// <summary>
     /// Provide static supportive functionalities for <see cref="Mapper"/> class.
     /// </summary>
@@ -306,7 +314,7 @@ namespace Npoi.Mapper
         /// <param name="targetType">Type of target property.</param>
         /// <param name="value">The returned value for cell.</param>
         /// <returns><c>true</c> if get value successfully; otherwise false.</returns>
-        public static bool TryGetCellValue(ICell cell, Type targetType, out object value)
+        public static bool TryGetCellValue(ICell cell, Type targetType, TrimSpacesType trimSpacesType, out object value)
         {
             value = null;
             if (cell == null) return true;
@@ -317,7 +325,23 @@ namespace Npoi.Mapper
             {
                 case CellType.String:
 
-                    value = cell.StringCellValue;
+                    switch (trimSpacesType)
+                    {
+                        case TrimSpacesType.None:
+                            value = cell.StringCellValue;
+                            break;
+                        case TrimSpacesType.Start:
+                            value = cell.StringCellValue.TrimStart();
+                            break;
+                        case TrimSpacesType.End:
+                            value = cell.StringCellValue.TrimEnd();
+                            break;
+                        case TrimSpacesType.Both:
+                            value = cell.StringCellValue.Trim();
+                            break;
+                        default:
+                            break; // unreachable
+                    }
 
                     break;
 

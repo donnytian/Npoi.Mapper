@@ -102,6 +102,22 @@ namespace Npoi.Mapper
         /// </summary>
         public int FirstRowIndex { get; set; } = -1;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to skip blank rows when reading from Excel files. Default is true.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if blank lines are skipped; otherwise, <c>false</c>.
+        /// </value>
+        public bool SkipBlankRows { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to trim blanks from values in rows. Default is None.
+        /// </summary>
+        /// <value>
+        ///   <c>Start</c> to trim initial spaces; <c>End</c> to trim end spaces; <c>Both</c> to trim initial and end spaces; <c>None</c> to preverve spaces in values.
+        /// </value>
+        public TrimSpacesType TrimSpaces { get; set; } = TrimSpacesType.None;
+
         #endregion
 
         #region Constructors
@@ -538,6 +554,8 @@ namespace Npoi.Mapper
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum < firstDataRowIndex) continue;
 
+                if (SkipBlankRows && row.Cells.All(c => IsCellBlank(c))) continue;
+
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
                 LoadRowData(columns, row, obj, rowInfo);
@@ -595,6 +613,16 @@ namespace Npoi.Mapper
             }
 
             return AnonymousTypeFactory.CreateType(names, true);
+        }
+
+        private static bool IsCellBlank(ICell cell)
+        {
+            switch (cell.CellType)
+            {
+                case CellType.String: return string.IsNullOrWhiteSpace(cell.StringCellValue);
+                case CellType.Blank: return true;
+                default: return false;
+            };
         }
 
         private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
@@ -763,7 +791,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
+        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -786,7 +814,7 @@ namespace Npoi.Mapper
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, out object valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
