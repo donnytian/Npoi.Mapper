@@ -558,7 +558,7 @@ namespace Npoi.Mapper
 
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
-                LoadRowData(columns, row, obj, rowInfo, this.UseDefaultValueAttribute);
+                LoadRowData(columns, row, obj, rowInfo);
 
                 if (rowInfo.ErrorColumnIndex >= 0)
                 {
@@ -791,7 +791,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo, bool useDefaultValueAttr)
+        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -832,7 +832,7 @@ namespace Npoi.Mapper
                     else if (propertyType != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        if (MapHelper.TryConvertType(valueObj, column, useDefaultValueAttr, out object result))
+                        if (MapHelper.TryConvertType(valueObj, column, this.UseDefaultValueAttribute, out object result))
                         {
                             column.Attribute.Property.SetValue(target, result, null);
                         }
