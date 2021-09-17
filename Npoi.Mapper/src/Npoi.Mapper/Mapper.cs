@@ -118,6 +118,14 @@ namespace Npoi.Mapper
         /// </value>
         public bool UseDefaultValueAttribute { get; set; } = false;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to write default property values to excel. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if default values result in empty cells in excel; otherwise, <c>false</c> means all values are written to excel, even if equal to default.
+        /// </value>
+        public bool SkipWriteDefaultValue { get; set; } = false;
+
         #endregion
 
         #region Constructors
@@ -1055,6 +1063,10 @@ namespace Npoi.Mapper
         private void SetCell(ICell cell, object value, ColumnInfo column, bool isHeader = false, bool setStyle = true)
         {
             if (value == null || value is ICollection)
+            {
+                cell.SetCellValue((string)null);
+            }
+            else if (this.SkipWriteDefaultValue && !isHeader && Equals(column.Attribute.DefaultValue, value))
             {
                 cell.SetCellValue((string)null);
             }
