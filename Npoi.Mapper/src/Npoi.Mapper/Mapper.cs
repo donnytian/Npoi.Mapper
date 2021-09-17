@@ -1066,7 +1066,10 @@ namespace Npoi.Mapper
             {
                 cell.SetCellValue((string)null);
             }
-            else if (this.SkipWriteDefaultValue && !isHeader && Equals(column.Attribute.DefaultValue, value))
+            else if (this.SkipWriteDefaultValue && !isHeader && 
+                     (Equals(column.Attribute.DefaultValue, value) ||
+                      (this.UseDefaultValueAttribute && Equals(column.Attribute.DefaultValueAttribute?.Value, value)))
+                    )
             {
                 cell.SetCellValue((string)null);
             }
