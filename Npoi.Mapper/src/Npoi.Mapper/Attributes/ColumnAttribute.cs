@@ -31,6 +31,11 @@ namespace Npoi.Mapper.Attributes
         /// </summary>
         public string PropertyName { get; set; }
 
+        /// <summary>
+        /// Default value if excel column is null.
+        /// </summary>
+        public object DefaultValue { get; set; }
+
         private PropertyInfo _property;
         /// <summary>
         /// Mapped property for this column.
@@ -47,11 +52,13 @@ namespace Npoi.Mapper.Attributes
                 {
                     PropertyUnderlyingType = Nullable.GetUnderlyingType(value.PropertyType);
                     PropertyUnderlyingConverter = PropertyUnderlyingType != null ? TypeDescriptor.GetConverter(PropertyUnderlyingType) : null;
+                    DefaultValueAttribute = value.GetCustomAttributes(typeof(DefaultValueAttribute), true).Cast<DefaultValueAttribute>().FirstOrDefault();
                 }
                 else
                 {
                     PropertyUnderlyingType = null;
                     PropertyUnderlyingConverter = null;
+                    DefaultValueAttribute = null;
                 }
             }
         }
@@ -65,6 +72,11 @@ namespace Npoi.Mapper.Attributes
         /// Get converter if property is nullable value type.
         /// </summary>
         public TypeConverter PropertyUnderlyingConverter { get; private set; }
+
+        /// <summary>
+        /// Get converter if property is nullable value type.
+        /// </summary>
+        public DefaultValueAttribute DefaultValueAttribute { get; private set; }
 
         /// <summary>
         /// Indicate whether to use the last non-blank value.
@@ -177,6 +189,7 @@ namespace Npoi.Mapper.Attributes
             if (source.Ignored != null && (overwrite || Ignored == null)) Ignored = source.Ignored;
             if (source.CustomFormat != null && (overwrite || CustomFormat == null)) CustomFormat = source.CustomFormat;
             if (source.IgnoreErrors != null && (overwrite || IgnoreErrors == null)) IgnoreErrors = source.IgnoreErrors;
+            if (source.DefaultValue != null && (overwrite || DefaultValue == null)) DefaultValue = source.DefaultValue;
             // TODO: fix for Mapper.Format(0) and Mapper.Format(null);
 
             if (overwrite || TryPut == null) TryPut = source.TryPut;
