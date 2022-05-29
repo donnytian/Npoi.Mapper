@@ -102,6 +102,30 @@ namespace Npoi.Mapper
         /// </summary>
         public int FirstRowIndex { get; set; } = -1;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to skip blank rows when reading from Excel files. Default is true.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if blank lines are skipped; otherwise, <c>false</c>.
+        /// </value>
+        public bool SkipBlankRows { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to read <see cref="DefaultValueAttribute"/> value and assume it as default value when excel column is blank. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if <see cref="DefaultValueAttribute"/> is to be considered; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseDefaultValueAttribute { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to write default property values to excel. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if default values result in empty cells in excel; otherwise, <c>false</c> means all values are written to excel, even if equal to default.
+        /// </value>
+        public bool SkipWriteDefaultValue { get; set; } = false;
+
         #endregion
 
         #region Constructors
@@ -538,6 +562,8 @@ namespace Npoi.Mapper
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum < firstDataRowIndex) continue;
 
+                if (SkipBlankRows && row.Cells.All(c => IsCellBlank(c))) continue;
+
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
                 LoadRowData(columns, row, obj, rowInfo);
@@ -595,6 +621,16 @@ namespace Npoi.Mapper
             }
 
             return AnonymousTypeFactory.CreateType(names, true);
+        }
+
+        private static bool IsCellBlank(ICell cell)
+        {
+            switch (cell.CellType)
+            {
+                case CellType.String: return string.IsNullOrWhiteSpace(cell.StringCellValue);
+                case CellType.Blank: return true;
+                default: return false;
+            };
         }
 
         private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
@@ -763,7 +799,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
+        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -804,7 +840,7 @@ namespace Npoi.Mapper
                     else if (propertyType != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        if (MapHelper.TryConvertType(valueObj, column, out object result))
+                        if (MapHelper.TryConvertType(valueObj, column, this.UseDefaultValueAttribute, out object result))
                         {
                             column.Attribute.Property.SetValue(target, result, null);
                         }
@@ -1027,6 +1063,13 @@ namespace Npoi.Mapper
         private void SetCell(ICell cell, object value, ColumnInfo column, bool isHeader = false, bool setStyle = true)
         {
             if (value == null || value is ICollection)
+            {
+                cell.SetCellValue((string)null);
+            }
+            else if (this.SkipWriteDefaultValue && !isHeader && 
+                     (Equals(column.Attribute.DefaultValue, value) ||
+                      (this.UseDefaultValueAttribute && Equals(column.Attribute.DefaultValueAttribute?.Value, value)))
+                    )
             {
                 cell.SetCellValue((string)null);
             }

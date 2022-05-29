@@ -12,6 +12,8 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>4</Version>
     <PackageReleaseNotes>Remove support for .NET 4.0 due to NPOI, now only support .NET 4.5 and .net standard 2.0</PackageReleaseNotes>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>

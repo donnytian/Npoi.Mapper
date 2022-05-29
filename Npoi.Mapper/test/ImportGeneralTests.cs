@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 
@@ -27,6 +28,24 @@ namespace test
             public string NormalString { get; set; }
         }
 
+        private class TestDefaultClass
+        {
+            public string Name { get; set; }
+
+            [DefaultValue(true)]
+            public bool AllowEmails { get; set; }
+            
+            [Column(DefaultValue = true)]
+            public bool UseDefaultEmail { get; set; }
+            
+            [DefaultValue(1)]
+            public double HouseHoldNumber { get; set; }
+            
+            [DefaultValue("P")]
+            public string Type { get; set; }
+
+        }
+
         [Test]
         public void ImporterWithoutAnyMapping()
         {
@@ -43,6 +62,26 @@ namespace test
             Assert.AreEqual(3, items.Count);
             Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
             Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
+        [Test]
+        public void ImporterWithDefaultValue()
+        {
+            // Arrange
+            using (var stream = new FileStream("test_default.xlsx", FileMode.Open))
+            {
+                // Act
+                var importer = new Mapper(stream) { UseDefaultValueAttribute = true };
+                var items = importer.Take<TestDefaultClass>("Sheet1").ToList();
+
+                // Assert
+                Assert.IsNotNull(importer);
+                Assert.IsNotNull(importer.Workbook);
+                Assert.AreEqual(3, items.Count);
+                Assert.IsTrue(items[0].Value.AllowEmails);
+                Assert.IsFalse(items[0].Value.UseDefaultEmail);
+                Assert.AreEqual(1, items[0].Value.HouseHoldNumber);
+            }
         }
 
         [Test]

@@ -5,6 +5,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="test_default.xlsx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="test_default.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1">
