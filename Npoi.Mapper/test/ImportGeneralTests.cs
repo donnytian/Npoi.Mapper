@@ -581,5 +581,27 @@ namespace test
             // Assert
             Assert.AreEqual(id, items[0].Value.ID);
         }
+
+        [Test]
+        public void Take_ColumnName_CaseInsensitive()
+        {
+            // Arrange
+            const string value = "dummy";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+
+            sheet.GetRow(0).CreateCell(0).SetCellValue(nameof(TestClass.String).ToUpperInvariant());
+            sheet.GetRow(1).CreateCell(0).SetCellValue(value);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<TestClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value, items[0].Value.String);
+        }
     }
 }

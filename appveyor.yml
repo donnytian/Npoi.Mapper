@@ -1,7 +1,7 @@
-version: 3.5.1.{build}
-image: Visual Studio 2019
+version: 4.0.0.{build}
+image: Visual Studio 2022
 environment:
-  push_to_nuget: true
+  push_to_nuget: false
 nuget:
   project_feed: true
 before_build:
