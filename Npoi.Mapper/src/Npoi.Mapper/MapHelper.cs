@@ -542,11 +542,25 @@ namespace Npoi.Mapper
         }
 
         // Try to convert the input object as the target type.
-        internal static bool TryConvertType(object value, IColumnInfo column, out object result)
+        internal static bool TryConvertType(object value, IColumnInfo column, bool useDefaultValueAttr, out object result)
         {
             result = null;
             if (column == null || column.Attribute.Property == null) return false;
-            if (value == null) return true;
+            if (value == null)
+            {
+                if (column.Attribute.DefaultValue != null)
+                {
+                    result = column.Attribute.DefaultValue;
+                    return true;
+                }
+                else if (useDefaultValueAttr && column.Attribute.DefaultValueAttribute != null)
+                {
+                    result = column.Attribute.DefaultValueAttribute.Value;
+                    return true;
+                }
+
+                return true;
+            }
 
             var stringValue = value as string;
             var targetType = column.Attribute.Property.PropertyType;
