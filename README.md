@@ -4,7 +4,7 @@
 Convention-based mapper between strong typed object and Excel data via NPOI (Telegram group https://t.me/npoidevs).  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
-<font color=brown>v3 now support to import and export as **`dynamic`** type.</font>
+<font color=brown>From v3, support to import and export as **`dynamic`** type.</font>
 ## Install from NuGet
 In the Package Manager Console:
 

@@ -1,5 +1,10 @@
 # Change log
 
+## v4
+* Upgrade NPOI to 2.5.6
+* **Breaking change**: Removed support for NET4.0 due to the latest NPOI does not support it.
+* Support default value - Issue #91
+
 ## v3.5.1
 * Include exception details in `rowInfo.ErrorMessage` for data import.
 
