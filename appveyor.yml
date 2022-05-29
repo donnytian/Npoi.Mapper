@@ -1,7 +1,7 @@
 version: 4.0.0.{build}
 image: Visual Studio 2022
 environment:
-  push_to_nuget: false
+  push_to_nuget: true
 nuget:
   project_feed: true
 before_build:
@@ -27,7 +27,7 @@ for:
     provider: NuGet
     server:                  # remove to push to NuGet.org
     api_key:
-      secure: XdYQJ8lrlNPh1kg2NsGMVJMKaNojTQ6/ckBLy1/CiL2y9Ku1a3b8kr/XgLg86MKu
+      secure: 44c2feCrGZ8Dp5moFsAiH+oihZ8F2vR/yCHX46UgFmRNh++M5pegZAKweBD3MiVS
     skip_symbols: false
     symbol_server:           # remove to push symbols to SymbolSource.org
     artifact: MyNupkg
