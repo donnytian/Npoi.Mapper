@@ -108,7 +108,15 @@ namespace Npoi.Mapper
         /// <value>
         ///   <c>true</c> if blank lines are skipped; otherwise, <c>false</c>.
         /// </value>
-        public bool SkipBlankRows { get; set; } = true;
+        public bool SkipBlankRows { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to trim blanks from values in rows. Default is None.
+        /// </summary>
+        /// <value>
+        ///   <c>Start</c> to trim initial spaces; <c>End</c> to trim end spaces; <c>Both</c> to trim initial and end spaces; <c>None</c> to preverve spaces in values.
+        /// </value>
+        public TrimSpacesType TrimSpaces { get; set; } = TrimSpacesType.None;
 
         /// <summary>
         /// Gets or sets a value indicating whether to read <see cref="DefaultValueAttribute"/> value and assume it as default value when excel column is blank. Default is false.
@@ -822,7 +830,7 @@ namespace Npoi.Mapper
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, out object valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;

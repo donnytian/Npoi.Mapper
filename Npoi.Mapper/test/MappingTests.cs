@@ -278,7 +278,6 @@ namespace test
             workbook.GetSheetAt(1).CreateRow(24).CreateCell(41).SetCellValue(str2);
 
             var importer = new Mapper(workbook);
-            importer.SkipBlankRows = false;
 
             // Act
             importer.UseLastNonBlankValue<SampleClass>(o => o.GeneralProperty);

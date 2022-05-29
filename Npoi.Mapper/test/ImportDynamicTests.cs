@@ -74,7 +74,6 @@ namespace test
 
             // Act
             var mapper = new Mapper(workbook);
-            mapper.SkipBlankRows = false;
             var objs = mapper.Take<dynamic>().ToList();
 
             // Assert
