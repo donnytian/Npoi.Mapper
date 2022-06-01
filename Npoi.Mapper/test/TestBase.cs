@@ -14,8 +14,6 @@ namespace test
 
         protected IWorkbook Workbook { get; set; }
 
-        #region Protected Methods
-
         /// <summary>
         /// Gets a workbook with 2 sheets("sheet1" and "sheet2") and with 2 rows in "sheet2":
         /// <para>DateProperty StringProperty</para>
@@ -68,7 +66,5 @@ namespace test
 
             return WorkbookFactory.Create(fileName);
         }
-
-        #endregion
     }
 }

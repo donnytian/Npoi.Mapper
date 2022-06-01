@@ -848,7 +848,7 @@ namespace Npoi.Mapper
                     else if (propertyType != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        if (MapHelper.TryConvertType(valueObj, column, this.UseDefaultValueAttribute, out object result))
+                        if (MapHelper.TryConvertType(valueObj, column, UseDefaultValueAttribute, out object result))
                         {
                             column.Attribute.Property.SetValue(target, result, null);
                         }
