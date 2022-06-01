@@ -1,4 +1,4 @@
-name: .NET
+name: build-test
 
 on:
   push:
@@ -18,8 +18,8 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Npoi.Mapper/Npoi.Mapper.sln
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore Npoi.Mapper/Npoi.Mapper.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal Npoi.Mapper/Npoi.Mapper.sln
