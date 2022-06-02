@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using NUnit.Framework;
+
+[assembly:ExcludeFromCodeCoverage]
 
 namespace test
 {
