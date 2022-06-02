@@ -1,5 +1,15 @@
 # Npoi.Mapper
-[![Build status](https://ci.appveyor.com/api/projects/status/po6jm228g9llu6md/branch/master?svg=true&passingText=master%20-%20OK&failingText=master%20-%20Failed)](https://ci.appveyor.com/project/donnytian/npoi-mapper/branch/master)
+
+![NuGet Version](https://shields.io/nuget/v/npoi.mapper?style=flat-square&logo=nuget)
+![NuGet Version](https://shields.io/nuget/dt/npoi.mapper?style=flat-square&logo=nuget)
+![Open Issues](https://shields.io/github/issues/donnytian/npoi.mapper?style=flat-square&logo=github)
+![Open PRs](https://shields.io/github/issues-pr/donnytian/npoi.mapper?style=flat-square&logo=github)
+
+| Branch  | Build & Test                                                                                                                | Publish                                                                                                    |
+|:--------|:----------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------|
+| master  | ![master build status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/build-test.yml/badge.svg?branch=master)   | ![ Publish Status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/publish-nuget.yml/badge.svg) |
+| develop | ![develop build status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/build-test.yml/badge.svg?branch=develop) | N/A                                                                                                        |
+
 
 Convention-based mapper between strong typed object and Excel data via NPOI (Telegram group https://t.me/npoidevs).  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
@@ -62,7 +72,7 @@ mapper.Save("Book1.xlsx");
 
 1. Import POCOs from Excel file (XLS or XLSX) via [NPOI](https://github.com/tonyqus/npoi)
 2. Export objects to Excel file (XLS or XLSX) (inspired by [ExcelMapper](https://github.com/mganss/ExcelMapper))
-3. No code required to map object properties and column headers by default naming convention (see below sectioin)
+3. No code required to map object properties and column headers by default naming convention (see below section)
 4. Support to escape and truncate chars in column header for mapping
 5. Also support explicit column mapping with attributes or fluent methods
 6. Support custom object factory injection
@@ -80,7 +90,7 @@ mapper.Save("Book1.xlsx");
 
 1. Map column to property by name.
 2. Map column to the Name of `DisplayAttribute` of property.
-3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first braket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
+3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first bracket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
 
 ## Explicit column mapping
 
