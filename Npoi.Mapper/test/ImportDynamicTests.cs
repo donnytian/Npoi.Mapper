@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Npoi.Mapper;
+using NPOI.SS.UserModel;
 using NUnit.Framework;
 
 namespace test
@@ -186,6 +187,53 @@ namespace test
                 Assert.AreEqual("c", obj[1].Value.A);
                 Assert.AreEqual("d", obj[1].Value.B);
             }
+        }
+
+        [Test]
+        public void TakeDynamicWithColumnType_With_TypeResolver()
+        {
+            // Arrange
+            const string stringValue = "dummy";
+            const int intValue = 11;
+            const double doubleValue = 1.11d;
+            var dateTimeValue = DateTime.Now.Truncate();
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue("A"); // int
+            header.CreateCell(1).SetCellValue("B"); // DateTime
+            header.CreateCell(2).SetCellValue("C"); // string
+            header.CreateCell(3).SetCellValue("D"); // double - auto-detected
+            var row1 = sheet.CreateRow(1); // put invalid types in row1
+            row1.CreateCell(0).SetCellValue("invalid int value");
+            row1.CreateCell(1).SetCellValue("invalid date time value");
+            row1.CreateCell(2).SetCellValue(dateTimeValue);
+            row1.CreateCell(3).SetCellValue(intValue);
+            var row2 = sheet.CreateRow(2); // put valid values in row2
+            row2.CreateCell(0).SetCellValue(intValue);
+            row2.CreateCell(1).SetCellValue(dateTimeValue);
+            row2.CreateCell(2).SetCellValue(stringValue);
+            row2.CreateCell(3).SetCellValue(doubleValue);
+
+            Type TypeResolver(ICell cell) => cell.ColumnIndex switch
+            {
+                0 => typeof(int),
+                1 => typeof(DateTime),
+                2 => typeof(string),
+                _ => null, // return null to let mapper detect from the first data row.
+            };
+
+            // Act
+            var mapper = new Mapper(workbook);
+            var objs = mapper.TakeDynamicWithColumnType(TypeResolver).ToList();
+
+            // Assert
+            Assert.AreEqual(0, objs[0].ErrorColumnIndex);
+            Assert.AreEqual(intValue, objs[0].Value.D);
+            Assert.AreEqual(intValue, objs[1].Value.A);
+            Assert.AreEqual(dateTimeValue, objs[1].Value.B);
+            Assert.AreEqual(stringValue, objs[1].Value.C);
+            Assert.AreEqual(doubleValue, objs[1].Value.D);
         }
     }
 }

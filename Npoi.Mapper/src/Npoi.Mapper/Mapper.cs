@@ -328,7 +328,7 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
-            return Take(sheet, maxErrorRows, objectInitializer);
+            return Take(null, sheet, maxErrorRows, objectInitializer);
         }
 
         /// <summary>
@@ -342,7 +342,33 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheet(sheetName);
-            return Take(sheet, maxErrorRows, objectInitializer);
+            return Take(null, sheet, maxErrorRows, objectInitializer);
+        }
+
+        /// <summary>
+        /// Get objects as dynamic type with custom column type resolver.
+        /// </summary>
+        /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
+        /// <param name="sheetName">The sheet name.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <returns>Objects of dynamic type.</returns>
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, string sheetName, int maxErrorRows = 10)
+        {
+            var sheet = Workbook.GetSheet(sheetName);
+            return Take<object>(getColumnType, sheet, maxErrorRows);
+        }
+
+        /// <summary>
+        /// Get objects as dynamic type with custom column type resolver.
+        /// </summary>
+        /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
+        /// <param name="sheetIndex">The sheet index; default is 0.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <returns>Objects of dynamic type.</returns>
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, int sheetIndex = 0, int maxErrorRows = 10)
+        {
+            var sheet = Workbook.GetSheetAt(sheetIndex);
+            return Take<object>(getColumnType, sheet, maxErrorRows);
         }
 
         /// <summary>
@@ -534,7 +560,8 @@ namespace Npoi.Mapper
 
         #region Import
 
-        private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null) where T : class
+        private IEnumerable<RowInfo<T>> Take<T>(Func<ICell, Type> getColumnType, ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
+            where T : class
         {
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
@@ -547,7 +574,7 @@ namespace Npoi.Mapper
             var targetType = typeof(T);
             if (targetType == typeof(object)) // Dynamic type.
             {
-                targetType = GetDynamicType(sheet);
+                targetType = GetDynamicType(sheet, getColumnType);
                 MapHelper.LoadDynamicAttributes(Attributes, DynamicAttributes, targetType);
             }
 
@@ -587,7 +614,7 @@ namespace Npoi.Mapper
             }
         }
 
-        private Type GetDynamicType(ISheet sheet)
+        private Type GetDynamicType(ISheet sheet, Func<ICell, Type> getColumnType)
         {
             var firstRowIndex = GetFirstRowIndex(sheet);
             var firstRow = sheet.GetRow(firstRowIndex);
@@ -597,7 +624,8 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
+                var type = getColumnType?.Invoke(header)
+                    ?? Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
