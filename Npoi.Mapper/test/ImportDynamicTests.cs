@@ -235,5 +235,46 @@ namespace test
             Assert.AreEqual(stringValue, objs[1].Value.C);
             Assert.AreEqual(doubleValue, objs[1].Value.D);
         }
+
+                [Test]
+        public void TakeDynamic_TwoSheets_WithSameHeaderName()
+        {
+            // Arrange
+            const string stringValue = "dummy";
+            const int intValue = 11;
+            const double doubleValue = 4.21d;
+            var dateTimeValue = DateTime.Now.Truncate();
+
+            var workbook = GetEmptyWorkbook();
+
+            var sheet1 = workbook.CreateSheet("sheet1");
+            var header = sheet1.CreateRow(0);
+            header.CreateCell(0).SetCellValue("A");
+            header.CreateCell(1).SetCellValue("sheet1B");
+
+            var row1 = sheet1.CreateRow(1);
+            row1.CreateCell(0).SetCellValue(stringValue);
+            row1.CreateCell(1).SetCellValue(intValue);
+
+            var sheet2 = workbook.CreateSheet("sheet2");
+            header = sheet2.CreateRow(0);
+            header.CreateCell(0).SetCellValue("A");
+            header.CreateCell(1).SetCellValue("sheet2B");
+
+            row1 = sheet2.CreateRow(1);
+            row1.CreateCell(0).SetCellValue(doubleValue);
+            row1.CreateCell(1).SetCellValue(dateTimeValue);
+
+            // Act
+            var mapper = new Mapper(workbook);
+            var objs1 = mapper.Take<dynamic>("sheet1").ToList();
+            var objs2 = mapper.Take<dynamic>("sheet2").ToList();
+
+            // Assert
+            Assert.AreEqual(stringValue, objs1[0].Value.A);
+            Assert.AreEqual(intValue, objs1[0].Value.sheet1B);
+            Assert.AreEqual(doubleValue, objs2[0].Value.A);
+            Assert.AreEqual(dateTimeValue.ToOADate(), objs2[0].Value.sheet2B);
+        }
     }
 }

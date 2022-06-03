@@ -576,6 +576,7 @@ namespace Npoi.Mapper
             {
                 targetType = GetDynamicType(sheet, getColumnType);
                 MapHelper.LoadDynamicAttributes(Attributes, DynamicAttributes, targetType);
+                DynamicAttributes.Clear(); // Avoid mixed with other sheet.
             }
 
             // Scan object attributes.
@@ -587,7 +588,10 @@ namespace Npoi.Mapper
             // Detect column format based on the first non-null cell.
             Helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
-            if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
+            if (TrackObjects)
+            {
+                Objects[sheet.SheetName] = new Dictionary<int, object>();
+            }
 
             // Loop rows in file. Generate one target object for each row.
             var errorCount = 0;
@@ -608,7 +612,11 @@ namespace Npoi.Mapper
                     errorCount++;
                     //rowInfo.Value = default(T);
                 }
-                if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
+
+                if (TrackObjects)
+                {
+                    Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
+                }
 
                 yield return rowInfo;
             }
