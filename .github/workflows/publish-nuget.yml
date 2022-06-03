@@ -3,7 +3,7 @@ name: publish-nuget
 on:
   # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#push
   push:
-    tags: [ v* ]
+    branches: [ master ]
 
 jobs:
   publish:
