@@ -57,14 +57,33 @@ namespace test
             return workbook;
         }
 
-        protected static IWorkbook WriteAndReadBack(IWorkbook workbook, string fileName = "TempWrite")
+        protected static IWorkbook WriteAndReadBack(IWorkbook workbook, string fileName = null)
         {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = Guid.NewGuid().ToString();
+            }
+
             using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
             {
                 workbook.Write(fs);
             }
 
-            return WorkbookFactory.Create(fileName);
+            IWorkbook newWorkbook;
+
+            try
+            {
+                newWorkbook = WorkbookFactory.Create(fileName);
+            }
+            finally
+            {
+                if (File.Exists(fileName))
+                {
+                    File.Delete(fileName);
+                }
+            }
+
+            return newWorkbook;
         }
     }
 }

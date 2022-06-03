@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Npoi.Mapper;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 using NUnit.Framework;
 using test.Sample;
 
@@ -438,6 +434,29 @@ namespace test
             var row = sheet.GetRow(firstDataRowIndex);
             Assert.AreEqual(1 + (hasHeader ? 1 : 0), sheet.PhysicalNumberOfRows);
             Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
+        }
+
+        [Test]
+        public void TakeZeroRow_Then_PutZeroObject_VerifyHeaders()
+        {
+            // Arrange
+            var workbook = GetEmptyWorkbook();
+            var sheet = workbook.CreateSheet();
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue(nameof(SampleClass.BoolProperty));
+            header.CreateCell(1).SetCellValue(nameof(SampleClass.StringProperty));
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var objs = mapper.Take<SampleClass>().Select(x => x.Value);
+            mapper.Put(objs, "Sheet1");
+
+            // Assert
+            var result = WriteAndReadBack(mapper.Workbook);
+            var row = result.GetSheetAt(0).GetRow(0);
+            Assert.IsTrue(row.Cells.Count > 0);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(row.Cells[0].StringCellValue));
         }
     }
 }
