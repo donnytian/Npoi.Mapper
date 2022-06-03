@@ -9,8 +9,8 @@
     <PackageTags>Excel;XLS;XLSX;NPOI;Object mapping;dynamic</PackageTags>
     <PackageProjectUrl>https://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>4</Version>
-    <PackageReleaseNotes>Remove support for .NET 4.0 due to NPOI, now only support .NET 4.5 and .net standard 2.0</PackageReleaseNotes>
+    <Version>4.1.0</Version>
+    <PackageReleaseNotes>Bug fix and enhancements.</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
