@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    name: build, pack & publish
+    name: build, test, pack & publish
     runs-on: ubuntu-latest
     environment: nuget-publish # Configured in Settings > Environments
     steps:
@@ -30,9 +30,6 @@ jobs:
         with:
           # Filepath of the project to be packaged, relative to root of repository
           PROJECT_FILE_PATH: Npoi.Mapper/src/Npoi.Mapper/Npoi.Mapper.csproj
-
-          # Configuration to build and package
-          BUILD_CONFIGURATION: Release
 
           # Platform target to compile (default is empty/AnyCPU)
           # BUILD_PLATFORM: x64
