@@ -37,6 +37,29 @@ DateTime date = obj3[0].DateColumn;
 double number = obj3[0].NumberColumn;
 string text = obj3[0].AC; // If the column doesn't have a header name, Excel display name like "AC" will be populated.
 ```
+
+### Differences between `Take<dynamic>()` and `TakeDynamicWithColumnType()`
+`Take<Dynamic>` is a quick way to take data by conventions, all column types will be auto-detected from the first data row.
+
+However, we may encounter unexpected data at the first row in the real world, that makes the mapper to infer a wrong type.
+For example, we actually want a `string` column, but a numeric value sit in the first row cell, this makes mapper take this column as `double` and report errors for the following non-numeric values. 
+
+`TakeDynamicWithColumnType()` allow you predefine the type for any column by accepting an extra parameter.
+```csharp
+var mapper = new Mapper(workbook);
+var objs = mapper.TakeDynamicWithColumnType(header =>
+    header.ColumnIndex switch    // Inspect column index or header cell to make decision.
+    {
+        0 => typeof(int),       // Make the 1st column as int
+        1 => typeof(DateTime),  // Make the 2nd column as DateTime
+        2 => typeof(string),    // Make the 3rd column as string
+        _ => null,              // return null to let mapper detect from the first data row.
+    });
+
+
+// Or simply take all columns as string.
+var objs = mapper.TakeDynamicWithColumnType(_ => typeof(string));
+```
 More use cases please check out source in "test" project.
 
 ## Export objects to Excel (XLS or XLSX)

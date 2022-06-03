@@ -119,8 +119,7 @@ namespace Npoi.Mapper
         {
             CurrentValue = value;
 
-            // Specially check for string.
-            if (string.IsNullOrWhiteSpace(value as string))
+            if (value == null || string.IsNullOrWhiteSpace(value as string))
             {
                 return Attribute.UseLastNonBlankValue == true ? LastNonBlankValue : value;
             }
