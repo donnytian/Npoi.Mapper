@@ -1,9 +1,9 @@
 # Npoi.Mapper
 
-![NuGet Version](https://shields.io/nuget/v/npoi.mapper?style=flat-square&logo=nuget)
-![NuGet Version](https://shields.io/nuget/dt/npoi.mapper?style=flat-square&logo=nuget)
-![Open Issues](https://shields.io/github/issues/donnytian/npoi.mapper?style=flat-square&logo=github)
-![Open PRs](https://shields.io/github/issues-pr/donnytian/npoi.mapper?style=flat-square&logo=github)
+[![NuGet Version](https://shields.io/nuget/v/npoi.mapper?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Npoi.Mapper)
+[![NuGet Downloads](https://shields.io/nuget/dt/npoi.mapper?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Npoi.Mapper)
+[![Open Issues](https://shields.io/github/issues/donnytian/npoi.mapper?style=flat-square&logo=github)](https://github.com/donnytian/Npoi.Mapper/issues)
+[![Open PRs](https://shields.io/github/issues-pr/donnytian/npoi.mapper?style=flat-square&logo=github)](https://github.com/donnytian/Npoi.Mapper/pulls)
 
 | Branch  | Build & Test                                                                                                                | Publish                                                                                                    |
 |:--------|:----------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------|
