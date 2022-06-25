@@ -60,6 +60,10 @@ var objs = mapper.TakeDynamicWithColumnType(header =>
 // Or simply take all columns as string.
 var objs = mapper.TakeDynamicWithColumnType(_ => typeof(string));
 ```
+
+### Import numeric cell as `string`
+If the target property is in the type of `string`, cell format and formula will be respected. That means you will get exact same string as what is displayed in Excel instead of underlying number or formula.
+
 More use cases please check out source in "test" project.
 
 ## Export objects to Excel (XLS or XLSX)

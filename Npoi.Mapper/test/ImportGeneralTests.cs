@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-
+using NPOI.HSSF.UserModel;
 using Npoi.Mapper;
 using Npoi.Mapper.Attributes;
 using NPOI.SS.UserModel;
@@ -680,6 +680,51 @@ namespace test
             Assert.AreEqual(value.ToString(CultureInfo.InvariantCulture), items[2].Value.NormalString);
             Assert.IsNull(items[2].Value.NullableDateTime);
             Assert.IsNull(items[2].Value.NullableDateTimeOffset);
+        }
+
+        [Test]
+        public void Take_NumericCell_As_String()
+        {
+            // Arrange
+            var doubleValue = 35.3456d;
+            var dateValue = DateTimeOffset.Now.Truncate();
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            var dateCellStyle = workbook.CreateCellStyle();
+            dateCellStyle.DataFormat = workbook.CreateDataFormat().GetFormat("yyyyMMdd");
+            var doubleCellStyle = workbook.CreateCellStyle();
+            doubleCellStyle.DataFormat = workbook.CreateDataFormat().GetFormat("$0.00\" Surplus\";$-0.00\" Shortage\"");
+            var dataFormatter = new DataFormatter();
+            var fe = new XSSFFormulaEvaluator(workbook);
+
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue(nameof(TestClass.String));
+
+            var row1 = sheet.CreateRow(1);
+            var cell = row1.CreateCell(0);
+            cell.SetCellValue(doubleValue.ToString(CultureInfo.InvariantCulture));
+
+            var row2 = sheet.CreateRow(2);
+            cell = row2.CreateCell(0);
+            cell.CellStyle = dateCellStyle;
+            cell.SetCellValue(dateValue.DateTime);
+            var dateString = dataFormatter.FormatCellValue(cell, fe);
+
+            var row3 = sheet.CreateRow(3);
+            cell = row3.CreateCell(0);
+            cell.CellStyle = doubleCellStyle;
+            cell.SetCellValue(doubleValue);
+            var doubleString = dataFormatter.FormatCellValue(cell, fe); // $35.35 Surplus
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<TestClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(doubleValue.ToString(CultureInfo.InvariantCulture), items[0].Value.String);
+            Assert.AreEqual(dateString, items[1].Value.String);
+            Assert.AreEqual(doubleString, items[2].Value.String);
         }
     }
 }

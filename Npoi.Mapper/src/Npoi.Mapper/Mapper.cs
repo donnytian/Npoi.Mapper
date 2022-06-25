@@ -69,10 +69,21 @@ namespace Npoi.Mapper
                     Objects.Clear();
                     TrackedColumns.Clear();
                     Helper.ClearCache();
+
+                    if (value is HSSFWorkbook)
+                    {
+                        FormulaEvaluator = new HSSFFormulaEvaluator(value);
+                    }
+                    else if (value is XSSFWorkbook)
+                    {
+                        FormulaEvaluator = new XSSFFormulaEvaluator(value);
+                    }
                 }
                 _workbook = value;
             }
         }
+
+        public IFormulaEvaluator FormulaEvaluator { get; private set; }
 
         /// <summary>
         /// When map column, chars in this array will be removed from column header.
@@ -866,7 +877,7 @@ namespace Npoi.Mapper
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj, FormulaEvaluator))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
