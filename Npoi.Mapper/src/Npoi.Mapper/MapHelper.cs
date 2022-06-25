@@ -10,6 +10,14 @@ using System.Linq;
 
 namespace Npoi.Mapper
 {
+    public enum TrimSpacesType
+    {
+        None,
+        Start,
+        End,
+        Both
+    }
+
     /// <summary>
     /// Provide static supportive functionalities for <see cref="Mapper"/> class.
     /// </summary>
@@ -52,6 +60,11 @@ namespace Npoi.Mapper
         /// Caches for type of DateTime during parsing.
         /// </summary>
         public static readonly Type DateTimeType = typeof(DateTime);
+
+        /// <summary>
+        /// Caches for type of DateTimeOffset during parsing.
+        /// </summary>
+        public static readonly Type DateTimeOffsetType = typeof(DateTimeOffset);
 
         /// <summary>
         /// Caches for type of object.
@@ -304,9 +317,10 @@ namespace Npoi.Mapper
         /// </summary>
         /// <param name="cell">The cell to retrieve value.</param>
         /// <param name="targetType">Type of target property.</param>
+        /// <param name="trimSpacesType">Type of  whitespace trim if the cell is a string.</param>
         /// <param name="value">The returned value for cell.</param>
         /// <returns><c>true</c> if get value successfully; otherwise false.</returns>
-        public static bool TryGetCellValue(ICell cell, Type targetType, out object value)
+        public static bool TryGetCellValue(ICell cell, Type targetType, TrimSpacesType trimSpacesType, out object value)
         {
             value = null;
             if (cell == null) return true;
@@ -317,13 +331,29 @@ namespace Npoi.Mapper
             {
                 case CellType.String:
 
-                    value = cell.StringCellValue;
+                    switch (trimSpacesType)
+                    {
+                        case TrimSpacesType.None:
+                            value = cell.StringCellValue;
+                            break;
+                        case TrimSpacesType.Start:
+                            value = cell.StringCellValue.TrimStart();
+                            break;
+                        case TrimSpacesType.End:
+                            value = cell.StringCellValue.TrimEnd();
+                            break;
+                        case TrimSpacesType.Both:
+                            value = cell.StringCellValue.Trim();
+                            break;
+                        default:
+                            break; // unreachable
+                    }
 
                     break;
 
                 case CellType.Numeric:
 
-                    if (DateUtil.IsCellDateFormatted(cell) || targetType == typeof(DateTime)) // DateTime type.
+                    if (DateUtil.IsCellDateFormatted(cell) || targetType == DateTimeType || targetType == DateTimeOffsetType)
                     {
                         value = cell.DateCellValue;
                     }
@@ -518,34 +548,39 @@ namespace Npoi.Mapper
         }
 
         // Try to convert the input object as the target type.
-        internal static bool TryConvertType(object value, IColumnInfo column, out object result)
+        internal static bool TryConvertType(object value, IColumnInfo column, bool useDefaultValueAttr, out object result)
         {
             result = null;
             if (column == null || column.Attribute.Property == null) return false;
-            if (value == null) return true;
+            if (value == null)
+            {
+                if (column.Attribute.DefaultValue != null)
+                {
+                    result = column.Attribute.DefaultValue;
+                }
+                else if (useDefaultValueAttr && column.Attribute.DefaultValueAttribute != null)
+                {
+                    result = column.Attribute.DefaultValueAttribute.Value;
+                }
 
-            var stringValue = value as string;
+                return true;
+            }
+
             var targetType = column.Attribute.Property.PropertyType;
             var underlyingType = column.Attribute.PropertyUnderlyingType;
             targetType = underlyingType ?? targetType;
 
-            if (stringValue != null)
+            if (targetType == DateTimeType || targetType == DateTimeOffsetType)
+            {
+                return TryConvertToDateTime(value, targetType == DateTimeOffsetType, column.Attribute.CustomFormat, ref result);
+            }
+
+            if (value is string stringValue)
             {
                 if (targetType == StringType)
                 {
                     result = stringValue;
                     return true;
-                }
-
-                if (targetType == DateTimeType)
-                {
-                    if (DateTime.TryParseExact(stringValue, column.Attribute.CustomFormat, CultureInfo.CurrentCulture,
-                        DateTimeStyles.AllowWhiteSpaces, out DateTime dateTime)
-                    )
-                    {
-                        result = dateTime;
-                        return true;
-                    }
                 }
 
                 if (targetType.IsNumeric() && double.TryParse(stringValue, NumberStyles.Any, null, out double doubleResult))
@@ -593,6 +628,71 @@ namespace Npoi.Mapper
             }
 
             return true;
+        }
+
+        private static bool TryConvertToDateTime(object value, bool isDateTimeOffset, string format, ref object result)
+        {
+            if (value is string stringValue)
+            {
+                // string to DateTimeOffset
+                if (isDateTimeOffset)
+                {
+                    if (!string.IsNullOrWhiteSpace(format))
+                    {
+                        if (DateTimeOffset.TryParseExact(stringValue, format,
+                                CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out var dateTimeOffset2))
+                        {
+                            result = dateTimeOffset2;
+                            return true;
+                        }
+                    }
+
+                    if (DateTimeOffset.TryParse(stringValue,
+                            CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out var dateTimeOffset))
+                    {
+                        result = dateTimeOffset;
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                // string to DateTime
+                if (!string.IsNullOrWhiteSpace(format))
+                {
+                    if (DateTime.TryParseExact(stringValue, format, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out var dateTime2))
+                    {
+                        result = dateTime2;
+                        return true;
+                    }
+                }
+
+                if (DateTime.TryParse(stringValue, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out var dateTime))
+                {
+                    result = dateTime;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (value is DateTime dateTimeValue)
+            {
+                // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
+                // Ternary expression will implicitly convert result as a DateTimeOffset.
+                if (isDateTimeOffset)
+                {
+                    result = new DateTimeOffset(dateTimeValue);
+                }
+                else
+                {
+                    result = dateTimeValue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         // Gets the concrete type instead of the type of object.

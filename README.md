@@ -1,10 +1,20 @@
 # Npoi.Mapper
-[![Build status](https://ci.appveyor.com/api/projects/status/po6jm228g9llu6md/branch/master?svg=true&passingText=master%20-%20OK&failingText=master%20-%20Failed)](https://ci.appveyor.com/project/donnytian/npoi-mapper/branch/master)
+
+[![NuGet Version](https://shields.io/nuget/v/npoi.mapper?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Npoi.Mapper)
+[![NuGet Downloads](https://shields.io/nuget/dt/npoi.mapper?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Npoi.Mapper)
+[![Open Issues](https://shields.io/github/issues/donnytian/npoi.mapper?style=flat-square&logo=github)](https://github.com/donnytian/Npoi.Mapper/issues)
+[![Open PRs](https://shields.io/github/issues-pr/donnytian/npoi.mapper?style=flat-square&logo=github)](https://github.com/donnytian/Npoi.Mapper/pulls)
+
+| Branch  | Build & Test                                                                                                                | Publish                                                                                                    |
+|:--------|:----------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------|
+| master  | ![master build status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/build-test.yml/badge.svg?branch=master)   | ![ Publish Status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/publish-nuget.yml/badge.svg) |
+| develop | ![develop build status](https://github.com/donnytian/Npoi.Mapper/actions/workflows/build-test.yml/badge.svg?branch=develop) | N/A                                                                                                        |
+
 
 Convention-based mapper between strong typed object and Excel data via NPOI (Telegram group https://t.me/npoidevs).  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
-<font color=brown>v3 now support to import and export as **`dynamic`** type.</font>
+<font color=brown>From v3, support to import and export as **`dynamic`** type.</font>
 ## Install from NuGet
 In the Package Manager Console:
 
@@ -26,6 +36,29 @@ var objs3 = mapper.Take<dynamic>("sheet1").ToList();
 DateTime date = obj3[0].DateColumn;
 double number = obj3[0].NumberColumn;
 string text = obj3[0].AC; // If the column doesn't have a header name, Excel display name like "AC" will be populated.
+```
+
+### Differences between `Take<dynamic>()` and `TakeDynamicWithColumnType()`
+`Take<Dynamic>` is a quick way to take data by conventions, all column types will be auto-detected from the first data row.
+
+However, we may encounter unexpected data at the first row in the real world, that makes the mapper to infer a wrong type.
+For example, we actually want a `string` column, but a numeric value sit in the first row cell, this makes mapper take this column as `double` and report errors for the following non-numeric values. 
+
+`TakeDynamicWithColumnType()` allow you predefine the type for any column by accepting an extra parameter.
+```csharp
+var mapper = new Mapper(workbook);
+var objs = mapper.TakeDynamicWithColumnType(header =>
+    header.ColumnIndex switch    // Inspect column index or header cell to make decision.
+    {
+        0 => typeof(int),       // Make the 1st column as int
+        1 => typeof(DateTime),  // Make the 2nd column as DateTime
+        2 => typeof(string),    // Make the 3rd column as string
+        _ => null,              // return null to let mapper detect from the first data row.
+    });
+
+
+// Or simply take all columns as string.
+var objs = mapper.TakeDynamicWithColumnType(_ => typeof(string));
 ```
 More use cases please check out source in "test" project.
 
@@ -62,7 +95,7 @@ mapper.Save("Book1.xlsx");
 
 1. Import POCOs from Excel file (XLS or XLSX) via [NPOI](https://github.com/tonyqus/npoi)
 2. Export objects to Excel file (XLS or XLSX) (inspired by [ExcelMapper](https://github.com/mganss/ExcelMapper))
-3. No code required to map object properties and column headers by default naming convention (see below sectioin)
+3. No code required to map object properties and column headers by default naming convention (see below section)
 4. Support to escape and truncate chars in column header for mapping
 5. Also support explicit column mapping with attributes or fluent methods
 6. Support custom object factory injection
@@ -80,7 +113,7 @@ mapper.Save("Book1.xlsx");
 
 1. Map column to property by name.
 2. Map column to the Name of `DisplayAttribute` of property.
-3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first braket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
+3. For column header, ignore non-alphabetical chars ("-", "_", "|' etc.), and truncate from first bracket ("(", "[", "{"), then map to property name. Ignored chars and truncation chars can be customized.
 
 ## Explicit column mapping
 

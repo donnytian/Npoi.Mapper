@@ -102,6 +102,38 @@ namespace Npoi.Mapper
         /// </summary>
         public int FirstRowIndex { get; set; } = -1;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to skip blank rows when reading from Excel files. Default is true.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if blank lines are skipped; otherwise, <c>false</c>.
+        /// </value>
+        public bool SkipBlankRows { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to trim blanks from values in rows. Default is None.
+        /// </summary>
+        /// <value>
+        ///   <c>Start</c> to trim initial spaces; <c>End</c> to trim end spaces; <c>Both</c> to trim initial and end spaces; <c>None</c> to preverve spaces in values.
+        /// </value>
+        public TrimSpacesType TrimSpaces { get; set; } = TrimSpacesType.None;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to read <see cref="DefaultValueAttribute"/> value and assume it as default value when excel column is blank. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if <see cref="DefaultValueAttribute"/> is to be considered; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseDefaultValueAttribute { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to write default property values to excel. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if default values result in empty cells in excel; otherwise, <c>false</c> means all values are written to excel, even if equal to default.
+        /// </value>
+        public bool SkipWriteDefaultValue { get; set; } = false;
+
         #endregion
 
         #region Constructors
@@ -296,7 +328,7 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
-            return Take(sheet, maxErrorRows, objectInitializer);
+            return Take(null, sheet, maxErrorRows, objectInitializer);
         }
 
         /// <summary>
@@ -310,7 +342,33 @@ namespace Npoi.Mapper
         public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheet(sheetName);
-            return Take(sheet, maxErrorRows, objectInitializer);
+            return Take(null, sheet, maxErrorRows, objectInitializer);
+        }
+
+        /// <summary>
+        /// Get objects as dynamic type with custom column type resolver.
+        /// </summary>
+        /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
+        /// <param name="sheetName">The sheet name.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <returns>Objects of dynamic type.</returns>
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, string sheetName, int maxErrorRows = 10)
+        {
+            var sheet = Workbook.GetSheet(sheetName);
+            return Take<object>(getColumnType, sheet, maxErrorRows);
+        }
+
+        /// <summary>
+        /// Get objects as dynamic type with custom column type resolver.
+        /// </summary>
+        /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
+        /// <param name="sheetIndex">The sheet index; default is 0.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <returns>Objects of dynamic type.</returns>
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, int sheetIndex = 0, int maxErrorRows = 10)
+        {
+            var sheet = Workbook.GetSheetAt(sheetIndex);
+            return Take<object>(getColumnType, sheet, maxErrorRows);
         }
 
         /// <summary>
@@ -502,7 +560,8 @@ namespace Npoi.Mapper
 
         #region Import
 
-        private IEnumerable<RowInfo<T>> Take<T>(ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null) where T : class
+        private IEnumerable<RowInfo<T>> Take<T>(Func<ICell, Type> getColumnType, ISheet sheet, int maxErrorRows, Func<T> objectInitializer = null)
+            where T : class
         {
             if (sheet == null || sheet.PhysicalNumberOfRows < 1)
             {
@@ -515,8 +574,9 @@ namespace Npoi.Mapper
             var targetType = typeof(T);
             if (targetType == typeof(object)) // Dynamic type.
             {
-                targetType = GetDynamicType(sheet);
+                targetType = GetDynamicType(sheet, getColumnType);
                 MapHelper.LoadDynamicAttributes(Attributes, DynamicAttributes, targetType);
+                DynamicAttributes.Clear(); // Avoid mixed with other sheet.
             }
 
             // Scan object attributes.
@@ -528,7 +588,10 @@ namespace Npoi.Mapper
             // Detect column format based on the first non-null cell.
             Helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
-            if (TrackObjects) Objects[sheet.SheetName] = new Dictionary<int, object>();
+            if (TrackObjects)
+            {
+                Objects[sheet.SheetName] = new Dictionary<int, object>();
+            }
 
             // Loop rows in file. Generate one target object for each row.
             var errorCount = 0;
@@ -537,6 +600,8 @@ namespace Npoi.Mapper
             {
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum < firstDataRowIndex) continue;
+
+                if (SkipBlankRows && row.Cells.All(c => IsCellBlank(c))) continue;
 
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();
                 var rowInfo = new RowInfo<T>(row.RowNum, obj as T, -1, string.Empty);
@@ -547,13 +612,17 @@ namespace Npoi.Mapper
                     errorCount++;
                     //rowInfo.Value = default(T);
                 }
-                if (TrackObjects) Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
+
+                if (TrackObjects)
+                {
+                    Objects[sheet.SheetName][row.RowNum] = rowInfo.Value;
+                }
 
                 yield return rowInfo;
             }
         }
 
-        private Type GetDynamicType(ISheet sheet)
+        private Type GetDynamicType(ISheet sheet, Func<ICell, Type> getColumnType)
         {
             var firstRowIndex = GetFirstRowIndex(sheet);
             var firstRow = sheet.GetRow(firstRowIndex);
@@ -563,7 +632,8 @@ namespace Npoi.Mapper
             foreach (var header in firstRow)
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
-                var type = Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
+                var type = getColumnType?.Invoke(header)
+                    ?? Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
@@ -595,6 +665,16 @@ namespace Npoi.Mapper
             }
 
             return AnonymousTypeFactory.CreateType(names, true);
+        }
+
+        private static bool IsCellBlank(ICell cell)
+        {
+            switch (cell.CellType)
+            {
+                case CellType.String: return string.IsNullOrWhiteSpace(cell.StringCellValue);
+                case CellType.Blank: return true;
+                default: return false;
+            };
         }
 
         private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
@@ -763,7 +843,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private static void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
+        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -786,7 +866,7 @@ namespace Npoi.Mapper
                     var cell = row.GetCell(index);
                     var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, out object valueObj))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
@@ -804,7 +884,7 @@ namespace Npoi.Mapper
                     else if (propertyType != null)
                     {
                         // Change types between IConvertible objects, such as double, float, int and etc.
-                        if (MapHelper.TryConvertType(valueObj, column, out object result))
+                        if (MapHelper.TryConvertType(valueObj, column, UseDefaultValueAttribute, out object result))
                         {
                             column.Attribute.Property.SetValue(target, result, null);
                         }
@@ -1027,6 +1107,13 @@ namespace Npoi.Mapper
         private void SetCell(ICell cell, object value, ColumnInfo column, bool isHeader = false, bool setStyle = true)
         {
             if (value == null || value is ICollection)
+            {
+                cell.SetCellValue((string)null);
+            }
+            else if (this.SkipWriteDefaultValue && !isHeader && 
+                     (Equals(column.Attribute.DefaultValue, value) ||
+                      (this.UseDefaultValueAttribute && Equals(column.Attribute.DefaultValueAttribute?.Value, value)))
+                    )
             {
                 cell.SetCellValue((string)null);
             }

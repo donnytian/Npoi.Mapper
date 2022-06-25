@@ -1,0 +1,25 @@
+name: build-test
+
+on:
+  push:
+    branches-ignore: [ master ] # we have dedicated job run on master
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+    name: build and test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore Npoi.Mapper/Npoi.Mapper.sln
+    - name: Build
+      run: dotnet build --no-restore Npoi.Mapper/Npoi.Mapper.sln
+    - name: Test
+      run: dotnet test --no-build --verbosity normal Npoi.Mapper/Npoi.Mapper.sln

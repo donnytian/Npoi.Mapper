@@ -1,5 +1,15 @@
 # Change log
 
+## From v4 go on, we will use Github Release feature to track change logs.
+
+## v4
+* Upgrade NPOI to latest 2.5.6
+* **Breaking change**: Removed support for NET4.0 since the latest NPOI does not support it.
+* **Breaking change**: Make assembly strong-named - #80
+* New option `SkipBlankRows` and `TrimSpaces` - #83
+* Support default value if data source is null or empty - #91
+* Thanks @POFerro for above feature enhancements :)
+
 ## v3.5.1
 * Include exception details in `rowInfo.ErrorMessage` for data import.
 

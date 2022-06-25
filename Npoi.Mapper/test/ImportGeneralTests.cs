@@ -1,4 +1,6 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -19,12 +21,32 @@ namespace test
             public string String { get; set; }
             public DateTime DateTime { get; set; }
             public double Double { get; set; }
+            public DateTimeOffset DateTimeOffsetProperty { get; set; }
         }
 
         private class NullableClass
         {
             public DateTime? NullableDateTime { get; set; }
             public string NormalString { get; set; }
+            public DateTimeOffset? NullableDateTimeOffset { get; set; }
+        }
+
+        private class TestDefaultClass
+        {
+            public string Name { get; set; }
+
+            [DefaultValue(true)]
+            public bool AllowEmails { get; set; }
+            
+            [Column(DefaultValue = true)]
+            public bool UseDefaultEmail { get; set; }
+            
+            [DefaultValue(1)]
+            public double HouseHoldNumber { get; set; }
+            
+            [DefaultValue("P")]
+            public string Type { get; set; }
+
         }
 
         [Test]
@@ -43,6 +65,26 @@ namespace test
             Assert.AreEqual(3, items.Count);
             Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
             Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+        }
+
+        [Test]
+        public void ImporterWithDefaultValue()
+        {
+            // Arrange
+            using (var stream = new FileStream("test_default.xlsx", FileMode.Open))
+            {
+                // Act
+                var importer = new Mapper(stream) { UseDefaultValueAttribute = true };
+                var items = importer.Take<TestDefaultClass>("Sheet1").ToList();
+
+                // Assert
+                Assert.IsNotNull(importer);
+                Assert.IsNotNull(importer.Workbook);
+                Assert.AreEqual(3, items.Count);
+                Assert.IsTrue(items[0].Value.AllowEmails);
+                Assert.IsFalse(items[0].Value.UseDefaultEmail);
+                Assert.AreEqual(1, items[0].Value.HouseHoldNumber);
+            }
         }
 
         [Test]
@@ -541,6 +583,103 @@ namespace test
 
             // Assert
             Assert.AreEqual(id, items[0].Value.ID);
+        }
+
+        [Test]
+        public void Take_ColumnName_CaseInsensitive()
+        {
+            // Arrange
+            const string value = "dummy";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+
+            sheet.GetRow(0).CreateCell(0).SetCellValue(nameof(TestClass.String).ToUpperInvariant());
+            sheet.GetRow(1).CreateCell(0).SetCellValue(value);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<TestClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value, items[0].Value.String);
+        }
+
+        [Test]
+        public void Take_DateTime_And_DateTimeOffice()
+        {
+            // Arrange
+            var value = DateTimeOffset.Now.Truncate();
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue(nameof(TestClass.DateTime));
+            header.CreateCell(1).SetCellValue(nameof(TestClass.DateTimeOffsetProperty));
+
+            var row1 = sheet.CreateRow(1);
+            row1.CreateCell(0).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+            row1.CreateCell(1).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+
+            var row2 = sheet.CreateRow(2);
+            row2.CreateCell(0).SetCellValue(value.DateTime);
+            row2.CreateCell(1).SetCellValue(value.DateTime);
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<TestClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value.DateTime, items[0].Value.DateTime);
+            Assert.AreEqual(value, items[0].Value.DateTimeOffsetProperty);
+            Assert.AreEqual(value.DateTime, items[1].Value.DateTime);
+            Assert.AreEqual(value, items[1].Value.DateTimeOffsetProperty);
+        }
+
+        [Test]
+        public void Take_Nullable_DateTime_And_DateTimeOffice()
+        {
+            // Arrange
+            var value = DateTimeOffset.Now.Truncate();
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue(nameof(NullableClass.NormalString));
+            header.CreateCell(1).SetCellValue(nameof(NullableClass.NullableDateTime));
+            header.CreateCell(2).SetCellValue(nameof(NullableClass.NullableDateTimeOffset));
+
+            var row1 = sheet.CreateRow(1);
+            row1.CreateCell(0).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+            row1.CreateCell(1).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+            row1.CreateCell(2).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+
+            var row2 = sheet.CreateRow(2);
+            row2.CreateCell(0).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+            row2.CreateCell(1).SetCellValue(value.DateTime);
+            row2.CreateCell(2).SetCellValue(value.DateTime);
+
+            var row3 = sheet.CreateRow(3);
+            row3.CreateCell(0).SetCellValue(value.ToString(CultureInfo.InvariantCulture));
+            row3.CreateCell(1).SetCellValue(default(string));
+            row3.CreateCell(2).SetCellValue(default(string));
+
+            var mapper = new Mapper(workbook);
+
+            // Act
+            var items = mapper.Take<NullableClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(value.DateTime, items[0].Value.NullableDateTime);
+            Assert.AreEqual(value, items[0].Value.NullableDateTimeOffset);
+            Assert.AreEqual(value.DateTime, items[1].Value.NullableDateTime);
+            Assert.AreEqual(value, items[1].Value.NullableDateTimeOffset);
+            Assert.AreEqual(value.ToString(CultureInfo.InvariantCulture), items[2].Value.NormalString);
+            Assert.IsNull(items[2].Value.NullableDateTime);
+            Assert.IsNull(items[2].Value.NullableDateTimeOffset);
         }
     }
 }
