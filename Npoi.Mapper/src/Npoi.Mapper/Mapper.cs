@@ -134,6 +134,14 @@ namespace Npoi.Mapper
         /// </value>
         public bool SkipWriteDefaultValue { get; set; } = false;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to skip hidden rows when reading from Excel files. Default is false.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if hidden lines are skipped; otherwise, <c>false</c>.
+        /// </value>
+        public bool SkipHiddenRows { get; set; } = false;
+
         #endregion
 
         #region Constructors
@@ -601,6 +609,7 @@ namespace Npoi.Mapper
                 if (maxErrorRows > 0 && errorCount >= maxErrorRows) break;
                 if (row.RowNum < firstDataRowIndex) continue;
 
+                if (SkipHiddenRows && row.Hidden.HasValue && row.Hidden.Value) continue;
                 if (SkipBlankRows && row.Cells.All(c => IsCellBlank(c))) continue;
 
                 var obj = objectInitializer == null ? Activator.CreateInstance(targetType) : objectInitializer();

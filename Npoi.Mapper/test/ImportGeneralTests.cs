@@ -608,6 +608,37 @@ namespace test
         }
 
         [Test]
+        public void Take_SkipHiddenRows_True()
+        {
+            // Arrange
+            const string value = "dummy";
+            const string hiddenValue = "hidden dummy";
+            var workbook = GetBlankWorkbook();
+            var sheet = workbook.GetSheetAt(0);
+            sheet.CreateRow(0);
+            sheet.CreateRow(1);
+            sheet.CreateRow(2);
+
+            sheet.GetRow(0).CreateCell(0).SetCellValue(nameof(TestClass.String).ToUpperInvariant());
+            sheet.GetRow(1).CreateCell(0).SetCellValue(value);
+            sheet.GetRow(2).CreateCell(0).SetCellValue(hiddenValue);
+            sheet.GetRow(2).Hidden = true;
+
+            var mapper = new Mapper(workbook)
+            {
+                SkipHiddenRows = true,
+            };
+
+            // Act
+            var items = mapper.Take<TestClass>().ToList();
+
+            // Assert
+            Assert.AreEqual(1, items.Count);
+            Assert.AreEqual(value, items[0].Value.String);
+        }
+
+
+        [Test]
         public void Take_DateTime_And_DateTimeOffice()
         {
             // Arrange
