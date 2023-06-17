@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
@@ -33,7 +34,7 @@ namespace Npoi.Mapper
         #region Properties
 
         // Instance of helper class.
-        private MapHelper Helper = new MapHelper();
+        private readonly MapHelper _helper = new MapHelper();
 
         // Stores formats for type rather than specific property.
         internal readonly Dictionary<Type, string> TypeFormats = new Dictionary<Type, string>();
@@ -68,7 +69,7 @@ namespace Npoi.Mapper
                 {
                     Objects.Clear();
                     TrackedColumns.Clear();
-                    Helper.ClearCache();
+                    _helper.ClearCache();
 
                     if (value is HSSFWorkbook)
                     {
@@ -135,7 +136,7 @@ namespace Npoi.Mapper
         /// <value>
         ///   <c>true</c> if <see cref="DefaultValueAttribute"/> is to be considered; otherwise, <c>false</c>.
         /// </value>
-        public bool UseDefaultValueAttribute { get; set; } = false;
+        public bool UseDefaultValueAttribute { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to write default property values to excel. Default is false.
@@ -151,7 +152,7 @@ namespace Npoi.Mapper
         /// <value>
         ///   <c>true</c> if hidden lines are skipped; otherwise, <c>false</c>.
         /// </value>
-        public bool SkipHiddenRows { get; set; } = false;
+        public bool SkipHiddenRows { get; set; }
 
         #endregion
 
@@ -234,9 +235,9 @@ namespace Npoi.Mapper
             }
             else if (attribute.PropertyName != null)
             {
-                if (DynamicAttributes.ContainsKey(attribute.PropertyName))
+                if (DynamicAttributes.TryGetValue(attribute.PropertyName, out var dynamicAttribute))
                 {
-                    DynamicAttributes[attribute.PropertyName].MergeFrom(attribute);
+                    dynamicAttribute.MergeFrom(attribute);
                 }
                 else
                 {
@@ -341,10 +342,10 @@ namespace Npoi.Mapper
         /// </summary>
         /// <typeparam name="T">Target object type</typeparam>
         /// <param name="sheetIndex">The sheet index; default is 0.</param>
-        /// <param name="maxErrorRows">The maximum error rows before stop reading; default is 10.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stop reading; default is 100.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
+        public IEnumerable<RowInfo<T>> Take<T>(int sheetIndex = 0, int maxErrorRows = 100, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
             return Take(null, sheet, maxErrorRows, objectInitializer);
@@ -355,10 +356,10 @@ namespace Npoi.Mapper
         /// </summary>
         /// <typeparam name="T">Target object type</typeparam>
         /// <param name="sheetName">The sheet name</param>
-        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 100.</param>
         /// <param name="objectInitializer">Factory method to create a new target object.</param>
         /// <returns>Objects of target type</returns>
-        public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 10, Func<T> objectInitializer = null) where T : class
+        public IEnumerable<RowInfo<T>> Take<T>(string sheetName, int maxErrorRows = 100, Func<T> objectInitializer = null) where T : class
         {
             var sheet = Workbook.GetSheet(sheetName);
             return Take(null, sheet, maxErrorRows, objectInitializer);
@@ -369,9 +370,9 @@ namespace Npoi.Mapper
         /// </summary>
         /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
         /// <param name="sheetName">The sheet name.</param>
-        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 100.</param>
         /// <returns>Objects of dynamic type.</returns>
-        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, string sheetName, int maxErrorRows = 10)
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, string sheetName, int maxErrorRows = 100)
         {
             var sheet = Workbook.GetSheet(sheetName);
             return Take<object>(getColumnType, sheet, maxErrorRows);
@@ -382,9 +383,9 @@ namespace Npoi.Mapper
         /// </summary>
         /// <param name="getColumnType">Function to get column type by inspecting the current column header.</param>
         /// <param name="sheetIndex">The sheet index; default is 0.</param>
-        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 10.</param>
+        /// <param name="maxErrorRows">The maximum error rows before stopping read; default is 100.</param>
         /// <returns>Objects of dynamic type.</returns>
-        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, int sheetIndex = 0, int maxErrorRows = 10)
+        public IEnumerable<RowInfo<dynamic>> TakeDynamicWithColumnType(Func<ICell, Type> getColumnType, int sheetIndex = 0, int maxErrorRows = 100)
         {
             var sheet = Workbook.GetSheetAt(sheetIndex);
             return Take<object>(getColumnType, sheet, maxErrorRows);
@@ -422,21 +423,23 @@ namespace Npoi.Mapper
         /// Saves the current workbook to specified file.
         /// </summary>
         /// <param name="path">The path to the Excel file.</param>
-        public void Save(string path)
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
+        public void Save(string path, bool leaveOpen)
         {
             if (Workbook == null) return;
 
-            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
-                Workbook.Write(fs);
+            using var fileStream = GetStreamForSave(path);
+            Workbook.Write(fileStream, leaveOpen);
         }
 
         /// <summary>
         /// Saves the current workbook to specified stream.
         /// </summary>
         /// <param name="stream">The stream to save the workbook.</param>
-        public void Save(Stream stream)
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
+        public void Save(Stream stream, bool leaveOpen)
         {
-            Workbook?.Write(stream);
+            Workbook?.Write(stream, leaveOpen);
         }
 
         /// <summary>
@@ -448,12 +451,13 @@ namespace Npoi.Mapper
         /// <param name="sheetName">Name of the sheet.</param>
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
+        public void Save<T>(string path, IEnumerable<T> objects, string sheetName, bool leaveOpen, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
+            if (Workbook == null && File.Exists(path)) LoadWorkbookFromFile(path);
 
-            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
-                Save(fs, objects, sheetName, overwrite, xlsx);
+            using var fileStream = GetStreamForSave(path);
+            Save(fileStream, objects, sheetName, leaveOpen, overwrite, xlsx);
         }
 
         /// <summary>
@@ -462,15 +466,16 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="objects">The objects to save.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string path, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(string path, IEnumerable<T> objects, bool leaveOpen, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
+            if (Workbook == null && File.Exists(path)) LoadWorkbookFromFile(path);
 
-            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
-                Save(fs, objects, sheetIndex, overwrite, xlsx);
+            using var fileStream = GetStreamForSave(path);
+            Save(fileStream, objects, leaveOpen, sheetIndex, overwrite, xlsx);
         }
 
         /// <summary>
@@ -480,14 +485,14 @@ namespace Npoi.Mapper
         /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="objects">The objects to save.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(Stream stream, IEnumerable<T> objects, string sheetName, bool leaveOpen, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null)
-                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            Workbook ??= xlsx ? new XSSFWorkbook() : new HSSFWorkbook();
             var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
-            Save(stream, sheet, objects, overwrite);
+            Save(stream, sheet, objects, leaveOpen, overwrite);
         }
 
         /// <summary>
@@ -496,15 +501,15 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="objects">The objects to save.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, IEnumerable<T> objects, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(Stream stream, IEnumerable<T> objects, bool leaveOpen, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null)
-                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            Workbook ??= xlsx ? new XSSFWorkbook() : new HSSFWorkbook();
             var sheet = Workbook.NumberOfSheets > sheetIndex ? Workbook.GetSheetAt(sheetIndex) : Workbook.CreateSheet();
-            Save(stream, sheet, objects, overwrite);
+            Save(stream, sheet, objects, leaveOpen, overwrite);
         }
 
         /// <summary>
@@ -513,14 +518,15 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="path">The path to the Excel file.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(string path, string sheetName, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(string path, string sheetName, bool leaveOpen, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
+            if (Workbook == null && File.Exists(path)) LoadWorkbookFromFile(path);
 
-            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
-                Save<T>(fs, sheetName, overwrite, xlsx);
+            using var fileStream = GetStreamForSave(path);
+            Save<T>(fileStream, sheetName, leaveOpen, overwrite, xlsx);
         }
 
         /// <summary>
@@ -528,15 +534,16 @@ namespace Npoi.Mapper
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="path">The path to the Excel file.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
         /// <param name="overwrite">If file exists, pass <c>true</c> to overwrite existing file; <c>false</c> to merge.</param>
-        public void Save<T>(string path, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(string path, bool leaveOpen, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null && !overwrite) LoadWorkbookFromFile(path);
+            if (Workbook == null && File.Exists(path)) LoadWorkbookFromFile(path);
 
-            using (var fs = File.Open(path, FileMode.Create, FileAccess.Write))
-                Save<T>(fs, sheetIndex, overwrite, xlsx);
+            using var fileStream = GetStreamForSave(path);
+            Save<T>(fileStream, leaveOpen, sheetIndex, overwrite, xlsx);
         }
 
         /// <summary>
@@ -545,15 +552,14 @@ namespace Npoi.Mapper
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="stream">The stream to write the objects to.</param>
         /// <param name="sheetName">Name of the sheet.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, string sheetName, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(Stream stream, string sheetName, bool leaveOpen, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null)
-                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            Workbook ??= xlsx ? new XSSFWorkbook() : new HSSFWorkbook();
             var sheet = Workbook.GetSheet(sheetName) ?? Workbook.CreateSheet(sheetName);
-
-            Save<T>(stream, sheet, overwrite);
+            Save<T>(stream, sheet, leaveOpen, overwrite);
         }
 
         /// <summary>
@@ -561,16 +567,15 @@ namespace Npoi.Mapper
         /// </summary>
         /// <typeparam name="T">The type of objects to save.</typeparam>
         /// <param name="stream">The stream to write the objects to.</param>
+        /// <param name="leaveOpen">True to leave the stream open after write.</param>
         /// <param name="sheetIndex">Index of the sheet.</param>
         /// <param name="overwrite"><c>true</c> to overwrite existing content; <c>false</c> to merge.</param>
         /// <param name="xlsx">if set to <c>true</c> saves in .xlsx format; otherwise, saves in .xls format.</param>
-        public void Save<T>(Stream stream, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
+        public void Save<T>(Stream stream, bool leaveOpen, int sheetIndex = 0, bool overwrite = true, bool xlsx = true)
         {
-            if (Workbook == null)
-                Workbook = xlsx ? new XSSFWorkbook() : (IWorkbook)new HSSFWorkbook();
+            Workbook ??= xlsx ? new XSSFWorkbook() : new HSSFWorkbook();
             var sheet = Workbook.GetSheetAt(sheetIndex) ?? Workbook.CreateSheet();
-
-            Save<T>(stream, sheet, overwrite);
+            Save<T>(stream, sheet, leaveOpen, overwrite);
         }
 
         #endregion
@@ -605,7 +610,7 @@ namespace Npoi.Mapper
             var columns = GetColumns(firstRow, targetType);
 
             // Detect column format based on the first non-null cell.
-            Helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
+            _helper.LoadDataFormats(sheet, HasHeader ? firstRowIndex + 1 : firstRowIndex, columns, TypeFormats);
 
             if (TrackObjects)
             {
@@ -653,7 +658,7 @@ namespace Npoi.Mapper
             {
                 var column = GetColumnInfoByDynamicAttribute(header);
                 var type = getColumnType?.Invoke(header)
-                    ?? Helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
+                    ?? _helper.InferColumnDataType(sheet, HasHeader ? firstRowIndex : -1, header.ColumnIndex);
 
                 if (column != null)
                 {
@@ -694,7 +699,7 @@ namespace Npoi.Mapper
                 case CellType.String: return string.IsNullOrWhiteSpace(cell.StringCellValue);
                 case CellType.Blank: return true;
                 default: return false;
-            };
+            }
         }
 
         private List<ColumnInfo> GetColumns(IRow headerRow, Type type)
@@ -744,8 +749,8 @@ namespace Npoi.Mapper
                 columnsCache.Add(column);
             }
 
-            var typeDict = TrackedColumns.ContainsKey(sheetName)
-                ? TrackedColumns[sheetName]
+            var typeDict = TrackedColumns.TryGetValue(sheetName, out var trackedColumn)
+                ? trackedColumn
                 : TrackedColumns[sheetName] = new Dictionary<Type, List<object>>();
 
             typeDict[type] = columnsCache;
@@ -844,9 +849,9 @@ namespace Npoi.Mapper
 
             ColumnAttribute attribute = null;
 
-            if (Attributes.ContainsKey(pi))
+            if (Attributes.TryGetValue(pi, out var attribute1))
             {
-                attribute = Attributes[pi].Clone(index);
+                attribute = attribute1.Clone(index);
                 if (attribute.Ignored == true) return null;
             }
 
@@ -958,6 +963,8 @@ namespace Npoi.Mapper
             Workbook = WorkbookFactory.Create(new FileStream(path, FileMode.Open));
         }
 
+        private static FileStream GetStreamForSave(string path) => File.Open(path, FileMode.Create, FileAccess.Write);
+
         #endregion
 
         #region Export
@@ -988,7 +995,8 @@ namespace Npoi.Mapper
                 {
                     //sheet.RemoveRow(row);
                     //row = sheet.CreateRow(rowIndex);
-                    row.Cells.Clear();
+                    //row.Cells.Clear();
+                    row.Cells?.ForEach(c => c.SetCellType(CellType.Blank)); // erase content and try keep format.
                 }
 
                 row = row ?? sheet.CreateRow(rowIndex);
@@ -1015,8 +1023,8 @@ namespace Npoi.Mapper
                 var row = sheet.GetRow(rowIndex);
                 if (row != null)
                 {
-                    //sheet.RemoveRow(row);
-                    row.Cells.Clear();
+                    sheet.RemoveRow(row);
+                    //row.Cells.Clear();
                 }
                 rowIndex++;
             }
@@ -1028,19 +1036,19 @@ namespace Npoi.Mapper
             }
         }
 
-        private void Save<T>(Stream stream, ISheet sheet, bool overwrite)
+        private void Save<T>(Stream stream, ISheet sheet, bool leaveOpen, bool overwrite)
         {
             var sheetName = sheet.SheetName;
-            var objects = Objects.ContainsKey(sheetName) ? Objects[sheetName] : new Dictionary<int, object>();
+            var objects = Objects.TryGetValue(sheetName, out var o) ? o : new Dictionary<int, object>();
 
             Put(sheet, objects.Values.OfType<T>(), overwrite);
-            Workbook.Write(stream);
+            Workbook.Write(stream, leaveOpen);
         }
 
-        private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects, bool overwrite)
+        private void Save<T>(Stream stream, ISheet sheet, IEnumerable<T> objects, bool leaveOpen, bool overwrite)
         {
             Put(sheet, objects, overwrite);
-            Workbook.Write(stream);
+            Workbook.Write(stream, leaveOpen);
         }
 
         private IRow PopulateFirstRow(ISheet sheet, List<ColumnInfo> columns, Type type)
@@ -1090,7 +1098,7 @@ namespace Npoi.Mapper
             // Then populate for those do not have Attribute specified.
             foreach (var pi in properties)
             {
-                var attribute = Attributes.ContainsKey(pi) ? Attributes[pi] : null;
+                var attribute = Attributes.TryGetValue(pi, out var attribute1) ? attribute1 : null;
                 if (attribute?.Ignored == true) continue;
 
                 while (row.GetCell(index) != null) index++;
@@ -1116,9 +1124,9 @@ namespace Npoi.Mapper
             IEnumerable<ColumnInfo> columns = null;
 
             var cols = TrackedColumns[sheetName];
-            if (cols.ContainsKey(type))
+            if (cols.TryGetValue(type, out var col))
             {
-                columns = cols[type].OfType<ColumnInfo>();
+                columns = col.OfType<ColumnInfo>();
             }
 
             return columns?.ToList();
@@ -1130,9 +1138,9 @@ namespace Npoi.Mapper
             {
                 cell.SetCellValue((string)null);
             }
-            else if (this.SkipWriteDefaultValue && !isHeader && 
+            else if (SkipWriteDefaultValue && !isHeader && 
                      (Equals(column.Attribute.DefaultValue, value) ||
-                      (this.UseDefaultValueAttribute && Equals(column.Attribute.DefaultValueAttribute?.Value, value)))
+                      (UseDefaultValueAttribute && Equals(column.Attribute.DefaultValueAttribute?.Value, value)))
                     )
             {
                 cell.SetCellValue((string)null);
@@ -1156,7 +1164,7 @@ namespace Npoi.Mapper
 
             if (column != null && setStyle)
             {
-                column.SetCellStyle(cell, value, isHeader, TypeFormats, Helper);
+                column.SetCellStyle(cell, value, isHeader, TypeFormats, _helper);
             }
         }
 

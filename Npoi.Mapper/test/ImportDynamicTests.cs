@@ -87,7 +87,7 @@ namespace test
         public void TakeDynamic_Modify_ThenExport()
         {
             // Arrange
-            var tempFileName = "_tempFile.xlsx";
+            var tempFileName = "TakeDynamic_Modify_ThenExport.xlsx";
             var dateProperty = "ColumnDate";
             var date1 = DateTime.Now;
             var date2 = date1.AddMonths(1);
@@ -107,7 +107,7 @@ namespace test
             objs[0].Value.ColumnDate = date2;
             if (File.Exists(tempFileName)) File.Delete(tempFileName);
             mapper.Put(new[] { objs[0].Value });
-            mapper.Save(new FileStream(tempFileName, FileMode.Create));
+            mapper.Save(new FileStream(tempFileName, FileMode.Create), false);
 
             mapper = new Mapper(tempFileName);
             objs = mapper.Take<dynamic>().ToList();
@@ -115,6 +115,7 @@ namespace test
             // Assert
             Assert.AreEqual(date2.ToLongDateString(), objs[0].Value.ColumnDate.ToLongDateString());
             Assert.AreEqual(164, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
+            File.Delete(tempFileName);
         }
 
         [Test]

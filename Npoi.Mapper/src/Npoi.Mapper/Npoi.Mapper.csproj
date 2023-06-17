@@ -3,16 +3,17 @@
   <PropertyGroup>
     <Description>Convention-based mapper between strong typed object and Excel data via NPOI.</Description>
     <Authors>Donny Tian</Authors>
-    <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <AssemblyName>Npoi.Mapper</AssemblyName>
     <PackageId>Npoi.Mapper</PackageId>
     <PackageTags>Excel;XLS;XLSX;NPOI;Object mapping;dynamic</PackageTags>
     <PackageProjectUrl>https://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>4.1.1</Version>
-    <PackageReleaseNotes>Bug fix and enhancements.</PackageReleaseNotes>
+    <Version>6.0</Version>
+    <PackageReleaseNotes>Target on net6.0 only</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>default</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="SourceLink">
@@ -25,25 +26,14 @@
     <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <ContinuousIntegrationBuild  Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="NPOI" Version="2.5.6" />
-  </ItemGroup>
-  
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.5.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <PackageReference Include="NPOI" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup Label="SourceLink">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
 </Project>

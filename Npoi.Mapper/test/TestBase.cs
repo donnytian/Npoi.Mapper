@@ -66,7 +66,7 @@ namespace test
 
             using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
             {
-                workbook.Write(fs);
+                workbook.Write(fs, true);
             }
 
             IWorkbook newWorkbook;
