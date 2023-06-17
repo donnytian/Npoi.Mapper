@@ -890,11 +890,9 @@ namespace Npoi.Mapper
                 try
                 {
                     var cell = row.GetCell(index);
-                    var propertyType = column.Attribute.PropertyUnderlyingType ??
-                                       column.Attribute.Property?.PropertyType;
+                    var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj,
-                            FormulaEvaluator))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, TrimSpaces, out object valueObj, FormulaEvaluator))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
