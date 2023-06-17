@@ -224,7 +224,7 @@ namespace Npoi.Mapper
             keyJsonBuilder.Append('}');
 
             string keyHashHexString;
-            using (var hasher = new SHA1CryptoServiceProvider())
+            using (var hasher = SHA1.Create())
             {
                 var hashBytes = hasher.ComputeHash(Encoding.UTF8.GetBytes(keyJsonBuilder.ToString()));
                 keyHashHexString = BitConverter.ToString(hashBytes).Replace("-", string.Empty);

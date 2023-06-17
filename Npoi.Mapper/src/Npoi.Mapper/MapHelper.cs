@@ -47,6 +47,8 @@ namespace Npoi.Mapper
         // Default chars to truncate column header name during mapping.
         private static readonly char[] DefaultTruncateChars = { '[', '<', '(', '{' };
 
+        private static readonly DataFormatter CellDataFormatter = new DataFormatter();
+
         // Binding flags to lookup object properties.
         public const BindingFlags BindingFlag = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
 
@@ -319,36 +321,43 @@ namespace Npoi.Mapper
         /// <param name="targetType">Type of target property.</param>
         /// <param name="trimSpacesType">Type of  whitespace trim if the cell is a string.</param>
         /// <param name="value">The returned value for cell.</param>
+        /// <param name="evaluator">Formula evaluator.</param>
         /// <returns><c>true</c> if get value successfully; otherwise false.</returns>
-        public static bool TryGetCellValue(ICell cell, Type targetType, TrimSpacesType trimSpacesType, out object value)
+        public static bool TryGetCellValue(ICell cell, Type targetType, TrimSpacesType trimSpacesType, out object value, IFormulaEvaluator evaluator)
         {
             value = null;
             if (cell == null) return true;
 
+            if (targetType == StringType)
+            {
+                value = TrimString(CellDataFormatter.FormatCellValue(cell, evaluator));
+                return true;
+            }
+
             var success = true;
+
+            string TrimString(string raw)
+            {
+                switch (trimSpacesType)
+                {
+                    case TrimSpacesType.None:
+                        return raw;
+                    case TrimSpacesType.Start:
+                        return raw?.TrimStart();
+                    case TrimSpacesType.End:
+                        return raw?.TrimEnd();
+                    case TrimSpacesType.Both:
+                        return raw?.Trim();
+                    default:
+                        return null;
+                }
+            }
 
             switch (GetCellType(cell))
             {
                 case CellType.String:
 
-                    switch (trimSpacesType)
-                    {
-                        case TrimSpacesType.None:
-                            value = cell.StringCellValue;
-                            break;
-                        case TrimSpacesType.Start:
-                            value = cell.StringCellValue.TrimStart();
-                            break;
-                        case TrimSpacesType.End:
-                            value = cell.StringCellValue.TrimEnd();
-                            break;
-                        case TrimSpacesType.Both:
-                            value = cell.StringCellValue.Trim();
-                            break;
-                        default:
-                            break; // unreachable
-                    }
-
+                    value = TrimString(cell.StringCellValue);
                     break;
 
                 case CellType.Numeric:

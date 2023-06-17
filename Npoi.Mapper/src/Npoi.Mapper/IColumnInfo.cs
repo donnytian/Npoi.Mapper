@@ -37,5 +37,10 @@ namespace Npoi.Mapper
         /// Get the data cell format.
         /// </summary>
         short? DataFormat { get; set; }
+        
+        /// <summary>
+        /// Object that associated with the current row.
+        /// </summary>
+        object RowTag { get; set; }
     }
 }

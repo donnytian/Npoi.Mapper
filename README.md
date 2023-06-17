@@ -15,6 +15,7 @@ Convention-based mapper between strong typed object and Excel data via NPOI (Tel
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
 <font color=brown>From v3, support to import and export as **`dynamic`** type.</font>
+## [Change log](Changelog.md)
 ## Install from NuGet
 In the Package Manager Console:
 
@@ -60,6 +61,10 @@ var objs = mapper.TakeDynamicWithColumnType(header =>
 // Or simply take all columns as string.
 var objs = mapper.TakeDynamicWithColumnType(_ => typeof(string));
 ```
+
+### Import numeric cell as `string`
+If the target property is in the type of `string`, cell format and formula will be respected. That means you will get exact same string as what is displayed in Excel instead of underlying number or formula.
+
 More use cases please check out source in "test" project.
 
 ## Export objects to Excel (XLS or XLSX)
@@ -69,7 +74,7 @@ Set **`overwrite`** parameter to false to use existing columns and formats, othe
 ```C#
 //var objects = ...
 var mapper = new Mapper();
-mapper.Save("test.xlsx",  objects, "newSheet", overwrite: false);
+mapper.Save("test.xlsx",  objects, "newSheet", leaveOpen: false, overwrite: false);
 ```
 
 ### 2. Export tracked objects.
@@ -88,7 +93,7 @@ Set **`overwrite`** parameter to true, existing data rows will be overwritten, o
 var mapper = new Mapper("Book1.xlsx");
 mapper.Put(products, "sheet1", true);
 mapper.Put(orders, "sheet2", false);
-mapper.Save("Book1.xlsx");
+mapper.Save("Book1.xlsx", leaveOpen: false);
 ```
 
 ## Features
@@ -216,7 +221,7 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
                     if (!(column.HeaderValue is DateTime)) return false;
 
                     ((SampleClass)target).CollectionGenericProperty.Add(((DateTime)column.HeaderValue).ToLongDateString() + column.CurrentValue);
-
+                    column.RowTag = "MyCustomObject"; // this can be retrieved in the result items.
                     return true;
                 },
                 (column, source) => // tryPut resolver : Custom logic to put property value into cell.
@@ -244,4 +249,3 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
                 );
 ```
 
-## [Change log](Changelog.md)
