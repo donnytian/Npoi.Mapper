@@ -221,7 +221,7 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
                     if (!(column.HeaderValue is DateTime)) return false;
 
                     ((SampleClass)target).CollectionGenericProperty.Add(((DateTime)column.HeaderValue).ToLongDateString() + column.CurrentValue);
-
+                    column.RowTag = "MyCustomObject"; // this can be retrieved in the result items.
                     return true;
                 },
                 (column, source) => // tryPut resolver : Custom logic to put property value into cell.

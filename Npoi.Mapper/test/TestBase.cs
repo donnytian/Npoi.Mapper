@@ -17,7 +17,7 @@ namespace test
         /// <summary>
         /// Gets a workbook with 2 sheets("sheet1" and "sheet2") and with 2 rows in "sheet2":
         /// <para>DateProperty StringProperty</para>
-        /// <para>dataValue    stringValue</para>
+        /// <para>dateValue    stringValue</para>
         /// </summary>
         protected static IWorkbook GetSimpleWorkbook(DateTime dateValue, string stringValue)
         {

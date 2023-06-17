@@ -231,5 +231,30 @@ namespace test
             // Assert
             Assert.AreEqual(value.ToString(format), items[0].Value.DateProperty.ToString(format));
         }
+        
+        [Test]
+        public void RowTagForTryTakeTest()
+        {
+            // Arrange
+            var workbook = GetSimpleWorkbook(DateTime.Now, "foo");
+            var sheet = workbook.GetSheetAt(1);
+            var row2 = sheet.CreateRow(2);
+            row2.CreateCell(1).SetCellValue("bar");
+            var mapper = new Mapper(workbook);
+
+            // Act
+            mapper.Map<SampleClass>(1, o => o.StringProperty, (column, obj) =>
+            {
+                ((SampleClass)obj).StringProperty = column.CurrentValue as string;
+                column.RowTag ??= column.CurrentValue;
+                return true;
+            }, null);
+            var items = mapper.Take<SampleClass>(1).ToList();
+
+            // Assert
+            Assert.AreEqual(2, items.Count);
+            Assert.AreEqual("foo", items[0].RowTag);
+            Assert.AreEqual("bar", items[1].RowTag);
+        }
     }
 }

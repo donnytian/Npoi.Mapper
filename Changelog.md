@@ -2,9 +2,10 @@
 
 ## v6
 * **Breaking change:** Target on net6.0 only; sorry for net45
-* **Breaking change:** Upgrade NPOI version to 2.6.0, so a new `leaveOpen` parameter is required for any `Save` method
+* **Breaking change:** Upgrade NPOI version to 2.6.0, so a new `leaveOpen` parameter is required for any `Save()` method
 * **Breaking change:** `Save()` methods now will try to open existing file instead of create new one; thus the `overwrite` parameter will overwrite rows in existing file as expected.
-
+* The default value of `maxErrorRows` in `Take()` methods is change to 100 from 10.
+* New property `RowTag` in the result items to associate custom object during `TryTake()` resolver.
 ## From v4 go on, we will use Github Release feature to track change logs.
 
 ## v4

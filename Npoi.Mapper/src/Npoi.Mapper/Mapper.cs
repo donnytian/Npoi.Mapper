@@ -868,7 +868,7 @@ namespace Npoi.Mapper
             return !columnFilter(column) ? null : column;
         }
 
-        private void LoadRowData(IEnumerable<ColumnInfo> columns, IRow row, object target, IRowInfo rowInfo)
+        private void LoadRowData<T>(IEnumerable<ColumnInfo> columns, IRow row, object target, RowInfo<T> rowInfo)
         {
             var errorIndex = -1;
             string errorMessage = null;
@@ -886,12 +886,15 @@ namespace Npoi.Mapper
                 var index = column.Attribute.Index;
                 if (index < 0) continue;
 
+                column.RowTag = rowInfo.RowTag;
                 try
                 {
                     var cell = row.GetCell(index);
-                    var propertyType = column.Attribute.PropertyUnderlyingType ?? column.Attribute.Property?.PropertyType;
+                    var propertyType = column.Attribute.PropertyUnderlyingType ??
+                                       column.Attribute.Property?.PropertyType;
 
-                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj, FormulaEvaluator))
+                    if (!MapHelper.TryGetCellValue(cell, propertyType, this.TrimSpaces, out object valueObj,
+                            FormulaEvaluator))
                     {
                         ColumnFailed(column, "CellType is not supported yet!");
                         continue;
@@ -923,6 +926,11 @@ namespace Npoi.Mapper
                 catch (Exception e)
                 {
                     ColumnFailed(column, e.ToString());
+                }
+                finally
+                {
+                    rowInfo.RowTag = column.RowTag;
+                    column.RowTag = null;
                 }
             }
 
