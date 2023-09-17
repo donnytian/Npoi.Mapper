@@ -1,5 +1,4 @@
 ﻿using System;
-using NUnit.Framework;
 
 namespace test
 {
