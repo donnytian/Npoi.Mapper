@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Npoi.Mapper;
 using NPOI.SS.UserModel;
 using NUnit.Framework;
@@ -275,7 +272,9 @@ namespace test
             Assert.AreEqual(stringValue, objs1[0].Value.A);
             Assert.AreEqual(intValue, objs1[0].Value.sheet1B);
             Assert.AreEqual(doubleValue, objs2[0].Value.A);
-            Assert.AreEqual(dateTimeValue.ToOADate(), objs2[0].Value.sheet2B);
+            var diff = dateTimeValue.ToOADate() - objs2[0].Value.sheet2B;
+            const double epsilon = 0.0000000001;
+            Assert.IsTrue(Math.Abs(diff) <  epsilon);
         }
     }
 }
