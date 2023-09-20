@@ -14,7 +14,10 @@
 Convention-based mapper between strong typed object and Excel data via NPOI (Telegram group https://t.me/npoidevs).  
 This project comes up with a task of my work, I am using it a lot in my project. Feel free to file bugs or raise pull requests...
 
-<font color=brown>From v3, support to import and export as **`dynamic`** type.</font>
+Support to import and export as *`dynamic`* type.
+
+Support **nested property mapping** (only work for explicit mapping by `Map` method).
+
 ## [Change log](Changelog.md)
 ## Install from NuGet
 In the Package Manager Console:
@@ -34,9 +37,9 @@ var objs2 = mapper.Take<AnotherClass>("sheet2");
 // DateTime, double and string will be auto-detected for object properties.
 // You will get a DateTime property only if the cell in Excel was formatted as a date, otherwise it will be a double.
 var objs3 = mapper.Take<dynamic>("sheet1").ToList();
-DateTime date = obj3[0].DateColumn;
-double number = obj3[0].NumberColumn;
-string text = obj3[0].AC; // If the column doesn't have a header name, Excel display name like "AC" will be populated.
+DateTime date = obj3[0].Value.DateColumn;
+double number = obj3[0].Value.NumberColumn;
+string text = obj3[0].Value.AC; // If the column doesn't have a header name, Excel display name like "AC" will be populated.
 ```
 
 ### Differences between `Take<dynamic>()` and `TakeDynamicWithColumnType()`
@@ -77,7 +80,7 @@ var mapper = new Mapper();
 mapper.Save("test.xlsx",  objects, "newSheet", leaveOpen: false, overwrite: false);
 ```
 
-### 2. Export tracked objects.
+### 2. ~~Export tracked objects.~~ (This feature was removed from 6.2)
 Set **`TrackObjects`** property to true, objects can be tracked after a `Take` method and then you can modify and save them back.
 ```C#
 var mapper = new Mapper("Book1.xlsx");
@@ -122,15 +125,20 @@ mapper.Save("Book1.xlsx", leaveOpen: false);
 
 ## Explicit column mapping
 
-By fluent mapping methods:
+By fluent mapping methods.
+
+Nested properties are supported.
+For the import, if any property in the middle of the chain is null, the mapper will create new instance -
+just make sure it has a public parameterless constructor. 
 
 ```C#
 mapper.Map<SampleClass>("ColumnA", o => o.Property1)
     .Map<SampleClass>(1, o => o.Property2)
+    .Map<SampleClass>(2, o => o.Customer.Address.ZipCode)
     .Ignore<SampleClass>(o => o.Property3)
     .UseLastNonBlankValue<SampleClass>(o => o.Property1)
     .Format<SampleClass>("yyyy/MM/dd", o => o.DateProperty)
-    .DefaultResolverType = typeof (SampleColumnResolver);
+    .DefaultResolverType = typeof(SampleColumnResolver);
 ```
 
 Or by Attributes tagged on object properties:
@@ -248,4 +256,3 @@ Use overload of **`Map`** method to handle complex scenarios. Such as data conve
                 }
                 );
 ```
-
