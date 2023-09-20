@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text;
+// ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable PossibleNullReferenceException
 
 namespace Npoi.Mapper
 {
@@ -545,7 +547,6 @@ namespace Npoi.Mapper
             il.DeclareLocal(typeof(StringBuilder));
             il.DeclareLocal(typeof(string));
 
-            // ReSharper disable once AssignNullToNotNullAttribute
             il.Emit(OpCodes.Newobj, typeof(StringBuilder).GetConstructor(Type.EmptyTypes));
             il.Emit(OpCodes.Stloc_0);
 
