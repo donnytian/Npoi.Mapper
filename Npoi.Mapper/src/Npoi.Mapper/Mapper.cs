@@ -812,13 +812,11 @@ public class Mapper
                     if (MapHelper.TryConvertType(valueObj, column, UseDefaultValueAttribute, out var result))
                     {
                         column.Attribute.GetSetterOrDefault(target)?.Invoke(target, result);
-                        //column.Attribute.Property.SetValue(target, result, null);
                     }
                     else
                     {
                         ColumnFailed(column, "Cannot convert value to the property type!");
                     }
-                    //var value = Convert.ChangeType(valueObj, column.Attribute.PropertyUnderlyingType ?? propertyType);
                 }
             }
             catch (Exception e)
@@ -909,8 +907,6 @@ public class Mapper
 
             foreach (var column in columns)
             {
-                //var pi = column.Attribute.Property;
-                //var value = pi?.GetValue(o, null);
                 var value = column.Attribute.GetGetterOrDefault(o)?.Invoke(o);
                 var cell = row.GetCell(column.Attribute.Index, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 

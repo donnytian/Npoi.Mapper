@@ -538,10 +538,13 @@ public class MapHelper
         {
             var memberAccess = body as MemberExpression ?? (MemberExpression)((UnaryExpression)body).Operand;
 
-            newBody = Expression.Condition(
-                Expression.Equal(memberAccess.Expression, Expression.Constant(null)),
-                Expression.Convert(Expression.Constant(null), ObjectType),
-                newBody);
+            if (!memberAccess.Expression.Type.IsValueType)
+            {
+                newBody = Expression.Condition(
+                    Expression.Equal(memberAccess.Expression, Expression.Constant(null)),
+                    Expression.Convert(Expression.Constant(null), ObjectType),
+                    newBody);
+            }
 
             body = memberAccess.Expression;
         }
@@ -581,11 +584,15 @@ public class MapHelper
         {
             var memberAccess = innerBody as MemberExpression ?? (MemberExpression)((UnaryExpression)innerBody).Operand;
 
-            var assignNewObjExpression = Expression.IfThen(
-                Expression.Equal(memberAccess, Expression.Constant(null)),
-                Expression.Assign(memberAccess, Expression.New(memberAccess.Type)));
+            if (!memberAccess.Type.IsValueType)
+            {
+                var ifNullAssignNew = Expression.IfThen(
+                    Expression.Equal(memberAccess, Expression.Constant(null)),
+                    Expression.Assign(memberAccess, Expression.New(memberAccess.Type)));
 
-            statements.Add(assignNewObjExpression);
+                statements.Add(ifNullAssignNew);
+            }
+
             innerBody = memberAccess.Expression;
         }
 
