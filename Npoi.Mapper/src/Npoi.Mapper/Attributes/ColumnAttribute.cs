@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using LogicExtensions;
 
 namespace Npoi.Mapper.Attributes;
 
@@ -138,7 +139,7 @@ public sealed class ColumnAttribute : Attribute
             return null;
         }
 
-        Getter ??= MapHelper.CreateConditionalGetter(host, PropertyFullPath);
+        Getter ??= PropertyFullPath.CreateConditionalGetter<T, object>(host, pathStartsWithHostType: true);
         return (Func<T, object>)Getter;
     }
 
@@ -149,7 +150,7 @@ public sealed class ColumnAttribute : Attribute
             return null;
         }
 
-        Setter ??= MapHelper.CreateConditionalSetter(host, PropertyFullPath);
+        Setter ??= PropertyFullPath.CreateConditionalSetter<T, object>(host, pathStartsWithHostType: true);
         return (Action<T, object>)Setter;
     }
 
