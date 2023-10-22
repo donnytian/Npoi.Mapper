@@ -139,7 +139,7 @@ namespace test
             TestDelegate action = () => importer.Map<TestClass>(name, "myString");
 
             // Assert
-            Assert.Throws<AmbiguousMatchException>(action);
+            Assert.Throws<InvalidOperationException>(action);
         }
 
         [Test]

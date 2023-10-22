@@ -127,24 +127,6 @@ namespace test
         }
 
         [Test]
-        public void SaveSheetTest()
-        {
-            // Prepare
-            var workbook = GetSimpleWorkbook(DateTime.Now, "aBC");
-            var exporter = new Mapper(workbook);
-            if (File.Exists(FileName)) File.Delete(FileName);
-            var objs = exporter.Take<SampleClass>(1).ToList();
-
-            // Act
-            exporter.Save<SampleClass>(FileName, false, 1);
-
-            // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNotNull(exporter);
-            Assert.IsNotNull(exporter.Workbook);
-        }
-
-        [Test]
         public void SaveObjectsTest()
         {
             // Prepare

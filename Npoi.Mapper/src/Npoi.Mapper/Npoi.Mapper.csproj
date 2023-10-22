@@ -8,8 +8,8 @@
     <PackageTags>Excel;XLS;XLSX;NPOI;object mapping;dynamic object mapping</PackageTags>
     <PackageProjectUrl>https://donnytian.github.io/Npoi.Mapper/</PackageProjectUrl>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>6.1</Version>
-    <PackageReleaseNotes>Support net 472 and net60</PackageReleaseNotes>
+    <Version>6.2</Version>
+    <PackageReleaseNotes>Support net472 and net6.0</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>npoi.mapper.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworks>net472;net6.0</TargetFrameworks>
@@ -30,10 +30,12 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="LogicExtensions" Version="0.0.3" />
     <PackageReference Include="NPOI" Version="2.6.2" />
   </ItemGroup>
 
   <ItemGroup Label="SourceLink">
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
+  
 </Project>
