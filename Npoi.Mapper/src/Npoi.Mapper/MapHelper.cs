@@ -336,7 +336,9 @@ public class MapHelper
         value = null;
         if (cell == null) return true;
 
-        if (targetType == StringType)
+        var cellType = GetCellType(cell);
+
+        if (targetType == StringType && cellType != CellType.Blank)
         {
             value = TrimString(CellDataFormatter.FormatCellValue(cell, evaluator));
             return true;
@@ -361,7 +363,7 @@ public class MapHelper
             }
         }
 
-        switch (GetCellType(cell))
+        switch (cellType)
         {
             case CellType.String:
 
