@@ -340,7 +340,9 @@ public class MapHelper
 
         if (targetType == StringType && cellType != CellType.Blank)
         {
-            value = TrimString(CellDataFormatter.FormatCellValue(cell, evaluator));
+            string trimmedValue = TrimString(CellDataFormatter.FormatCellValue(cell, evaluator));
+            value = trimmedValue?.Length == 0 ? null : trimmedValue;
+
             return true;
         }
 
