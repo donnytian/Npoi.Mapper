@@ -89,9 +89,9 @@ public class NestedPropertyTests : TestBase
         Assert.AreEqual(addressId, objs[0].Value.Billing.Address.AddressId);
         Assert.AreEqual(date.Date, objs[0].Value.Billing.Dates.Dto.Date);
 
-        Assert.AreEqual("", objs[1].Value.Name);
+        Assert.AreEqual(null, objs[1].Value.Name);
         Assert.AreEqual(customerAge, objs[1].Value.Age);
-        Assert.AreEqual("", objs[1].Value.Billing.Contact.Name);
+        Assert.AreEqual(null, objs[1].Value.Billing.Contact.Name);
         Assert.AreEqual(null, objs[1].Value.Billing.Address);
         Assert.AreEqual(DateTime.MinValue, objs[1].Value.Billing.Dates.Dto.Date);
     }
