@@ -277,7 +277,7 @@ namespace test
             // Assert
             var sheet = exporter.Workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue?.Date);
             File.Delete(existingFile);
         }
 
@@ -300,7 +300,7 @@ namespace test
             // Assert
             var sheet = workbook.GetSheet(sheetName);
             Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue.Date);
+            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue?.Date);
             File.Delete(existingFile);
         }
 
@@ -328,7 +328,7 @@ namespace test
             var row = sheet.GetRow(1);
             Assert.AreEqual(1, sheet.LastRowNum);
             Assert.AreEqual(sampleObj.GeneralProperty, row.GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, row.GetCell(2).DateCellValue.Date);
+            Assert.AreEqual(sampleObj.DateProperty.Date, row.GetCell(2).DateCellValue?.Date);
         }
 
         [Test]
