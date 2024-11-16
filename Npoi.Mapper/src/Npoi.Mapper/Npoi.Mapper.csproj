@@ -31,7 +31,7 @@
   
   <ItemGroup>
     <PackageReference Include="LogicExtensions" Version="0.0.3" />
-    <PackageReference Include="NPOI" Version="2.6.2" />
+    <PackageReference Include="NPOI" Version="2.7.1" />
   </ItemGroup>
 
   <ItemGroup Label="SourceLink">
