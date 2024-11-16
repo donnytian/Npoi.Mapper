@@ -24,11 +24,11 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs, Has.Count.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.ColumnIndexAttributeProperty);
+            Assert.That(obj.Value.ColumnIndexAttributeProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -46,11 +46,11 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.ColumnNameAttributeProperty);
+            Assert.That(obj.Value.ColumnNameAttributeProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -68,25 +68,24 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs, Has.Count.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.DisplayNameProperty);
+            Assert.That(obj.Value.DisplayNameProperty, Is.EqualTo(str));
         }
 
         [Test]
         public void UseLastNonBlankValueAttributeTest()
         {
             // Prepare
-            var sample = new SampleClass();
             var date = DateTime.Now;
             const string str1 = "aBC";
             const string str2 = "BCD";
             var workbook = GetSimpleWorkbook(date, str1);
 
             var header = workbook.GetSheetAt(1).GetRow(0).CreateCell(41);
-            header.SetCellValue(nameof(sample.UseLastNonBlankValueAttributeProperty));
+            header.SetCellValue(nameof(SampleClass.UseLastNonBlankValueAttributeProperty));
 
             // Create 4 rows, row 22 and 23 have empty values.
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
@@ -100,32 +99,31 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(5, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(5));
 
             var obj = objs[1];
-            Assert.AreEqual(str1, obj.Value.UseLastNonBlankValueAttributeProperty);
+            Assert.That(obj.Value.UseLastNonBlankValueAttributeProperty, Is.EqualTo(str1));
 
             obj = objs[2];
-            Assert.AreEqual(str1, obj.Value.UseLastNonBlankValueAttributeProperty);
+            Assert.That(obj.Value.UseLastNonBlankValueAttributeProperty, Is.EqualTo(str1));
 
             obj = objs[3];
-            Assert.AreEqual(str1, obj.Value.UseLastNonBlankValueAttributeProperty);
+            Assert.That(obj.Value.UseLastNonBlankValueAttributeProperty, Is.EqualTo(str1));
 
             obj = objs[4];
-            Assert.AreEqual(str2, obj.Value.UseLastNonBlankValueAttributeProperty);
+            Assert.That(obj.Value.UseLastNonBlankValueAttributeProperty, Is.EqualTo(str2));
         }
 
         [Test]
         public void IgnoreAttributeTest()
         {
             // Prepare
-            var sample = new SampleClass();
             var date = DateTime.Now;
             const string str1 = "aBC";
             var workbook = GetSimpleWorkbook(date, str1);
 
-            workbook.GetSheetAt(1).GetRow(0).CreateCell(41).SetCellValue(nameof(sample.IgnoredAttributeProperty));
+            workbook.GetSheetAt(1).GetRow(0).CreateCell(41).SetCellValue(nameof(SampleClass.IgnoredAttributeProperty));
             workbook.GetSheetAt(1).CreateRow(21).CreateCell(41).SetCellValue(str1);
 
             var importer = new Mapper(workbook);
@@ -134,7 +132,7 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNull(objs[0].Value.IgnoredAttributeProperty);
+            Assert.That(objs[0].Value.IgnoredAttributeProperty, Is.Null);
         }
     }
 }

@@ -33,11 +33,11 @@ namespace test
             var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -61,11 +61,11 @@ namespace test
             var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -89,11 +89,11 @@ namespace test
             var objs = importer.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
-            Assert.AreEqual(str, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -168,7 +168,7 @@ namespace test
 
             // Assert
             var obj = objs[0];
-            Assert.AreEqual(str2, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str2));
         }
 
         [Test]
@@ -192,8 +192,8 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNull(objs[0].Value.GeneralProperty);
-            Assert.IsNull(objs[1].Value.GeneralProperty);
+            Assert.That(objs[0].Value.GeneralProperty, Is.Null);
+            Assert.That(objs[1].Value.GeneralProperty, Is.Null);
         }
 
         /// <summary>
@@ -252,10 +252,10 @@ namespace test
             }
 
             // Assert
-            Assert.IsNull(objs[1].Value.BaseStringProperty);
-            Assert.IsNull(objs[1].Value.BaseIgnoredProperty);
-            Assert.IsFalse(hasBaseStringProperty);
-            Assert.IsFalse(hasBaseIgnoredProperty);
+            Assert.That(objs[1].Value.BaseStringProperty, Is.Null);
+            Assert.That(objs[1].Value.BaseIgnoredProperty, Is.Null);
+            Assert.That(hasBaseStringProperty, Is.False);
+            Assert.That(hasBaseIgnoredProperty, Is.False);
         }
 
         [Test]
@@ -285,16 +285,16 @@ namespace test
 
             // Assert
             var obj = objs[1];
-            Assert.AreEqual(str1, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str1));
 
             obj = objs[2];
-            Assert.AreEqual(str1, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str1));
 
             obj = objs[3];
-            Assert.AreEqual(str1, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str1));
 
             obj = objs[4];
-            Assert.AreEqual(str2, obj.Value.GeneralProperty);
+            Assert.That(obj.Value.GeneralProperty, Is.EqualTo(str2));
         }
 
         [Test]
@@ -322,10 +322,10 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(str2, objs[0].Value.ColumnIndexAttributeProperty);
-            Assert.AreEqual(str3, objs[0].Value.GeneralProperty);
-            Assert.IsNull(objs[0].Value.ColumnNameAttributeProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.ColumnIndexAttributeProperty, Is.EqualTo(str2));
+            Assert.That(objs[0].Value.GeneralProperty, Is.EqualTo(str3));
+            Assert.That(objs[0].Value.ColumnNameAttributeProperty, Is.Null);
         }
 
         [Test]
@@ -356,8 +356,8 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(str4, objs[0].Value.ColumnIndexAttributeProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.ColumnIndexAttributeProperty, Is.EqualTo(str4));
         }
 
         [Test]
@@ -381,8 +381,8 @@ namespace test
             var objs = mapper.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(str2, objs[0].Value.StringProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.StringProperty, Is.EqualTo(str2));
         }
 
         [Test]
@@ -404,9 +404,9 @@ namespace test
             var objs = mapper.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(0, objs[0].Value.Int32Property);
-            Assert.IsTrue(objs[0].ErrorColumnIndex < 0); // Less than 0 means no error or error ignored.
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.Int32Property, Is.EqualTo(0));
+            Assert.That(objs[0].ErrorColumnIndex < 0); // Less than 0 means no error or error ignored.
         }
 
         [Test]
@@ -434,10 +434,10 @@ namespace test
             var objs = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNull(objs[0].Value.StringProperty);
-            Assert.AreEqual(12, objs[0].Value.Int32Property);
-            Assert.IsNull(objs[0].Value.GeneralProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.StringProperty, Is.Null);
+            Assert.That(objs[0].Value.Int32Property, Is.EqualTo(12));
+            Assert.That(objs[0].Value.GeneralProperty, Is.Null);
         }
 
         [Test]
@@ -465,10 +465,10 @@ namespace test
             var objs = mapper.Take<dynamic>().ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.IsNull(objs[0].Value.StringProperty);
-            Assert.AreEqual(str2, objs[0].Value.Int32Property);
-            Assert.IsNull(objs[0].Value.GeneralProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.StringProperty, Is.Null);
+            Assert.That(objs[0].Value.Int32Property, Is.EqualTo(str2));
+            Assert.That(objs[0].Value.GeneralProperty, Is.Null);
         }
 
         private class TestClass

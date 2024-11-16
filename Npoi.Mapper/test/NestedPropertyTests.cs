@@ -82,18 +82,18 @@ public class NestedPropertyTests : TestBase
         var objs = mapper.Take<Customer>().ToList();
 
         // Assert
-        Assert.IsNotNull(objs);
-        Assert.AreEqual(customerName, objs[0].Value.Name);
-        Assert.AreEqual(customerAge, objs[0].Value.Age);
-        Assert.AreEqual(contactName, objs[0].Value.Billing.Contact.Name);
-        Assert.AreEqual(addressId, objs[0].Value.Billing.Address.AddressId);
-        Assert.AreEqual(date.Date, objs[0].Value.Billing.Dates.Dto.Date);
+        Assert.That(objs, Is.Not.Null);
+        Assert.That(objs[0].Value.Name, Is.EqualTo(customerName));
+        Assert.That(objs[0].Value.Age, Is.EqualTo(customerAge));
+        Assert.That(objs[0].Value.Billing.Contact.Name, Is.EqualTo(contactName));
+        Assert.That(objs[0].Value.Billing.Address.AddressId, Is.EqualTo(addressId));
+        Assert.That(objs[0].Value.Billing.Dates.Dto.Date, Is.EqualTo(date.Date));
 
-        Assert.AreEqual(null, objs[1].Value.Name);
-        Assert.AreEqual(customerAge, objs[1].Value.Age);
-        Assert.AreEqual(null, objs[1].Value.Billing.Contact.Name);
-        Assert.AreEqual(null, objs[1].Value.Billing.Address);
-        Assert.AreEqual(DateTime.MinValue, objs[1].Value.Billing.Dates.Dto.Date);
+        Assert.That(objs[1].Value.Name, Is.EqualTo(null));
+        Assert.That(objs[1].Value.Age, Is.EqualTo(customerAge));
+        Assert.That(objs[1].Value.Billing.Contact.Name, Is.EqualTo(null));
+        Assert.That(objs[1].Value.Billing.Address, Is.EqualTo(null));
+        Assert.That(objs[1].Value.Billing.Dates.Dto.Date, Is.EqualTo(DateTime.MinValue));
     }
 
     [Test]
@@ -146,23 +146,23 @@ public class NestedPropertyTests : TestBase
         var row1 = sheet.GetRow(1);
         var row2 = sheet.GetRow(2);
 
-        Assert.IsNotNull(sheet);
-        Assert.AreEqual(nameof(Customer.Name), row0.GetCell(0).StringCellValue);
-        Assert.AreEqual(nameof(Customer.Age), row0.GetCell(1).StringCellValue);
-        Assert.AreEqual(nameof(Customer.Billing.Contact.Name), row0.GetCell(2).StringCellValue);
-        Assert.AreEqual(nameof(Customer.Billing.Address.AddressId), row0.GetCell(3).StringCellValue);
-        Assert.AreEqual(nameof(Customer.Billing.Dates.Dto), row0.GetCell(4).StringCellValue);
+        Assert.That(sheet, Is.Not.Null);
+        Assert.That(row0.GetCell(0).StringCellValue, Is.EqualTo(nameof(Customer.Name)));
+        Assert.That(row0.GetCell(1).StringCellValue, Is.EqualTo(nameof(Customer.Age)));
+        Assert.That(row0.GetCell(2).StringCellValue, Is.EqualTo(nameof(Customer.Billing.Contact.Name)));
+        Assert.That(row0.GetCell(3).StringCellValue, Is.EqualTo(nameof(Customer.Billing.Address.AddressId)));
+        Assert.That(row0.GetCell(4).StringCellValue, Is.EqualTo(nameof(Customer.Billing.Dates.Dto)));
 
-        Assert.AreEqual(customer1.Name, row1.GetCell(0).StringCellValue);
-        Assert.AreEqual(customer1.Age, row1.GetCell(1).NumericCellValue);
-        Assert.AreEqual(customer1.Billing.Contact.Name, row1.GetCell(2).StringCellValue);
-        Assert.AreEqual(customer1.Billing.Address.AddressId, row1.GetCell(3).NumericCellValue);
-        Assert.AreEqual(customer1.Billing.Dates.Dto.Date, DateTimeOffset.Parse(row1.GetCell(4).StringCellValue).Date);
+        Assert.That(row1.GetCell(0).StringCellValue, Is.EqualTo(customer1.Name));
+        Assert.That(row1.GetCell(1).NumericCellValue, Is.EqualTo(customer1.Age));
+        Assert.That(row1.GetCell(2).StringCellValue, Is.EqualTo(customer1.Billing.Contact.Name));
+        Assert.That(row1.GetCell(3).NumericCellValue, Is.EqualTo(customer1.Billing.Address.AddressId));
+        Assert.That(DateTimeOffset.Parse(row1.GetCell(4).StringCellValue).Date, Is.EqualTo(customer1.Billing.Dates.Dto.Date));
 
-        Assert.AreEqual(customer2.Name ?? "", row2.GetCell(0).StringCellValue);
-        Assert.AreEqual(customer2.Age ?? 0.0, row2.GetCell(1).NumericCellValue);
-        Assert.AreEqual("", row2.GetCell(2).StringCellValue);
-        Assert.AreEqual(customer2.Billing.Address.AddressId, row2.GetCell(3).NumericCellValue);
-        Assert.AreEqual(customer2.Billing.Dates.Dto.Date, DateTimeOffset.Parse(row2.GetCell(4).StringCellValue).Date);
+        Assert.That(row2.GetCell(0).StringCellValue, Is.EqualTo(customer2.Name ?? ""));
+        Assert.That(row2.GetCell(1).NumericCellValue, Is.EqualTo(customer2.Age ?? 0.0));
+        Assert.That(row2.GetCell(2).StringCellValue, Is.EqualTo(""));
+        Assert.That(row2.GetCell(3).NumericCellValue, Is.EqualTo(customer2.Billing.Address.AddressId));
+        Assert.That(DateTimeOffset.Parse(row2.GetCell(4).StringCellValue).Date, Is.EqualTo(customer2.Billing.Dates.Dto.Date));
     }
 }

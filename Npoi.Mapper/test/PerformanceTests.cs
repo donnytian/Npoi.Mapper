@@ -41,6 +41,6 @@ public class PerformanceTests : TestBase
 
         // Assert
         TestContext.Out.WriteLine($"Total Row:{count:0000000} - {watch.Elapsed}");
-        Assert.AreEqual(count, objs.Count);
+        Assert.That(objs.Count, Is.EqualTo(count));
     }
 }
