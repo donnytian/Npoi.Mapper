@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using MathNet.Numerics.LinearAlgebra.Solvers;
 using Npoi.Mapper;
 using NPOI.SS.UserModel;
 using NUnit.Framework;
@@ -39,9 +40,9 @@ namespace test
             var objs = mapper.Take<dynamic>().ToList();
 
             // Assert
-            Assert.AreEqual(date1.ToLongDateString(), objs[0].Value.ColumnDate.ToLongDateString());
-            Assert.AreEqual(str1, objs[0].Value.ColumnString);
-            Assert.IsTrue(objs[0].Value.AAB);
+            Assert.That(objs[0].Value.ColumnDate.ToLongDateString(), Is.EqualTo(date1.ToLongDateString()));
+            Assert.That(objs[0].Value.ColumnString, Is.EqualTo(str1));
+            Assert.That(objs[0].Value.AAB);
         }
 
         [Test]
@@ -75,9 +76,9 @@ namespace test
             var objs = mapper.Take<dynamic>().ToList();
 
             // Assert
-            Assert.AreEqual(date1.ToLongDateString(), objs[3].Value.ColumnDate.ToLongDateString());
-            Assert.AreEqual(str1, objs[3].Value.ColumnString);
-            Assert.IsTrue(objs[3].Value.AAB);
+            Assert.That(objs[3].Value.ColumnDate.ToLongDateString(), Is.EqualTo(date1.ToLongDateString()));
+            Assert.That(objs[3].Value.ColumnString, Is.EqualTo(str1));
+            Assert.That(objs[3].Value.AAB);
         }
 
         [Test]
@@ -110,8 +111,8 @@ namespace test
             objs = mapper.Take<dynamic>().ToList();
 
             // Assert
-            Assert.AreEqual(date2.ToLongDateString(), objs[0].Value.ColumnDate.ToLongDateString());
-            Assert.AreEqual(164, mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat);
+            Assert.That(objs[0].Value.ColumnDate.ToLongDateString(), Is.EqualTo(date2.ToLongDateString()));
+            Assert.That(mapper.Workbook.GetSheetAt(0).GetRow(1).GetCell(5).CellStyle.DataFormat, Is.EqualTo(164));
             File.Delete(tempFileName);
         }
 
@@ -133,7 +134,7 @@ namespace test
             var objs = mapper.Take<dynamic>().ToList();
 
             // Assert
-            Assert.AreEqual(str, objs[0].Value.NIF);
+            Assert.That(objs[0].Value.NIF, Is.EqualTo(str));
         }
 
         [Test]
@@ -170,20 +171,20 @@ namespace test
             var obj = mapper.Take<dynamic>(sheetName).ToList();
 
             // Assert
-            Assert.AreEqual(2, obj.Count);
+            Assert.That(obj, Has.Count.EqualTo(2));
             if (hasHeader)
             {
-                Assert.AreEqual("a", obj[0].Value.GeneralProperty);
-                Assert.AreEqual("b", obj[0].Value.StringProperty);
-                Assert.AreEqual("c", obj[1].Value.GeneralProperty);
-                Assert.AreEqual("d", obj[1].Value.StringProperty);
+                Assert.That(obj[0].Value.GeneralProperty, Is.EqualTo("a"));
+                Assert.That(obj[0].Value.StringProperty, Is.EqualTo("b"));
+                Assert.That(obj[1].Value.GeneralProperty, Is.EqualTo("c"));
+                Assert.That(obj[1].Value.StringProperty, Is.EqualTo("d"));
             }
             else
             {
-                Assert.AreEqual("a", obj[0].Value.A);
-                Assert.AreEqual("b", obj[0].Value.B);
-                Assert.AreEqual("c", obj[1].Value.A);
-                Assert.AreEqual("d", obj[1].Value.B);
+                Assert.That(obj[0].Value.A, Is.EqualTo("a"));
+                Assert.That(obj[0].Value.B, Is.EqualTo("b"));
+                Assert.That(obj[1].Value.A, Is.EqualTo("c"));
+                Assert.That(obj[1].Value.B, Is.EqualTo("d"));
             }
         }
 
@@ -226,15 +227,15 @@ namespace test
             var objs = mapper.TakeDynamicWithColumnType(TypeResolver).ToList();
 
             // Assert
-            Assert.AreEqual(0, objs[0].ErrorColumnIndex);
-            Assert.AreEqual(intValue, objs[0].Value.D);
-            Assert.AreEqual(intValue, objs[1].Value.A);
-            Assert.AreEqual(dateTimeValue, objs[1].Value.B);
-            Assert.AreEqual(stringValue, objs[1].Value.C);
-            Assert.AreEqual(doubleValue, objs[1].Value.D);
+            Assert.That(objs[0].ErrorColumnIndex, Is.EqualTo(0));
+            Assert.That(objs[0].Value.D, Is.EqualTo(intValue));
+            Assert.That(objs[1].Value.A, Is.EqualTo(intValue));
+            Assert.That(objs[1].Value.B, Is.EqualTo(dateTimeValue));
+            Assert.That(objs[1].Value.C, Is.EqualTo(stringValue));
+            Assert.That(objs[1].Value.D, Is.EqualTo(doubleValue));
         }
 
-                [Test]
+        [Test]
         public void TakeDynamic_TwoSheets_WithSameHeaderName()
         {
             // Arrange
@@ -269,12 +270,12 @@ namespace test
             var objs2 = mapper.Take<dynamic>("sheet2").ToList();
 
             // Assert
-            Assert.AreEqual(stringValue, objs1[0].Value.A);
-            Assert.AreEqual(intValue, objs1[0].Value.sheet1B);
-            Assert.AreEqual(doubleValue, objs2[0].Value.A);
+            Assert.That(objs1[0].Value.A, Is.EqualTo(stringValue));
+            Assert.That(objs1[0].Value.sheet1B, Is.EqualTo(intValue));
+            Assert.That(objs2[0].Value.A, Is.EqualTo(doubleValue));
             var diff = dateTimeValue.ToOADate() - objs2[0].Value.sheet2B;
             const double epsilon = 0.0000000001;
-            Assert.IsTrue(Math.Abs(diff) <  epsilon);
+            Assert.That(Math.Abs(diff) <  epsilon);
         }
     }
 }

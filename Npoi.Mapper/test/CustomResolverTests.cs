@@ -62,15 +62,15 @@ namespace test
             var objs = mapper.Take<SampleClass>().ToList();
 
             // Assert "Take"
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(date1.ToLongDateString() + str1, objs[0].Value.SingleColumnResolverProperty);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs[0].Value.SingleColumnResolverProperty, Is.EqualTo(date1.ToLongDateString() + str1));
 
             // Act "Put"
             objs[0].Value.SingleColumnResolverProperty = date1.ToLongDateString() + str2;
             mapper.Put(new[] { objs[0].Value });
 
             // Assert "Put"
-            Assert.AreEqual(str2, sheet.GetRow(1).GetCell(51).StringCellValue);
+            Assert.That(sheet.GetRow(1).GetCell(51).StringCellValue, Is.EqualTo(str2));
         }
 
         [Test]
@@ -148,18 +148,18 @@ namespace test
             var objs = mapper.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
 
-            Assert.AreEqual(2, obj.Value.CollectionGenericProperty.Count);
+            Assert.That(obj.Value.CollectionGenericProperty.Count, Is.EqualTo(2));
 
             var list = obj.Value.CollectionGenericProperty.ToList();
 
             // Assert Take
-            Assert.AreEqual(date1.ToLongDateString() + str1, list[0]);
-            Assert.AreEqual(date2.ToLongDateString() + str2, list[1]);
+            Assert.That(list[0], Is.EqualTo(date1.ToLongDateString() + str1));
+            Assert.That(list[1], Is.EqualTo(date2.ToLongDateString() + str2));
 
             // Act Put
             obj.Value.CollectionGenericProperty.Clear();
@@ -169,8 +169,8 @@ namespace test
 
             // Assert "Put"
             var sheet = workbook.GetSheetAt(1);
-            Assert.AreEqual(str3, sheet.GetRow(1).GetCell(31).StringCellValue);
-            Assert.AreEqual(str3, sheet.GetRow(1).GetCell(33).StringCellValue);
+            Assert.That(sheet.GetRow(1).GetCell(31).StringCellValue, Is.EqualTo(str3));
+            Assert.That(sheet.GetRow(1).GetCell(33).StringCellValue, Is.EqualTo(str3));
         }
 
         //https://github.com/donnytian/Npoi.Mapper/issues/23
@@ -200,7 +200,7 @@ namespace test
             var items = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.AreEqual(SampleEnum.Value3, items[0].Value.EnumProperty);
+            Assert.That(items[0].Value.EnumProperty, Is.EqualTo(SampleEnum.Value3));
         }
 
         //https://github.com/donnytian/Npoi.Mapper/issues/64
@@ -229,7 +229,7 @@ namespace test
             var items = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.AreEqual(value.ToString(format), items[0].Value.DateProperty.ToString(format));
+            Assert.That(items[0].Value.DateProperty.ToString(format), Is.EqualTo(value.ToString(format)));
         }
         
         [Test]
@@ -252,9 +252,9 @@ namespace test
             var items = mapper.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.AreEqual(2, items.Count);
-            Assert.AreEqual("foo", items[0].RowTag);
-            Assert.AreEqual("bar", items[1].RowTag);
+            Assert.That(items.Count, Is.EqualTo(2));
+            Assert.That(items[0].RowTag, Is.EqualTo("foo"));
+            Assert.That(items[1].RowTag, Is.EqualTo("bar"));
         }
     }
 }

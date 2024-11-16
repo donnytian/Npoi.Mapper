@@ -59,11 +59,11 @@ namespace test
             var items = importer.Take<TestClass>("TestClass").ToList();
 
             // Assert
-            Assert.IsNotNull(importer);
-            Assert.IsNotNull(importer.Workbook);
-            Assert.AreEqual(3, items.Count);
-            Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
-            Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+            Assert.That(importer, Is.Not.Null);
+            Assert.That(importer.Workbook, Is.Not.Null);
+            Assert.That(items.Count, Is.EqualTo(3));
+            Assert.That(items[1].Value.DateTime.Year == 2017);
+            Assert.That(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001, Is.True);
         }
 
         [Test]
@@ -77,12 +77,12 @@ namespace test
                 var items = importer.Take<TestDefaultClass>("Sheet1").ToList();
 
                 // Assert
-                Assert.IsNotNull(importer);
-                Assert.IsNotNull(importer.Workbook);
-                Assert.AreEqual(3, items.Count);
-                Assert.IsTrue(items[0].Value.AllowEmails);
-                Assert.IsFalse(items[0].Value.UseDefaultEmail);
-                Assert.AreEqual(1, items[0].Value.HouseHoldNumber);
+                Assert.That(importer, Is.Not.Null);
+                Assert.That(importer.Workbook, Is.Not.Null);
+                Assert.That(items.Count, Is.EqualTo(3));
+                Assert.That(items[0].Value.AllowEmails, Is.True);
+                Assert.That(items[0].Value.UseDefaultEmail, Is.False);
+                Assert.That(items[0].Value.HouseHoldNumber, Is.EqualTo(1));
             }
         }
 
@@ -98,11 +98,11 @@ namespace test
             var items = importer.Take<TestClass>("TestClass").ToList();
 
             // Assert
-            Assert.IsNotNull(importer);
-            Assert.IsNotNull(importer.Workbook);
-            Assert.AreEqual(3, items.Count);
-            Assert.IsTrue(items[1].Value.DateTime.Year == 2017);
-            Assert.IsTrue(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
+            Assert.That(importer, Is.Not.Null);
+            Assert.That(importer.Workbook, Is.Not.Null);
+            Assert.That(items.Count, Is.EqualTo(3));
+            Assert.That(items[1].Value.DateTime.Year == 2017);
+            Assert.That(Math.Abs(items[1].Value.Double - 1.2345) < 0.00001);
         }
 
         [Test]
@@ -116,9 +116,9 @@ namespace test
             var items = importer.Take<NullableClass>("NullableClass").ToList();
 
             // Assert
-            Assert.IsTrue(items[0].Value.NullableDateTime.Value.Year == 2017);
-            Assert.IsTrue(items[1].Value.NullableDateTime.Value.Year == 2017);
-            Assert.IsTrue(items[2].Value.NullableDateTime.Value.Year == 2017);
+            Assert.That(items[0].Value.NullableDateTime.Value.Year == 2017);
+            Assert.That(items[1].Value.NullableDateTime.Value.Year == 2017);
+            Assert.That(items[2].Value.NullableDateTime.Value.Year == 2017);
         }
 
         [Test]
@@ -131,8 +131,8 @@ namespace test
             var items = importer.Take<NullableClass>("NullableClass").ToList();
 
             // Assert
-            Assert.AreEqual(0, items[3].ErrorColumnIndex);
-            Assert.IsNull(items[3].Value.NullableDateTime);
+            Assert.That(items[3].ErrorColumnIndex, Is.EqualTo(0));
+            Assert.That(items[3].Value.NullableDateTime, Is.Null);
         }
 
         [Test]
@@ -146,10 +146,10 @@ namespace test
             var items = importer.Take<NullableClass>("NullableClass").ToList();
 
             // Assert
-            Assert.IsNull(items[2].Value.NullableDateTime);
-            Assert.IsNotNull(items[2].Value.NormalString);
-            Assert.IsNull(items[3].Value.NullableDateTime);
-            Assert.IsNotNull(items[3].Value.NormalString);
+            Assert.That(items[2].Value.NullableDateTime, Is.Null);
+            Assert.That(items[2].Value.NormalString, Is.Not.Null);
+            Assert.That(items[3].Value.NullableDateTime, Is.Null);
+            Assert.That(items[3].Value.NormalString, Is.Not.Null);
         }
 
         [Test]
@@ -162,8 +162,8 @@ namespace test
             var importer = new Mapper(workbook);
 
             // Assert
-            Assert.IsNotNull(importer);
-            Assert.IsNotNull(importer.Workbook);
+            Assert.That(importer, Is.Not.Null);
+            Assert.That(importer.Workbook, Is.Not.Null);
         }
 
         [Test]
@@ -202,8 +202,8 @@ namespace test
 
 
             // Assert
-            Assert.IsNotNull(importer);
-            Assert.IsNotNull(importer.Workbook);
+            Assert.That(importer, Is.Not.Null);
+            Assert.That(importer.Workbook, Is.Not.Null);
         }
 
         [Test]
@@ -232,8 +232,8 @@ namespace test
             var objs = importer.Take<SampleClass>(0);
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(0, objs.Count());
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count(), Is.EqualTo(0));
         }
 
         [Test]
@@ -248,8 +248,8 @@ namespace test
             var objs = importer.Take<SampleClass>(0);
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(0, objs.Count());
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count(), Is.EqualTo(0));
         }
 
         [Test]
@@ -265,14 +265,14 @@ namespace test
             var objs = importer.Take<SampleClass>(1).ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
             var objDate = obj.Value.DateProperty;
 
-            Assert.AreEqual(date.ToLongDateString(), objDate.ToLongDateString());
-            Assert.AreEqual(str, obj.Value.StringProperty);
+            Assert.That(objDate.ToLongDateString(), Is.EqualTo(date.ToLongDateString()));
+            Assert.That(obj.Value.StringProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -304,14 +304,14 @@ namespace test
             var objs = importer.Take<SampleClass>("sheet2").ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(1, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(1));
 
             var obj = objs[0];
             var objDate = obj.Value.DateProperty;
 
-            Assert.AreEqual(date.ToLongDateString(), objDate.ToLongDateString());
-            Assert.AreEqual(str, obj.Value.StringProperty);
+            Assert.That(objDate.ToLongDateString(), Is.EqualTo(date.ToLongDateString()));
+            Assert.That(obj.Value.StringProperty, Is.EqualTo(str));
         }
 
         [Test]
@@ -327,8 +327,8 @@ namespace test
             var objs = importer.Take<SampleClass>("notExistSheet").ToList();
 
             // Assert
-            Assert.IsNotNull(objs);
-            Assert.AreEqual(0, objs.Count);
+            Assert.That(objs, Is.Not.Null);
+            Assert.That(objs.Count, Is.EqualTo(0));
         }
 
         [Test]
@@ -364,8 +364,8 @@ namespace test
             var items = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.AreEqual(default(int), items[0].Value.Int32Property);
-            Assert.AreEqual(1, items[1].ErrorColumnIndex);
+            Assert.That(items[0].Value.Int32Property, Is.EqualTo(default(int)));
+            Assert.That(items[1].ErrorColumnIndex, Is.EqualTo(1));
         }
 
         [Test]
@@ -404,12 +404,12 @@ namespace test
             var items = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.AreEqual(int1, items[0].Value.DoubleProperty);
-            Assert.AreEqual(Math.Round(dou1), items[0].Value.Int32Property);
-            Assert.AreEqual(str1, items[0].Value.StringProperty);
-            Assert.AreEqual(default(double), items[1].Value.DoubleProperty);
-            Assert.AreEqual(default(int), items[1].Value.Int32Property);
-            Assert.AreEqual(str2, items[1].Value.StringProperty);
+            Assert.That(items[0].Value.DoubleProperty, Is.EqualTo(int1));
+            Assert.That(items[0].Value.Int32Property, Is.EqualTo(Math.Round(dou1)));
+            Assert.That(items[0].Value.StringProperty, Is.EqualTo(str1));
+            Assert.That(items[1].Value.DoubleProperty, Is.EqualTo(default(double)));
+            Assert.That(items[1].Value.Int32Property, Is.EqualTo(default(int)));
+            Assert.That(items[1].Value.StringProperty, Is.EqualTo(str2));
         }
 
         [Test]
@@ -441,9 +441,9 @@ namespace test
             var items = mapper.Take<SampleClass>().ToList();
 
             // Assert
-            Assert.AreEqual(SampleEnum.Value1, items[0].Value.EnumProperty);
-            Assert.AreEqual(SampleEnum.Value2, items[1].Value.EnumProperty);
-            Assert.AreEqual(SampleEnum.Value3, items[2].Value.EnumProperty);
+            Assert.That(items[0].Value.EnumProperty, Is.EqualTo(SampleEnum.Value1));
+            Assert.That(items[1].Value.EnumProperty, Is.EqualTo(SampleEnum.Value2));
+            Assert.That(items[2].Value.EnumProperty, Is.EqualTo(SampleEnum.Value3));
         }
 
         [Test]
@@ -471,8 +471,8 @@ namespace test
             var obj = mapper.Take<SampleClass>().Select(o => o.Value).ToArray()[0];
 
             // Assert
-            Assert.AreEqual("a", obj.StringProperty);
-            Assert.AreEqual("b", obj.GeneralProperty);
+            Assert.That(obj.StringProperty, Is.EqualTo("a"));
+            Assert.That(obj.GeneralProperty, Is.EqualTo("b"));
         }
 
         [Test]
@@ -511,11 +511,11 @@ namespace test
             var obj = mapper.Take<SampleClass>(sheetName).ToList();
 
             // Assert
-            Assert.AreEqual(2, obj.Count);
-            Assert.AreEqual("a", obj[0].Value.GeneralProperty);
-            Assert.AreEqual("b", obj[0].Value.StringProperty);
-            Assert.AreEqual("c", obj[1].Value.GeneralProperty);
-            Assert.AreEqual("d", obj[1].Value.StringProperty);
+            Assert.That(obj.Count, Is.EqualTo(2));
+            Assert.That(obj[0].Value.GeneralProperty, Is.EqualTo("a"));
+            Assert.That(obj[0].Value.StringProperty, Is.EqualTo("b"));
+            Assert.That(obj[1].Value.GeneralProperty, Is.EqualTo("c"));
+            Assert.That(obj[1].Value.StringProperty, Is.EqualTo("d"));
         }
 
         private class TestTrimClass
@@ -550,8 +550,8 @@ namespace test
             var items = mapper.Take<TestTrimClass>().ToList();
 
             // Assert
-            Assert.AreEqual(str1, items[0].Value.StringProperty);
-            Assert.AreEqual(str2, items[1].Value.StringProperty);
+            Assert.That(items[0].Value.StringProperty, Is.EqualTo(str1));
+            Assert.That(items[1].Value.StringProperty, Is.EqualTo(str2));
         }
 
         private class TestGuidClass
@@ -581,7 +581,7 @@ namespace test
             var items = mapper.Take<TestGuidClass>().ToList();
 
             // Assert
-            Assert.AreEqual(id, items[0].Value.ID);
+            Assert.That(items[0].Value.ID, Is.EqualTo(id));
         }
 
         [Test]
@@ -603,7 +603,7 @@ namespace test
             var items = mapper.Take<TestClass>().ToList();
 
             // Assert
-            Assert.AreEqual(value, items[0].Value.String);
+            Assert.That(items[0].Value.String, Is.EqualTo(value));
         }
 
         [Test]
@@ -632,8 +632,8 @@ namespace test
             var items = mapper.Take<TestClass>().ToList();
 
             // Assert
-            Assert.AreEqual(1, items.Count);
-            Assert.AreEqual(value, items[0].Value.String);
+            Assert.That(items.Count, Is.EqualTo(1));
+            Assert.That(items[0].Value.String, Is.EqualTo(value));
         }
 
         [Test]
@@ -659,9 +659,9 @@ namespace test
             var items = mapper.Take<TestClass>().ToList();
 
             // Assert
-            Assert.AreEqual(2, items.Count);
-            Assert.AreEqual(value, items[0].Value.String);
-            Assert.AreEqual(hiddenValue, items[1].Value.String);
+            Assert.That(items.Count, Is.EqualTo(2));
+            Assert.That(items[0].Value.String, Is.EqualTo(value));
+            Assert.That(items[1].Value.String, Is.EqualTo(hiddenValue));
         }
 
         [Test]
@@ -690,10 +690,10 @@ namespace test
             var items = mapper.Take<TestClass>().ToList();
 
             // Assert
-            Assert.AreEqual(value.DateTime, items[0].Value.DateTime);
-            Assert.AreEqual(value, items[0].Value.DateTimeOffsetProperty);
-            Assert.AreEqual(value.DateTime, items[1].Value.DateTime);
-            Assert.AreEqual(value, items[1].Value.DateTimeOffsetProperty);
+            Assert.That(items[0].Value.DateTime, Is.EqualTo(value.DateTime));
+            Assert.That(items[0].Value.DateTimeOffsetProperty, Is.EqualTo(value));
+            Assert.That(items[1].Value.DateTime, Is.EqualTo(value.DateTime));
+            Assert.That(items[1].Value.DateTimeOffsetProperty, Is.EqualTo(value));
         }
 
         [Test]
@@ -730,13 +730,13 @@ namespace test
             var items = mapper.Take<NullableClass>().ToList();
 
             // Assert
-            Assert.AreEqual(value.DateTime, items[0].Value.NullableDateTime);
-            Assert.AreEqual(value, items[0].Value.NullableDateTimeOffset);
-            Assert.AreEqual(value.DateTime, items[1].Value.NullableDateTime);
-            Assert.AreEqual(value, items[1].Value.NullableDateTimeOffset);
-            Assert.AreEqual(value.ToString(CultureInfo.InvariantCulture), items[2].Value.NormalString);
-            Assert.IsNull(items[2].Value.NullableDateTime);
-            Assert.IsNull(items[2].Value.NullableDateTimeOffset);
+            Assert.That(items[0].Value.NullableDateTime, Is.EqualTo(value.DateTime));
+            Assert.That(items[0].Value.NullableDateTimeOffset, Is.EqualTo(value));
+            Assert.That(items[1].Value.NullableDateTime, Is.EqualTo(value.DateTime));
+            Assert.That(items[1].Value.NullableDateTimeOffset, Is.EqualTo(value));
+            Assert.That(items[2].Value.NormalString, Is.EqualTo(value.ToString(CultureInfo.InvariantCulture)));
+            Assert.That(items[2].Value.NullableDateTime, Is.Null);
+            Assert.That(items[2].Value.NullableDateTimeOffset, Is.Null);
         }
 
         [Test]
@@ -779,9 +779,9 @@ namespace test
             var items = mapper.Take<TestClass>().ToList();
 
             // Assert
-            Assert.AreEqual(doubleValue.ToString(CultureInfo.InvariantCulture), items[0].Value.String);
-            Assert.AreEqual(dateString, items[1].Value.String);
-            Assert.AreEqual(doubleString, items[2].Value.String);
+            Assert.That(items[0].Value.String, Is.EqualTo(doubleValue.ToString(CultureInfo.InvariantCulture)));
+            Assert.That(items[1].Value.String, Is.EqualTo(dateString));
+            Assert.That(items[2].Value.String, Is.EqualTo(doubleString));
         }
     }
 }

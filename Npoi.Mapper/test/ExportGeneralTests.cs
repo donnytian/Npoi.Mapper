@@ -64,11 +64,11 @@ namespace test
             var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(1).GetCell(1);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
-            Assert.AreEqual(dummyObj.String, exporter.Take<DummyClass>(sheetName).First().Value.String);
-            Assert.AreEqual(dummyObj.Double, exporter.Take<DummyClass>(sheetName).First().Value.Double);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows, Is.EqualTo(2));
+            Assert.That(DateUtil.IsCellDateFormatted(dateCell));
+            Assert.That(exporter.Take<DummyClass>(sheetName).First().Value.String, Is.EqualTo(dummyObj.String));
+            Assert.That(exporter.Take<DummyClass>(sheetName).First().Value.Double, Is.EqualTo(dummyObj.Double));
         }
 
         [Test]
@@ -89,11 +89,11 @@ namespace test
             var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(1).GetCell(1);
 
             // Assert
-            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
-            Assert.AreEqual(dummyObj.DateTime.ToLongDateString(), items.First().Value.DateTime.ToLongDateString());
-            Assert.AreEqual(dummyObj.Double, items.First().Value.Double);
-            Assert.AreEqual(dummyObj.DateTime2.ToLongDateString(), items.First().Value.DateTime2.ToLongDateString());
+            Assert.That(exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows, Is.EqualTo(2));
+            Assert.That(DateUtil.IsCellDateFormatted(dateCell));
+            Assert.That(items.First().Value.DateTime.ToLongDateString(), Is.EqualTo(dummyObj.DateTime.ToLongDateString()));
+            Assert.That(items.First().Value.Double, Is.EqualTo(dummyObj.Double));
+            Assert.That(items.First().Value.DateTime2.ToLongDateString(), Is.EqualTo(dummyObj.DateTime2.ToLongDateString()));
         }
 
         [Test]
@@ -118,12 +118,12 @@ namespace test
             var dateCell = exporter.Workbook.GetSheetAt(0).GetRow(2).GetCell(0);
 
             // Assert
-            Assert.AreEqual(3, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
-            Assert.AreEqual(obj1.DummyString, items.First().Value.DummyString);
-            Assert.AreEqual(obj2.NullableDateTime.Value.ToLongDateString(), items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString());
-            Assert.IsTrue(DateUtil.IsCellDateFormatted(dateCell));
-            Assert.AreEqual(obj2.NullableDateTime.Value.ToLongDateString(), items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString());
-            Assert.IsFalse(exporter.Take<NullableClass>(sheetName).First().Value.NullableDateTime.HasValue);
+            Assert.That(exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows, Is.EqualTo(3));
+            Assert.That(items.First().Value.DummyString, Is.EqualTo(obj1.DummyString));
+            Assert.That(items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString(), Is.EqualTo(obj2.NullableDateTime.Value.ToLongDateString()));
+            Assert.That(DateUtil.IsCellDateFormatted(dateCell));
+            Assert.That(items.Skip(1).First().Value.NullableDateTime.Value.ToLongDateString(), Is.EqualTo(obj2.NullableDateTime.Value.ToLongDateString()));
+            Assert.That(exporter.Take<NullableClass>(sheetName).First().Value.NullableDateTime.HasValue, Is.False);
         }
 
         [Test]
@@ -138,8 +138,8 @@ namespace test
             exporter.Save(FileName, new[] { sampleObj }, "newSheet", false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows, Is.EqualTo(2));
         }
 
         [Test]
@@ -155,8 +155,8 @@ namespace test
             exporter.Save(FileName, objs.Select(info => info.Value), "newSheet", false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(2, exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(exporter.Workbook.GetSheet("newSheet").PhysicalNumberOfRows, Is.EqualTo(2));
         }
 
         [Test]
@@ -175,8 +175,8 @@ namespace test
 
             // Assert
             var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreNotEqual(0, doubleStyle.DataFormat);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(doubleStyle.DataFormat, Is.Not.EqualTo(0));
         }
 
         [Test]
@@ -197,8 +197,8 @@ namespace test
 
             // Assert
             var doubleStyle = exporter.Workbook.GetSheet("newSheet").GetRow(1).GetCell(12).CellStyle;
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreNotEqual(0, doubleStyle.DataFormat);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(doubleStyle.DataFormat, Is.Not.EqualTo(0));
         }
 
         [Test]
@@ -213,8 +213,8 @@ namespace test
             exporter.Save(FileName, new[] { sampleObj, }, sheetName, false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook);
-            Assert.AreEqual(1, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.That(exporter.Workbook, Is.Not.Null);
+            Assert.That(exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows, Is.EqualTo(1));
         }
 
         [Test]
@@ -231,8 +231,8 @@ namespace test
             exporter.Save(existingFile, new[] { sampleObj, }, sheetName, false, false);
 
             // Assert
-            Assert.IsNotNull(exporter.Workbook as XSSFWorkbook);
-            Assert.AreEqual(2, exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows);
+            Assert.That(exporter.Workbook as XSSFWorkbook, Is.Not.Null);
+            Assert.That(exporter.Workbook.GetSheet(sheetName).PhysicalNumberOfRows, Is.EqualTo(2));
             File.Delete(existingFile);
         }
 
@@ -253,9 +253,9 @@ namespace test
             // Assert
             var sheet = exporter.Workbook.GetSheet(sheetName);
             var cellValue = sheet.GetRow(1).Cells[0].NumericCellValue;
-            Assert.IsTrue(exporter.Workbook.NumberOfSheets > 1);
-            Assert.IsTrue(sheet.LastRowNum == 1);
-            Assert.AreEqual(sampleObj.Int32Property, cellValue);
+            Assert.That(exporter.Workbook.NumberOfSheets > 1, Is.True);
+            Assert.That(sheet.LastRowNum == 1, Is.True);
+            Assert.That(cellValue, Is.EqualTo(sampleObj.Int32Property));
             File.Delete(existingFile);
         }
 
@@ -276,8 +276,8 @@ namespace test
 
             // Assert
             var sheet = exporter.Workbook.GetSheet(sheetName);
-            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue?.Date);
+            Assert.That(sheet.GetRow(4).GetCell(1).StringCellValue, Is.EqualTo(sampleObj.GeneralProperty));
+            Assert.That(sheet.GetRow(4).GetCell(2).DateCellValue?.Date, Is.EqualTo(sampleObj.DateProperty.Date));
             File.Delete(existingFile);
         }
 
@@ -299,8 +299,8 @@ namespace test
 
             // Assert
             var sheet = workbook.GetSheet(sheetName);
-            Assert.AreEqual(sampleObj.GeneralProperty, sheet.GetRow(4).GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, sheet.GetRow(4).GetCell(2).DateCellValue?.Date);
+            Assert.That(sheet.GetRow(4).GetCell(1).StringCellValue, Is.EqualTo(sampleObj.GeneralProperty));
+            Assert.That(sheet.GetRow(4).GetCell(2).DateCellValue?.Date, Is.EqualTo(sampleObj.DateProperty.Date));
             File.Delete(existingFile);
         }
 
@@ -326,9 +326,9 @@ namespace test
             // Assert
             var sheet = workbook.GetSheet(sheetName);
             var row = sheet.GetRow(1);
-            Assert.AreEqual(1, sheet.LastRowNum);
-            Assert.AreEqual(sampleObj.GeneralProperty, row.GetCell(1).StringCellValue);
-            Assert.AreEqual(sampleObj.DateProperty.Date, row.GetCell(2).DateCellValue?.Date);
+            Assert.That(sheet.LastRowNum, Is.EqualTo(1));
+            Assert.That(row.GetCell(1).StringCellValue, Is.EqualTo(sampleObj.GeneralProperty));
+            Assert.That(row.GetCell(2).DateCellValue?.Date, Is.EqualTo(sampleObj.DateProperty.Date));
         }
 
         [Test]
@@ -344,7 +344,7 @@ namespace test
             exporter.Save(fileName, false);
 
             // Assert
-            Assert.IsTrue(File.Exists(fileName));
+            Assert.That(File.Exists(fileName), Is.True);
             File.Delete(fileName);
         }
 
@@ -361,7 +361,7 @@ namespace test
             mapper.Put(new[] { new object(), }, 100);
 
             // Assert
-            Assert.IsTrue(workbook.NumberOfSheets > 0);
+            Assert.That(workbook.NumberOfSheets > 0, Is.True);
         }
 
         [Test]
@@ -376,7 +376,7 @@ namespace test
             mapper.Put(new[] { new object(), }, "sheet100");
 
             // Assert
-            Assert.IsTrue(workbook.NumberOfSheets > 0);
+            Assert.That(workbook.NumberOfSheets > 0, Is.True);
         }
 
         [Test]
@@ -399,9 +399,9 @@ namespace test
 
             // Assert
             var row = sheet.GetRow(0);
-            Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
-            Assert.AreEqual(nameInt, row.GetCell(1).StringCellValue);
-            Assert.AreEqual(nameBool, row.GetCell(2).StringCellValue);
+            Assert.That(row.GetCell(0).StringCellValue, Is.EqualTo(nameString));
+            Assert.That(row.GetCell(1).StringCellValue, Is.EqualTo(nameInt));
+            Assert.That(row.GetCell(2).StringCellValue, Is.EqualTo(nameBool));
         }
 
         [Test]
@@ -425,8 +425,8 @@ namespace test
             // Assert
             var firstDataRowIndex = hasHeader ? firstRowIndex + 1 : firstRowIndex;
             var row = sheet.GetRow(firstDataRowIndex);
-            Assert.AreEqual(1 + (hasHeader ? 1 : 0), sheet.PhysicalNumberOfRows);
-            Assert.AreEqual(nameString, row.GetCell(0).StringCellValue);
+            Assert.That(sheet.PhysicalNumberOfRows, Is.EqualTo(1 + (hasHeader ? 1 : 0)));
+            Assert.That(row.GetCell(0).StringCellValue, Is.EqualTo(nameString));
         }
 
         [Test]
@@ -448,8 +448,8 @@ namespace test
             // Assert
             var result = WriteAndReadBack(mapper.Workbook);
             var row = result.GetSheetAt(0).GetRow(0);
-            Assert.IsTrue(row.Cells.Count > 0);
-            Assert.IsFalse(string.IsNullOrWhiteSpace(row.Cells[0].StringCellValue));
+            Assert.That(row.Cells.Count > 0);
+            Assert.That(string.IsNullOrWhiteSpace(row.Cells[0].StringCellValue), Is.False);
         }
     }
 }
